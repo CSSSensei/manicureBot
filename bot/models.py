@@ -27,3 +27,23 @@ class CutMessageCallBack(CallbackData, prefix='cut'):
     action: int
     user_id: int = 0
     page: int = 1
+
+
+class MonthCallBack(CallbackData, prefix="calendar"):
+    day: int = 0
+    month: int = 0
+    year: int = 0
+    action: int = 0  # 0 -ничего, 1 - след месяц, -1 - предыдущий месяц, 3 - след год, 4 - пред год
+
+
+class SlotCallBack(CallbackData, prefix="slot"):
+    slot_id: int
+
+
+class ServiceCallBack(CallbackData, prefix="service"):
+    service_id: int
+
+
+class ActionButtonCallBack(CallbackData, prefix="action_button"):
+    action: int  # 1 - вперед, -1 -назад, 0 - отмена
+    current_page: Optional[int] = None

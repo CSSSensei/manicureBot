@@ -33,11 +33,12 @@ answer:
 
 button:
   next_page: "»"
-  past_page: "«"
+  prev_page: "«"
   booking: "Записаться"
   cancel: "Отмена"
   next: "Далее"
   back: "Назад"
+  confirm: "Подтвердить"
 
 
 placeholder_appeal: "Лучший маникюр"
