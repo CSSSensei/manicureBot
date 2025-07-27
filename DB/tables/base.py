@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class BaseTable:
     __tablename__: str
 
-    def __init__(self, db_name: str = f'{os.path.dirname(__file__)}/users.db'):
+    def __init__(self, db_name: str = f'{os.path.dirname(__file__)}/z_users.db'):
         self.conn = sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
@@ -35,6 +35,12 @@ class BaseTable:
             action,
             ', '.join(f'{k}={v}' for k, v in kwargs.items()),
         )
+
+    def _check_record_exists(self, table: str, column: str, value: int) -> bool:
+        """Проверяет существование записи в указанной таблице."""
+        query = f"SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1"
+        self.cursor.execute(query, (value,))
+        return bool(self.cursor.fetchone())
 
     @property
     def tablename(self) -> str:

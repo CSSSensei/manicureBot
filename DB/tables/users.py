@@ -19,6 +19,7 @@ class UsersTable(BaseTable):
             last_name TEXT,
             is_admin BOOLEAN NOT NULL DEFAULT 0,
             is_banned BOOLEAN NOT NULL DEFAULT 0,
+            phone_number TEXT,
             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
         self.conn.commit()
@@ -73,7 +74,8 @@ class UsersTable(BaseTable):
                     datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
                     if row['registration_date']
                     else None
-                )
+                ),
+                phone_number=row['phone_number']
             )
         return None
 
@@ -111,7 +113,7 @@ class UsersTable(BaseTable):
         self.cursor.execute('''
             SELECT 
                 u.user_id, u.username, u.first_name, u.last_name, 
-                u.is_admin, u.is_banned, u.registration_date,
+                u.is_admin, u.is_banned, u.registration_date, u.phone_number,
                 COUNT(q.query_id) as query_count
             FROM users u
             LEFT JOIN queries q ON u.user_id = q.user_id
@@ -131,6 +133,7 @@ class UsersTable(BaseTable):
                 datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
                 if row['registration_date']
                 else None),
+            phone_number=row['phone_number'],
             query_count=row['query_count']
         ) for row in self.cursor]
 
@@ -157,7 +160,8 @@ class UsersTable(BaseTable):
                 datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
                 if row['registration_date']
                 else None
-            )
+            ),
+            phone_number=row['phone_number']
         ) for row in self.cursor]
 
     def set_admin(self, user_id: int, set_by: int, is_admin: bool = True) -> bool:
@@ -211,9 +215,16 @@ class UsersTable(BaseTable):
             self._log('ERROR', error=str(e), action='SET_BAN_STATUS', user_id=user_id)
             return False
 
+    def update_phone(self, user_id: int, phone: str) -> None:
+        """Обновляет номер телефона клиента"""
+        query = f"UPDATE {self.__tablename__} SET phone_number = ? WHERE user_id = ?"
+        self.cursor.execute(query, (phone, user_id))
+        self._log('UPDATE_CLIENT_PHONE', user_id=user_id, phone_number=phone)
+
 
 if __name__ == '__main__':
     with UsersTable() as users_db:
+        users_db.add_user(UserModel(1, 'fasdf', 'cvnbn', 'rqwerq'))
         users_row, info = users_db.get_all_users(1, 100)
         for user_unit in users_row:
             print(user_unit.__dict__)
