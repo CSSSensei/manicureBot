@@ -7,11 +7,10 @@ def __make_placeholder_appeal() -> str:
     return PHRASES_RU.placeholder_appeal
 
 
-button_1: KButton = KButton(text='Кнопка 1')
-button_2: KButton = KButton(text='Кнопка 2')
+booking_button: KButton = KButton(text=PHRASES_RU.button.booking)
 
 keyboard: KMarkup = KMarkup(
-    keyboard=[[button_1], [button_2]],
+    keyboard=[[booking_button]],
     resize_keyboard=True,
     one_time_keyboard=False,
     input_field_placeholder=__make_placeholder_appeal())
