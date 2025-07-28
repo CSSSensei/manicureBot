@@ -1,10 +1,10 @@
-import datetime
 import logging
 from typing import Optional, Awaitable, Callable
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from DB.tables.slots import SlotsTable
 from bot.models import Appointment
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
@@ -72,7 +72,8 @@ class AppointmentNavigation:
 
         if action == -1:  # Назад
             if prev_state := cls.get_prev_state(current_state):
-                await cls._clear_step_data(state, prev_state)
+                if await cls._clear_step_data(state, prev_state):
+                    await cls._notify_user(callback, prev_state)
                 await state.set_state(cls.STATES[prev_state])
                 await cls._call_step_handler(callback, state, prev_state)
             return
@@ -87,7 +88,7 @@ class AppointmentNavigation:
                 await cls._call_step_handler(callback, state, next_state)
 
     @classmethod
-    async def _clear_step_data(cls, state: FSMContext, step: str):
+    async def _clear_step_data(cls, state: FSMContext, step: str) -> bool:
         """Очищает данные, связанные с определенным шагом"""
         clear_rules = {
             'WAITING_FOR_DATE': {'slot_date': None},
@@ -97,7 +98,23 @@ class AppointmentNavigation:
             'WAITING_FOR_COMMENT': {'text': None}
         }
         if step in clear_rules:
+            data = await state.get_data()
+            required_keys = clear_rules[step].keys()
             await cls.update_appointment_data(state, **clear_rules[step])
+            return all(key in data and data[key] is not None for key in required_keys)
+        return False
+
+    @classmethod
+    async def _notify_user(cls, callback: CallbackQuery, step: str):
+        notify_rules = {
+            'WAITING_FOR_DATE': None,
+            'WAITING_FOR_SLOT': None,
+            'WAITING_FOR_SERVICE': None,
+            'WAITING_FOR_PHOTOS': PHRASES_RU.callback.answer.photo_delete,
+            'WAITING_FOR_COMMENT': PHRASES_RU.callback.answer.comment_delete
+        }
+        await callback.answer(text=notify_rules[step])
+
 
     @classmethod
     async def _call_step_handler(cls, callback: CallbackQuery, state: FSMContext, step: str):
@@ -115,10 +132,12 @@ class AppointmentNavigation:
 
     @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: Appointment):
-        current_date = datetime.datetime.now()
-        current_month = current_date.month
-        current_year = current_date.year
-        await callback.message.edit_text(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(current_month, current_year, False))
+        with SlotsTable() as slots_db:
+            first_slot = slots_db.get_first_available_slot()
+            if first_slot:
+                await callback.message.edit_text(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
+            else:
+                await callback.message.edit_text(PHRASES_RU.error.no_slots)
 
     @staticmethod
     async def _show_slot_selection(callback: CallbackQuery, data: Appointment):

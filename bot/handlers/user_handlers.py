@@ -1,12 +1,10 @@
-from typing import Dict, List
-
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram import Router, F
-import datetime
 
 from DB.models import PhotoModel
+from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
 from bot.keyboards import user_keyboards
 from bot.keyboards import inline_keyboards as ikb
@@ -30,11 +28,13 @@ async def _(message: Message):
 
 @router.message(F.text == PHRASES_RU.button.booking)
 async def booking_message(message: Message, state: FSMContext):
-    current_date = datetime.datetime.now()
-    current_month = current_date.month
-    current_year = current_date.year
     await state.set_state(AppointmentStates.WAITING_FOR_DATE)
-    await message.answer(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(current_month, current_year, False))
+    with SlotsTable() as slots_db:
+        first_slot = slots_db.get_first_available_slot()
+        if first_slot:
+            await message.answer(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
+        else:
+            await message.answer(PHRASES_RU.error.no_slots)
 
 
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_PHOTOS))

@@ -107,6 +107,25 @@ class SlotsTable(BaseTable):
         end = datetime.combine(day, time.max)
         return self.get_available_slots(from_time=start, to_time=end)
 
+    def get_first_available_slot(self) -> Optional[datetime]:
+        """Проверяет наличие свободных слотов и возвращает дату первого доступного.
+
+        Returns:
+            Optional[datetime]: Дата начала первого свободного слота или None, если свободных слотов нет.
+        """
+        query = f"""
+            SELECT start_time FROM {self.__tablename__} 
+            WHERE is_available = TRUE
+            ORDER BY start_time ASC
+            LIMIT 1
+        """
+        self.cursor.execute(query)
+        row = self.cursor.fetchone()
+
+        if row:
+            return datetime.fromisoformat(row['start_time']) if row['start_time'] else None
+        return None
+
     def reserve_slot(self, slot_id: int) -> bool:
         """Помечает слот как занятый."""
         if not self._check_record_exists('slots', 'id', slot_id):
@@ -123,14 +142,14 @@ class SlotsTable(BaseTable):
 
 if __name__ == '__main__':
     with SlotsTable() as slots_db:
-        slots_db.add_slot(datetime.now() + timedelta(hours=3), datetime.now() + timedelta(hours=5))
-        slots_db.add_slot(datetime.now() + timedelta(hours=6), datetime.now() + timedelta(hours=8))
-        slots_db.add_slot(datetime.now() + timedelta(hours=13), datetime.now() + timedelta(hours=15))
-        slots_db.add_slot(datetime.now() + timedelta(hours=23), datetime.now() + timedelta(hours=25))
-        slots_db.add_slot(datetime.now() + timedelta(hours=33), datetime.now() + timedelta(hours=35))
-        slots_db.add_slot(datetime.now() + timedelta(hours=26), datetime.now() + timedelta(hours=27))
-        slots_db.add_slot(datetime.now() + timedelta(hours=56), datetime.now() + timedelta(hours=59))
-        slots_db.add_slot(datetime.now() + timedelta(hours=50), datetime.now() + timedelta(hours=52))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=5), datetime.now() + timedelta(days=7, hours=5))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=6), datetime.now() + timedelta(days=7, hours=8))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=13), datetime.now() + timedelta(days=7, hours=15))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=23), datetime.now() + timedelta(days=7, hours=25))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=33), datetime.now() + timedelta(days=7, hours=35))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=26), datetime.now() + timedelta(days=7, hours=27))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=56), datetime.now() + timedelta(days=7, hours=59))
+        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=50), datetime.now() + timedelta(days=7, hours=52))
 
         print(slots_db.get_available_slots(datetime.now(), datetime.now() + timedelta(hours=8)))
         print(slots_db.get_available_slots(datetime.now(), datetime.now() + timedelta(hours=40)))

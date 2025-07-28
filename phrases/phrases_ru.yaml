@@ -72,6 +72,7 @@ error:
     2. Добавить номер телефона или любую контактную информацию через /add_contact
     
     Без этой информации с Вами нельзя связаться!
+  no_slots: "⚠️ Свободных слотов нет!"
 
 title:
   users: "<b>Пользователи</b>"
@@ -121,3 +122,7 @@ template:
     service: "<b>{service}</b>\n"
     text: "<b>Примечание:</b><blockquote>{text}</blockquote>\n"
 
+callback:
+  answer:
+    photo_delete: "Фото очищены"
+    comment_delete: "Комментарий очищен"
