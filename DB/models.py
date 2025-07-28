@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
 
+from phrases import PHRASES_RU
+
 
 @dataclass
 class UserModel:
@@ -75,6 +77,12 @@ class SlotModel:
     is_available: bool
     id: Optional[int] = None
 
+    def __str__(self):
+        start = self.start_time.strftime("%H:%M") if self.start_time else "00:00"
+        end = self.end_time.strftime("%H:%M") if self.end_time else "00:00"
+        return f"{start} {PHRASES_RU.icon.time_separator} {end}"
+
+
 
 @dataclass
 class PhotoModel:
@@ -99,16 +107,6 @@ class AppointmentModel:
     service_name: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-
-
-@dataclass
-class Booking:
-    """Класс для представления общей инфо о записи"""
-    slot_id: Optional[int] = None
-    service_id: Optional[int] = None
-    photos: Optional[List[PhotoModel]] = None
-    comment: Optional[str] = None
-    phone_number: Optional[str] = None
 
 
 @dataclass

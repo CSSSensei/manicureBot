@@ -1,20 +1,21 @@
-import datetime
+from datetime import datetime
 import logging
+
 from aiogram import Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 import bot.keyboards.inline_keyboards as ikb
-from DB.models import UserModel, PhotoModel
+from DB.models import PhotoModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
 from DB.tables.photos import PhotosTable
+from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot.filters import IsCancelActionFilter
-from bot.keyboards.inline_keyboards import slots_keyboard
-from bot.models import CutMessageCallBack, MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
+from bot.models import CutMessageCallBack, MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack, Appointment
 from bot import pages
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
@@ -45,36 +46,33 @@ async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCa
         # Обработка переключения месяцев
         month = callback_data.month + callback_data.action
         year = callback_data.year
+        month = 1 if month > 12 else 12 if month < 1 else month
+        year += month // 12 if month > 12 else -1 if month < 1 else 0
 
-        if month > 12:
-            year += 1
-            month = 1
-        elif month < 1:
-            year -= 1
-            month = 12
-
-        prev_enabled = not (month == datetime.datetime.now().month and year == datetime.datetime.now().year)
+        prev_enabled = not (month == datetime.now().month and year == datetime.now().year)
         await callback.message.edit_reply_markup(
             reply_markup=ikb.month_keyboard(month, year, prev_enabled)
         )
         return
 
-    if not all([callback_data.day > 0, callback_data.month > 0, callback_data.year > 0]):
-        await callback.answer(text=PHRASES_RU.error.date)
-        return
-
-    selected_date = datetime.datetime(callback_data.year, callback_data.month, callback_data.day)
-    await state.set_state(AppointmentStates.WAITING_FOR_SLOT)
-    await state.update_data(slot_date=selected_date)
-    await callback.message.edit_text(
-        PHRASES_RU.answer.choose_slot,
-        reply_markup=slots_keyboard(selected_date)
+    selected_date = datetime(callback_data.year, callback_data.month, callback_data.day)
+    await AppointmentNavigation.update_appointment_data(state, slot_date=selected_date, message_id=callback.message.message_id)
+    await AppointmentNavigation.handle_navigation(
+        callback=callback,
+        state=state,
+        current_state="WAITING_FOR_DATE",
+        action=1
     )
 
 
 @router.callback_query(SlotCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_SLOT))
 async def handle_slot_selection(callback: CallbackQuery, callback_data: SlotCallBack, state: FSMContext):
-    await state.update_data(slot_id=callback_data.slot_id, message_id=callback.message.message_id)
+    with SlotsTable() as slots_db:
+        await AppointmentNavigation.update_appointment_data(
+            state,
+            slot_id=callback_data.slot_id,
+            slot_str=str(slots_db.get_slot(callback_data.slot_id))
+        )
 
     await AppointmentNavigation.handle_navigation(
         callback=callback,
@@ -86,7 +84,12 @@ async def handle_slot_selection(callback: CallbackQuery, callback_data: SlotCall
 
 @router.callback_query(ServiceCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_SERVICE))
 async def handle_service_selection(callback: CallbackQuery, callback_data: ServiceCallBack, state: FSMContext):
-    await state.update_data(service_id=callback_data.service_id)
+    with ServicesTable() as service_db:
+        await AppointmentNavigation.update_appointment_data(
+            state,
+            service_id=callback_data.service_id,
+            service_str=service_db.get_service(callback_data.service_id).name
+        )
 
     await AppointmentNavigation.handle_navigation(
         callback=callback,
@@ -99,14 +102,8 @@ async def handle_service_selection(callback: CallbackQuery, callback_data: Servi
 @router.callback_query(
     ActionButtonCallBack.filter(),
     StateFilter(AppointmentStates.CONFIRMATION),
-    ~IsCancelActionFilter()
-)
-async def handle_appointment_confirmation(
-        callback: CallbackQuery,
-        callback_data: ActionButtonCallBack,
-        state: FSMContext,
-        user_row: UserModel
-):
+    ~IsCancelActionFilter())
+async def handle_appointment_confirmation(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext):
     if callback_data.action == -1:
         await AppointmentNavigation.handle_navigation(
             callback=callback,
@@ -116,11 +113,7 @@ async def handle_appointment_confirmation(
         )
         return
 
-    data = await state.get_data()
-    if not is_valid_appointment_data(data, user_row):
-        await clear_and_respond(callback, state, PHRASES_RU.error.booking.no_contacts)
-        # TODO no contacts
-        return
+    data = await AppointmentNavigation.get_appointment_data(state)
 
     try:
         success = await process_appointment_creation(callback.from_user.id, data)
@@ -132,24 +125,30 @@ async def handle_appointment_confirmation(
 
         await clear_and_respond(callback, state, message)
     except Exception as e:
-        logger.error(f'Appointment creation error: {e}')
+        logger.error(
+            f'Appointment creation error for user {callback.from_user.id}: {e}',
+            exc_info=True
+        )
         await clear_and_respond(callback, state, PHRASES_RU.error.booking.try_again)
 
 
 @router.callback_query(ActionButtonCallBack.filter(), StateFilter(*AppointmentNavigation.STATES.values()))
-async def handle_navigation_actions(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext):
+async def handle_navigation_actions(
+        callback: CallbackQuery,
+        callback_data: ActionButtonCallBack,
+        state: FSMContext):
     current_state = await state.get_state()
-    state_mapping = {v: k for k, v in AppointmentNavigation.STATES.items()}
+    state_name = next(k for k, v in AppointmentNavigation.STATES.items() if v == current_state)
 
     await AppointmentNavigation.handle_navigation(
         callback=callback,
         state=state,
-        current_state=state_mapping[current_state],
-        action=callback_data.action
+        current_state=state_name,
+        action=callback_data.action,
     )
 
 
-async def notify_master(data: dict):
+async def notify_master(data: Appointment):
     with MastersTable() as masters_db:
         masters = masters_db.get_all_masters()
         if masters:
@@ -162,41 +161,48 @@ async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message:
     await callback.message.edit_text(text=message, reply_markup=None)
 
 
-def is_valid_appointment_data(data: dict, user_row: UserModel) -> bool:
-    """Проверяет валидность данных для записи"""
-    required_fields = ['slot_id', 'service_id']
-    contact_info = any([user_row.username, user_row.phone_number])
-
-    return all(data.get(field) for field in required_fields) and contact_info
-
-
-async def process_appointment_creation(user_id: int, data: dict) -> bool:
+async def process_appointment_creation(user_id: int, data: Appointment) -> bool:
     """Создает запись и возвращает статус успешности"""
+    if not data.is_ready_for_confirmation():
+        return False
+
     with SlotsTable() as slots_db, AppointmentsTable() as app_db:
-        if not slots_db.reserve_slot(data['slot_id']):
+        if not slots_db.reserve_slot(data.slot_id):
             return False
 
         app_id = app_db.create_appointment(
             client_id=user_id,
-            slot_id=data['slot_id'],
-            service_id=data['service_id'],
-            comment=data.get('text')
+            slot_id=data.slot_id,
+            service_id=data.service_id,
+            comment=data.text
         )
 
-        await process_appointment_photos(app_id, data.get('photos', []))
+        await _process_appointment_photos(app_id, data.photos)
         return True
 
 
-async def process_appointment_photos(app_id: int, photos: list[PhotoModel]):
+async def _process_appointment_photos(app_id: int, photos: list[PhotoModel]):
     """Обрабатывает прикрепленные фото"""
-    for photo in photos:
-        with PhotosTable() as photo_db, AppointmentPhotosTable() as app_photo_db:
+    if not photos:
+        return
+
+    with PhotosTable() as photo_db, AppointmentPhotosTable() as app_photo_db:
+        for photo in photos:
             photo_id = photo_db.add_photo(
                 telegram_file_id=photo.telegram_file_id,
                 file_unique_id=photo.file_unique_id,
                 caption=photo.caption
             )
             app_photo_db.add_photo_to_appointment(app_id, photo_id)
+
+
+@router.callback_query(MonthCallBack.filter())
+@router.callback_query(ServiceCallBack.filter())
+@router.callback_query(ActionButtonCallBack.filter())
+@router.callback_query(SlotCallBack.filter())
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text(PHRASES_RU.error.booking.try_again, reply_markup=None)
 
 
 @router.callback_query()

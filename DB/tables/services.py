@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from DB.models import ServiceModel
 from DB.tables.base import BaseTable
@@ -44,6 +44,20 @@ class ServicesTable(BaseTable):
             price=row['price'],
             is_active=bool(row['is_active'])
         ) for row in self.cursor]
+
+    def get_service(self, service_id) -> Optional[ServiceModel]:
+        query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
+        self.cursor.execute(query, (service_id,))
+        row = self.cursor.fetchone()
+        if not row:
+            return None
+        return ServiceModel(
+            id=row['id'],
+            name=row['name'],
+            description=row['description'],
+            duration=row['duration'],
+            price=row['price'],
+            is_active=bool(row['is_active']))
 
     def toggle_service_active(self, service_id: int, is_active: bool) -> None:
         """Активирует/деактивирует услугу."""

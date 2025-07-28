@@ -11,18 +11,17 @@ router = UserRouter()
 config: Config = load_config()
 
 
-@router.command('start', 'запустить бота')                          # /start
+@router.command('start', 'запустить бота')                                  # /start
 async def _(message: Message):
     await message.answer(PHRASES_RU.commands.start, reply_markup=user_keyboards.keyboard)
-    # TODO tests попробовать передать None username аргумент
 
 
-@router.command('help', 'как пользоваться ботом')                   # /help
+@router.command('help', 'как пользоваться ботом')                           # /help
 async def _(message: Message):
     await message.answer(PHRASES_RU.commands.help, reply_markup=user_keyboards.keyboard)
 
 
-@router.command('about', 'о разработчиках')                         # /about
+@router.command('about', 'о разработчиках')                                 # /about
 async def _(message: Message):
     await message.answer(PHRASES_RU.commands.about, disable_web_page_preview=True, reply_markup=user_keyboards.keyboard)
 
@@ -33,7 +32,7 @@ async def _(message: Message):
     await message.answer(PHRASES_RU.title.commands + commands_text, reply_markup=user_keyboards.keyboard)
 
 
-@router.command('add_contact', 'добавление контактной информации')
-async def add_phone(message: Message, state: FSMContext):
+@router.command('add_contact', 'добавление контактной информации')          # /add_contact
+async def add_contact(message: Message, state: FSMContext):
     await message.answer("Введите номер телефона или любую контактную информацию")
     await state.set_state(AppointmentStates.WAITING_FOR_CONTACT)

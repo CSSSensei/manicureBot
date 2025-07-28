@@ -2,7 +2,6 @@ import logging
 from typing import Any, Awaitable, Callable, Optional
 
 from aiogram import BaseMiddleware
-from aiogram.dispatcher.event.bases import CancelHandler
 from aiogram.exceptions import AiogramError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Update, User, Message
@@ -50,9 +49,9 @@ class GetUserMiddleware(BaseMiddleware):
                     current_state = await state.get_state() if state else None
 
                     is_allowed_command = message.text and message.text.startswith(('/start', '/add_contact'))
-                    is_phone_input_state = current_state == AppointmentStates.WAITING_FOR_CONTACT
+                    is_contact_input_state = current_state == AppointmentStates.WAITING_FOR_CONTACT
 
-                    if is_allowed_command or is_phone_input_state:
+                    if is_allowed_command or is_contact_input_state:
                         return await handler(event, data)
                     await message.answer(PHRASES_RU.error.no_contact)
                     return

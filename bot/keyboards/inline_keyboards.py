@@ -167,10 +167,8 @@ def slots_keyboard(date: datetime.date) -> IMarkup:
     builder = InlineKeyboardBuilder()
     with SlotsTable() as slots_db:
         for slot in slots_db.get_available_slots_by_day(date):
-            start = slot.start_time.strftime("%H:%M") if slot.start_time else "00:00"
-            end = slot.end_time.strftime("%H:%M") if slot.end_time else "00:00"
             builder.button(
-                text=f"{start} {PHRASES_RU.icon.time_separator} {end}",
+                text=str(slot),
                 callback_data=SlotCallBack(slot_id=slot.id).pack()
             )
     return _base_keyboard(

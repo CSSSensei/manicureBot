@@ -1,6 +1,10 @@
 from dataclasses import dataclass
-from typing import Tuple, Optional, Any, Union
+from datetime import datetime
+from typing import Tuple, Optional, Any, List
 from aiogram.filters.callback_data import CallbackData
+from pydantic import BaseModel
+
+from DB.models import PhotoModel
 
 
 @dataclass
@@ -47,3 +51,21 @@ class ServiceCallBack(CallbackData, prefix="service"):
 class ActionButtonCallBack(CallbackData, prefix="action_button"):
     action: int  # 1 - вперед, -1 -назад, 0 - отмена
     current_page: Optional[int] = None
+
+
+class Appointment(BaseModel):
+    slot_date: Optional[datetime] = None
+    slot_id: Optional[int] = None
+    slot_str: Optional[str] = None
+    service_id: Optional[int] = None
+    service_str: Optional[str] = None
+    photos: Optional[List[PhotoModel]] = None
+    text: Optional[str] = None
+    message_id: Optional[int] = None
+
+    def is_ready_for_confirmation(self) -> bool:
+        """Проверяет, все ли обязательные поля заполнены"""
+        return all([
+            self.slot_id,
+            self.service_id
+        ])
