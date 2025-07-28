@@ -38,12 +38,14 @@ def _base_keyboard(
         ))
 
     buttons.append(row)
-    buttons.append([
-        IButton(
-            text=PHRASES_RU.button.cancel,
-            callback_data=ActionButtonCallBack(action=0).pack()
-        )
-    ])
+    cancel_button = IButton(
+        text=PHRASES_RU.button.cancel,
+        callback_data=ActionButtonCallBack(action=0).pack()
+    )
+    if len(buttons[-1]) < 2:
+        buttons[-1].append(cancel_button)
+    else:
+        buttons.append([cancel_button])
     return IMarkup(inline_keyboard=buttons)
 
 
@@ -168,7 +170,7 @@ def slots_keyboard(date: datetime.date) -> IMarkup:
             start = slot.start_time.strftime("%H:%M") if slot.start_time else "00:00"
             end = slot.end_time.strftime("%H:%M") if slot.end_time else "00:00"
             builder.button(
-                text=f"{start} - {end}",
+                text=f"{start} {PHRASES_RU.icon.time_separator} {end}",
                 callback_data=SlotCallBack(slot_id=slot.id).pack()
             )
     return _base_keyboard(
