@@ -35,15 +35,17 @@ async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCa
         # Обработка переключения месяцев
         month = callback_data.month + callback_data.action
         year = callback_data.year
-        month = 1 if month > 12 else 12 if month < 1 else month
         year += month // 12 if month > 12 else -1 if month < 1 else 0
+        month = 1 if month > 12 else 12 if month < 1 else month
 
         prev_enabled = not (month == datetime.now().month and year == datetime.now().year)
         await callback.message.edit_reply_markup(
             reply_markup=ikb.month_keyboard(month, year, prev_enabled)
         )
         return
-
+    if callback_data.day <= 0:
+        await callback.answer(PHRASES_RU.error.date)
+        return
     selected_date = datetime(callback_data.year, callback_data.month, callback_data.day)
     await AppointmentNavigation.update_appointment_data(state, slot_date=selected_date, message_id=callback.message.message_id)
     await AppointmentNavigation.handle_navigation(
