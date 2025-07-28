@@ -56,6 +56,15 @@ async def _(message: Message, state: FSMContext):
         await state.update_data({'text': message.text})
 
 
+@router.message(StateFilter(AppointmentStates.WAITING_FOR_CONTACT))
+async def process_phone(message: Message, state: FSMContext):
+    with UsersTable() as db:
+        db.update_contact(message.from_user.id, message.text)
+
+    await state.clear()
+    await message.answer(PHRASES_RU.answer.contact_saved)
+
+
 @router.message()
 async def _(message: Message):
     await message.answer(text=PHRASES_RU.answer.unknown, reply_markup=user_keyboards.keyboard)

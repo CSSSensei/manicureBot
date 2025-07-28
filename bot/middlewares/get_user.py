@@ -2,11 +2,15 @@ import logging
 from typing import Any, Awaitable, Callable, Optional
 
 from aiogram import BaseMiddleware
+from aiogram.dispatcher.event.bases import CancelHandler
 from aiogram.exceptions import AiogramError
-from aiogram.types import Update, User
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Update, User, Message
 
 from DB.tables.users import UsersTable
 from DB.models import UserModel as UserModel
+from bot.states import AppointmentStates
+from phrases import PHRASES_RU
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,8 @@ class GetUserMiddleware(BaseMiddleware):
         try:
             with UsersTable() as users_db:
                 user_row: Optional[UserModel] = users_db.get_user(user.id)
-                if not user_row or user.username != user_row.username:
+                if (not user_row or user.username != user_row.username
+                        or user.first_name != user_row.first_name or user.last_name != user_row.last_name):
                     new_user = UserModel(
                         user_id=user.id,
                         username=user.username,
@@ -36,6 +41,21 @@ class GetUserMiddleware(BaseMiddleware):
                     )
                     user_row = users_db.add_user(new_user)
                 data.update(user_row=user_row)
+                if not user_row.username and not user_row.contact:
+                    if not isinstance(event.event, Message):
+                        return await handler(event, data)
+
+                    message: Message = event.event
+                    state: FSMContext = data.get("state")
+                    current_state = await state.get_state() if state else None
+
+                    is_allowed_command = message.text and message.text.startswith(('/start', '/add_contact'))
+                    is_phone_input_state = current_state == AppointmentStates.WAITING_FOR_CONTACT
+
+                    if is_allowed_command or is_phone_input_state:
+                        return await handler(event, data)
+                    await message.answer(PHRASES_RU.error.no_contact)
+                    return
         except Exception as e:
             logger.error(f'Failed to process user {user.id}: {str(e)}', exc_info=True)
             raise AiogramError(f'User processing failed: {str(e)}') from e

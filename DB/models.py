@@ -13,7 +13,7 @@ class UserModel:
     is_admin: bool = False
     is_banned: bool = False
     registration_date: Optional[datetime] = None
-    phone_number: Optional[str] = None
+    contact: Optional[str] = None
     query_count: int = 0
 
     def full_name(self) -> str:

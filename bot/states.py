@@ -10,3 +10,4 @@ class AppointmentStates(StatesGroup):
     WAITING_FOR_PHONE = State()
     CONFIRMATION = State()
     PENDING_MASTER_APPROVAL = State()
+    WAITING_FOR_CONTACT = State()
