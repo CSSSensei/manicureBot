@@ -61,6 +61,8 @@ class Appointment(BaseModel):
     service_str: Optional[str] = None
     photos: Optional[List[PhotoModel]] = None
     text: Optional[str] = None
+    client_username: Optional[str] = None
+    client_contact: Optional[str] = None
     message_id: Optional[int] = None
 
     def is_ready_for_confirmation(self) -> bool:

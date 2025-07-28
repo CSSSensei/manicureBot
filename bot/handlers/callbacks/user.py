@@ -1,13 +1,14 @@
 from datetime import datetime
 import logging
+from locale import format_string
 
 from aiogram import Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InputMediaPhoto
 
 import bot.keyboards.inline_keyboards as ikb
-from DB.models import PhotoModel
+from DB.models import PhotoModel, UserModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
@@ -15,29 +16,17 @@ from DB.tables.photos import PhotosTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot.filters import IsCancelActionFilter
-from bot.models import CutMessageCallBack, MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack, Appointment
-from bot import pages
+from bot.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack, Appointment
+
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
 from config import bot
 from phrases import PHRASES_RU
+from utils import format_string
 
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-@router.callback_query(CutMessageCallBack.filter())
-async def cut_message_distributor(callback: CallbackQuery, callback_data: CutMessageCallBack):
-    action = callback_data.action
-    page = callback_data.page
-    user_id = callback_data.user_id
-    if action == 1:
-        await pages.get_users(callback.from_user.id, page, callback.message.message_id)
-    elif action == 2:
-        await pages.user_query(callback.from_user.id, user_id, page, callback.message.message_id)
-    elif action == -1:
-        await callback.answer()
 
 
 @router.callback_query(MonthCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_DATE))
@@ -103,7 +92,7 @@ async def handle_service_selection(callback: CallbackQuery, callback_data: Servi
     ActionButtonCallBack.filter(),
     StateFilter(AppointmentStates.CONFIRMATION),
     ~IsCancelActionFilter())
-async def handle_appointment_confirmation(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext):
+async def handle_appointment_confirmation(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext, user_row: UserModel):
     if callback_data.action == -1:
         await AppointmentNavigation.handle_navigation(
             callback=callback,
@@ -121,6 +110,9 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
                    else PHRASES_RU.error.booking.occupied_slot)
 
         if success:
+            data.client_username = callback.from_user.username
+            if not data.client_username:
+                data.client_contact = user_row.contact
             await notify_master(data)
 
         await clear_and_respond(callback, state, message)
@@ -151,8 +143,15 @@ async def handle_navigation_actions(
 async def notify_master(data: Appointment):
     with MastersTable() as masters_db:
         masters = masters_db.get_all_masters()
-        if masters:
-            await bot.send_message(chat_id=masters[0].id, text=repr(data))
+        caption = format_string.master_booking_text(data)
+        if masters and len(masters) > 0:
+            if data.photos and len(data.photos) > 0:
+                media: list[InputMediaPhoto] = []
+                for photo in data.photos:
+                    media.append(InputMediaPhoto(media=photo.telegram_file_id, caption=caption if len(media) == 0 else None))
+                await bot.send_media_group(chat_id=masters[0].id, media=media)
+                return
+            await bot.send_message(chat_id=masters[0].id, text=caption)
 
 
 async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message: str):

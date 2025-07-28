@@ -80,8 +80,7 @@ class SlotModel:
     def __str__(self):
         start = self.start_time.strftime("%H:%M") if self.start_time else "00:00"
         end = self.end_time.strftime("%H:%M") if self.end_time else "00:00"
-        return f"{start} {PHRASES_RU.icon.time_separator} {end}"
-
+        return f"{start}{PHRASES_RU.icon.time_separator}{end}"
 
 
 @dataclass

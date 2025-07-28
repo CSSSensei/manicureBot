@@ -21,13 +21,10 @@ answer:
   choose_date: "Выберите удобное время:"
   choose_slot: "Свободные слоты <b>{date}</b>:"
   choose_service: "Выберите услугу"
-  send_photo: "пришлите фото попы ракам пж"
+  send_photo: "Пришлите фото референсы и/или нажмите далее"
   booking_canceled: "Вы отменили запись"
   send_comment: "Если у вас есть комментарии и пожелания для мастера, напишите пж"
-  confirm: |
-    Вот инфа о вашей записи: {data}
-    
-    Подтвердить?
+  confirm: "Подтвердить?"
   confirmation_wait: "Ожидайте подтверждения записи мастером"
   contact_saved: "✅ Контакт сохранён!"
 
@@ -35,10 +32,10 @@ button:
   next_page: "»"
   prev_page: "«"
   booking: "Записаться"
-  cancel: "Отмена"
-  next: "Далее"
-  back: "Назад"
-  confirm: "Подтвердить"
+  cancel: "❌ Отмена"
+  next: "➡️ Далее"
+  back: "🔙 Назад"
+  confirm: "✅ Подтвердить"
 
 
 placeholder_appeal: "Лучший маникюр"
@@ -80,6 +77,8 @@ title:
   users: "<b>Пользователи</b>"
   commands: "<b>Доступные команды</b>\n\n"
   query: "<b>Запросы</b>"
+  booking: "<b>Текущая запись</b>\n\n"
+  admin_new_booking: "<b>Новая запись</b>\n"
 
 subtitle:
   admin_commands: "<i>Админские</i>\n"
@@ -107,10 +106,18 @@ info:
   no_query: "Запросов не было"
 
 template:
-  user: "<code>{user_id}</code>{username} <i>{registration_date}</i> {query_stat} {contact}\n"
+  user_str: "<code>{user_id}</code>{username} <i>{registration_date}</i> {query_stat} {contact}\n"
   user_query: "<blockquote>{time}</blockquote> <i>{query}</i>\n\n"
   all_queries: "{username} <blockquote>{time}</blockquote> <i>{query}</i>\n\n"
-  slot: "Слот {date} {datetime}\n"
-  service: "{service}\n"
-  photos: "Приложено фото: {len_photos}\n"
-  text: "Примечание: {text}\n"
+  user:
+    slot: "<b>Слот {date}:</b> <i>{datetime}</i>\n"
+    service: "<b>{service}</b>\n"
+    photos: "<b>Приложено фото:</b> {len_photos}\n"
+    text: "<b>Примечание:</b> <i>{text}</i>\n"
+  master:
+    slot: "<b>Слот {date}:</b> <i>{datetime}</i>\n"
+    client_username: "<i>от @{username}</i>\n\n"
+    client_no_username: "<i>от пользователя без юзернейма (._.)</i><blockquote>Контакт:\n{contact}</blockquote>\n"
+    service: "<b>{service}</b>\n"
+    text: "<b>Примечание:</b><blockquote>{text}</blockquote>\n"
+

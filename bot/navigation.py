@@ -9,6 +9,7 @@ from bot.models import Appointment
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
 from bot.keyboards import inline_keyboards as ikb
+from utils import format_string
 
 
 logger = logging.getLogger(__name__)
@@ -133,39 +134,27 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_service_selection(callback: CallbackQuery, data: Appointment):
         await callback.message.edit_text(
-            text=AppointmentNavigation.current_booking_text(data) + PHRASES_RU.answer.choose_service,
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.choose_service,
             reply_markup=ikb.service_keyboard()
         )
 
     @staticmethod
     async def _show_photo_upload(callback: CallbackQuery, data: Appointment):
         await callback.message.edit_text(
-            text=AppointmentNavigation.current_booking_text(data) + PHRASES_RU.answer.send_photo,
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
             reply_markup=ikb.photo_keyboard()
         )
 
     @staticmethod
     async def _show_comment_input(callback: CallbackQuery, data: Appointment):
         await callback.message.edit_text(
-            text=AppointmentNavigation.current_booking_text(data) + PHRASES_RU.answer.send_comment,
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
             reply_markup=ikb.comment_keyboard()
         )
 
     @staticmethod
     async def _show_confirmation(callback: CallbackQuery, data: Appointment):
         await callback.message.edit_text(
-            text=AppointmentNavigation.current_booking_text(data) + PHRASES_RU.replace('answer.confirm', data=data),
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.confirm,
             reply_markup=ikb.confirm_keyboard()
         )
-
-    @staticmethod
-    def current_booking_text(data: Appointment) -> str:
-        text = PHRASES_RU.replace('template.slot', date=data.slot_date.strftime('%d.%m.%Y'),
-                                  datetime=data.slot_str) if data.slot_date and data.slot_str else ''
-        if data.service_str:
-            text += PHRASES_RU.replace('template.service', service=data.service_str)
-        if data.photos and len(data.photos) > 0:
-            text += PHRASES_RU.replace('template.photos', len_photos=len(data.photos))
-        if data.text:
-            text += PHRASES_RU.replace('template.text', text=data.text)
-        return text

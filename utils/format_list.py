@@ -18,7 +18,7 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
             'contact': user.contact if user.contact else ''
         }
 
-        user_line = PHRASES_RU.replace('template.user', **line_data)
+        user_line = PHRASES_RU.replace('template.user_str', **line_data)
 
         if user.is_banned:
             txt.append(f'<s>{user_line}</s>')
