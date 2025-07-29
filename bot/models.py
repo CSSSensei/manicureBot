@@ -23,7 +23,7 @@ class CommandUnit:
         return base
 
 
-class CutMessageCallBack(CallbackData, prefix='cut'):
+class PageCallBack(CallbackData, prefix='cut'):
     action: int
     user_id: int = 0
     page: int = 1

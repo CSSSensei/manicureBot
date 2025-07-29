@@ -2,13 +2,12 @@ from aiogram import Router
 from aiogram.types import CallbackQuery
 
 from bot import pages
-from bot.models import CutMessageCallBack
-
+from bot.models import PageCallBack
 router = Router()
 
 
-@router.callback_query(CutMessageCallBack.filter())
-async def cut_message_distributor(callback: CallbackQuery, callback_data: CutMessageCallBack):
+@router.callback_query(PageCallBack.filter())
+async def cut_message_distributor(callback: CallbackQuery, callback_data: PageCallBack):
     action = callback_data.action
     page = callback_data.page
     user_id = callback_data.user_id

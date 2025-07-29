@@ -14,6 +14,7 @@ from bot.states import AppointmentStates
 from config import config, bot
 from phrases import PHRASES_RU
 from utils import format_string
+from bot.handlers.admin_handlers import command_getcmds
 
 router = Router()
 
@@ -22,7 +23,9 @@ router = Router()
 async def _(message: Message):
     with UsersTable() as users_db:
         if users_db.set_admin(message.from_user.id, message.from_user.id):
+            await message.delete()
             await message.answer(PHRASES_RU.success.promoted, reply_markup=ukb.keyboard)
+            await command_getcmds(message)
         else:
             await message.answer(PHRASES_RU.error.db, reply_markup=ukb.keyboard)
 

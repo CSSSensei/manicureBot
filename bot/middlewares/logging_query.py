@@ -51,7 +51,7 @@ class UserLoggerMiddleware(BaseMiddleware):
         # Логируем инлайн-запросы
         elif isinstance(event, InlineQuery) and event.query:
             with QueriesTable() as queries_db:
-                queries_db.add_query(QueryModel(user_row.user_id, f"[INLINE] {event.query}"))
+                queries_db.add_query(QueryModel(user_row.user_id, f'[INLINE] {event.query}'))
         # phasalo OFF
 
         return await handler(event, data)

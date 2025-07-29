@@ -1,23 +1,25 @@
+import logging
 from aiogram.types import Message
 
-from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from utils import format_list
 from bot import command_arguments, pages
 from bot.routers import AdminRouter, BaseRouter
+import temp
 
 router = AdminRouter()
+logger = logging.getLogger(__name__)
 
 
-@router.command('users', 'таблица со всеми пользователями')             # /users
+@router.command('users', 'таблица со всеми пользователями')  # /users
 async def _(message: Message):
     await pages.get_users(message.from_user.id)
 
 
-@router.command('getcmds', 'список всех доступных команд')              # /getcmds
-async def _(message: Message):
+@router.command('getcmds', 'список всех доступных команд')  # /getcmds
+async def command_getcmds(message: Message):
     commands_text = PHRASES_RU.title.commands
     admin_commands = '\n'.join(str(command) for command in BaseRouter.available_commands if command.is_admin)
     if admin_commands:
@@ -28,9 +30,7 @@ async def _(message: Message):
     await message.answer(commands_text)
 
 
-@router.command('ban',
-                'заблокировать пользователя по ID',
-                'user_id')                                              # /ban
+@router.command('ban', 'заблокировать пользователя по ID', 'user_id')  # /ban
 @command_arguments.user_id
 async def _(message: Message, user_id):
     if message.from_user.id == int(user_id):
@@ -43,9 +43,7 @@ async def _(message: Message, user_id):
             await message.answer(PHRASES_RU.error.db)
 
 
-@router.command('unban',
-                'разблокировать пользователя по ID',
-                'user_id')                                              # /unban
+@router.command('unban', 'разблокировать пользователя по ID', 'user_id')  # /unban
 @command_arguments.user_id
 async def _(message: Message, user_id):
     with UsersTable() as user_db:
@@ -55,9 +53,7 @@ async def _(message: Message, user_id):
             await message.answer(PHRASES_RU.error.db)
 
 
-@router.command('promote',
-                'повысить уровень доступа',
-                'user_id')                                              # /promote
+@router.command('promote', 'повысить уровень доступа', 'user_id')  # /promote
 @command_arguments.user_id
 async def _(message: Message, user_id):
     with UsersTable() as users_db:
@@ -67,9 +63,7 @@ async def _(message: Message, user_id):
             await message.answer(PHRASES_RU.error.db)
 
 
-@router.command('demote',
-                'понизить уровень доступа',
-                'user_id')                                              # /demote
+@router.command('demote', 'понизить уровень доступа', 'user_id')  # /demote
 @command_arguments.user_id
 async def _(message: Message, user_id):
     with UsersTable() as users_db:
@@ -79,33 +73,7 @@ async def _(message: Message, user_id):
             await message.answer(PHRASES_RU.error.db)
 
 
-@router.command('master',
-                'назначить мастером',
-                'user_id')                                              # /master
-@command_arguments.user_id
-async def _(message: Message, user_id):
-    with MastersTable() as masters_db:
-        if masters_db.set_master_status(user_id):
-            await message.answer(PHRASES_RU.replace('success.set_master', user_id=user_id))
-        else:
-            await message.answer(PHRASES_RU.error.db)
-
-
-@router.command('del_master',
-                'удалить мастера',
-                'user_id')                                              # /del_master
-@command_arguments.user_id
-async def _(message: Message, user_id):
-    with MastersTable() as masters_db:
-        if masters_db.set_master_status(user_id, False):
-            await message.answer(PHRASES_RU.replace('success.del_master', user_id=user_id))
-        else:
-            await message.answer(PHRASES_RU.error.db)
-
-
-@router.command('query',
-                'последние N запросов',
-                'N')                                                    # /query
+@router.command('query', 'последние N запросов', 'N')  # /query
 @command_arguments.digit(default=5)
 async def _(message: Message, amount: int):
     with QueriesTable() as queries_db:
@@ -125,14 +93,21 @@ async def _(message: Message, amount: int):
             await message.answer(txt.replace('\t', '\n'), disable_web_page_preview=True)
 
 
-@router.command('user_query',
-                'запросы пользователя по ID',
-                'user_id')                                              # /user_query
+@router.command('clear_temp', 'очистка временных файлов')  # /clear_temp
+async def _(message: Message):
+    if temp.clear():
+        logger.info(f'TEMP directory cleared by user {message.from_user.id} ({message.from_user.username})')
+        await message.answer(text=PHRASES_RU.success.clear_temp)
+    else:
+        await message.answer(text=PHRASES_RU.error.clear_temp)
+
+
+@router.command('user_query', 'запросы пользователя по ID', 'user_id')  # /user_query
 @command_arguments.user_id
 async def _(message: Message, user_id: int):
     await pages.user_query(message.from_user.id, user_id)
 
 
-@router.command('test', 'отладка и тестирование функций')               # /test
+@router.command('test', 'отладка и тестирование функций')  # /test
 async def _(message: Message):
     pass

@@ -155,4 +155,3 @@ class Master:
     name: Optional[str] = None
     is_master: Optional[bool] = None
     message_id: Optional[int] = None
-    message
