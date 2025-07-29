@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Tuple, Optional, Any, List
@@ -5,6 +6,10 @@ from aiogram.filters.callback_data import CallbackData
 from pydantic import BaseModel
 
 from DB.models import PhotoModel
+from phrases import PHRASES_RU
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -71,3 +76,22 @@ class Appointment(BaseModel):
             self.slot_id,
             self.service_id
         ])
+
+    @property
+    def formatted_date(self) -> Optional[str]:
+        """Возвращает дату слота в формате '{день недели} %d.%m' или символ ошибки"""
+        if self.slot_date is None:
+            logger.error(f'Message creation error: no slot date in state data')
+            return PHRASES_RU.error.unknown
+
+        weekdays = [
+            "Понедельник",
+            "Вторник",
+            "Среда",
+            "Четверг",
+            "Пятница",
+            "Суббота",
+            "Воскресенье"
+        ]
+
+        return f"{weekdays[self.slot_date.weekday()]} {self.slot_date.strftime('%d.%m')}"

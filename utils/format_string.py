@@ -17,7 +17,7 @@ def get_query_count_emoji(count: int) -> str:
 
 def user_booking_text(data: Appointment) -> str:
     text = (PHRASES_RU.title.booking +
-            PHRASES_RU.replace('template.user.slot', date=data.slot_date.strftime('%d.%m'),
+            PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
                                datetime=data.slot_str)) if data.slot_date and data.slot_str else ''
     if data.service_str:
         text += PHRASES_RU.replace('template.user.service', service=data.service_str)
@@ -35,7 +35,7 @@ def master_booking_text(data: Appointment) -> str:
         text += PHRASES_RU.replace('template.master.client_username', username=data.client_username)
     else:
         text += PHRASES_RU.replace('template.master.client_no_username', contact=data.client_contact)
-    text += PHRASES_RU.replace('template.master.slot', date=data.slot_date.strftime('%d.%m'),
+    text += PHRASES_RU.replace('template.master.slot', date=data.formatted_date,
                                datetime=data.slot_str) if data.slot_date and data.slot_str else ''
     if data.service_str:
         text += PHRASES_RU.replace('template.master.service', service=data.service_str)
