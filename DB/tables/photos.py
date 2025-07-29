@@ -13,7 +13,7 @@ class PhotosTable(BaseTable):
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             telegram_file_id TEXT NOT NULL,
-            file_unique_id TEXT NOT NULL UNIQUE,
+            file_unique_id TEXT NOT NULL,
             caption TEXT
         )''')
         self.conn.commit()
