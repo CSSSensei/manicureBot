@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-Phasalopedia<br>
+<b>Phasalopedia</b><br>
 <i>Делаем красиво!</i><br><br>
 2025
 </p>
