@@ -5,8 +5,9 @@ from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from utils import format_list
-from bot import command_arguments, pages
-from bot.routers import AdminRouter, BaseRouter
+from bot.utils import command_arguments
+from bot.utils.routers import AdminRouter, BaseRouter
+from bot import pages
 import temp
 
 router = AdminRouter()

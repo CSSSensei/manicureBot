@@ -6,7 +6,7 @@ from aiogram import Router, F
 from DB.models import PhotoModel
 from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
-from bot.keyboards import base as ukb
+from bot.keyboards import default as ukb
 from bot.keyboards import inline as ikb
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
@@ -14,7 +14,7 @@ from bot.states import AppointmentStates
 from config import config, bot
 from phrases import PHRASES_RU
 from utils import format_string
-from bot.handlers.admin_handlers import command_getcmds
+from bot.handlers.admin import command_getcmds
 
 router = Router()
 

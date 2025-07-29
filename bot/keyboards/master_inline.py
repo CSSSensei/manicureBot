@@ -2,7 +2,7 @@ from typing import List, Optional
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 
-from bot.models import MasterButtonCallBack
+from bot.utils.models import MasterButtonCallBack
 from phrases import PHRASES_RU
 
 

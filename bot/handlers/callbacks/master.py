@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.types import CallbackQuery
 
-from bot.models import MasterButtonCallBack
+from bot.utils.models import MasterButtonCallBack
 
 router = Router()
 

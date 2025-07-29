@@ -1,8 +1,8 @@
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from bot.keyboards import base
-from bot.routers import UserRouter, BaseRouter
+from bot.keyboards import default
+from bot.utils.routers import UserRouter, BaseRouter
 from bot.states import AppointmentStates
 from config import Config, load_config
 from phrases import PHRASES_RU

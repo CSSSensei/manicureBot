@@ -11,7 +11,7 @@ from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from config.const import MONTHS
 from phrases import PHRASES_RU
-from bot.models import PageCallBack, MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
+from bot.utils.models import PageCallBack, MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
 
 
 def _base_keyboard(

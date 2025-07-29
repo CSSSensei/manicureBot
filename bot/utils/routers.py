@@ -4,8 +4,8 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from bot.filters import AdminFilter
-from bot.models import CommandUnit
+from bot.utils.filters import AdminFilter
+from bot.utils.models import CommandUnit
 
 
 class BaseRouter(Router):
