@@ -35,7 +35,7 @@ class Config:
     log: LogConfig
 
 
-def load_config() -> Config:
+def __load_config() -> Config:
     return Config(
         tg_bot=TgBot(
             token=os.getenv('BOT_TOKEN'),
@@ -68,7 +68,7 @@ def setup_logging(cfg: LogConfig):
     logging.getLogger('asyncio').setLevel(logging.INFO)
 
 
-config: Config = load_config()
+config: Config = __load_config()
 bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'))
 
 setup_logging(config.log)

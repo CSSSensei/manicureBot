@@ -24,8 +24,7 @@ from config import bot
 from bot.middlewares.get_user import GetUserMiddleware
 from bot.middlewares.shadow_ban import ShadowBanMiddleware
 from bot.middlewares.logging_query import UserLoggerMiddleware
-from bot.handlers import default, commands, admin
-from bot.handlers.callbacks import admin as admin_cb, master as master_cb, user as user_cb
+from bot import handlers
 from DB import init_database
 import logging
 
@@ -39,12 +38,12 @@ async def main() -> None:
     dp = Dispatcher()
 
     logger.info('Including routers')
-    dp.include_router(admin.router)
-    dp.include_router(commands.router)
-    dp.include_router(default.router)
-    dp.include_router(admin_cb.router)
-    dp.include_router(master_cb.router)
-    dp.include_router(user_cb.router)
+    dp.include_router(handlers.admin.router)
+    dp.include_router(handlers.commands.router)
+    dp.include_router(handlers.default.router)
+    dp.include_router(handlers.callbacks.admin.router)
+    dp.include_router(handlers.callbacks.master.router)
+    dp.include_router(handlers.callbacks.user.router)
 
     logger.info('Including middlewares')
     dp.update.middleware(GetUserMiddleware())

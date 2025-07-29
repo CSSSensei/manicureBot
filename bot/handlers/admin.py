@@ -5,21 +5,21 @@ from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from utils import format_list
+from bot import pages
 from bot.utils import command_arguments
 from bot.utils.routers import AdminRouter, BaseRouter
-from bot import pages
 import temp
 
 router = AdminRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.command('users', 'таблица со всеми пользователями')  # /users
+@router.command(('users', 'u'), 'таблица со всеми пользователями')  # /users
 async def _(message: Message):
     await pages.get_users(message.from_user.id)
 
 
-@router.command('getcmds', 'список всех доступных команд')  # /getcmds
+@router.command(('commands', 'cmds'), 'список всех доступных команд')  # /commands /cmds
 async def command_getcmds(message: Message):
     commands_text = PHRASES_RU.title.commands
     admin_commands = '\n'.join(str(command) for command in BaseRouter.available_commands if command.is_admin)
@@ -74,7 +74,7 @@ async def _(message: Message, user_id):
             await message.answer(PHRASES_RU.error.db)
 
 
-@router.command('query', 'последние N запросов', 'N')  # /query
+@router.command(('query', 'q'), 'последние N запросов', 'N')  # /query
 @command_arguments.digit(default=5)
 async def _(message: Message, amount: int):
     with QueriesTable() as queries_db:
@@ -103,7 +103,7 @@ async def _(message: Message):
         await message.answer(text=PHRASES_RU.error.clear_temp)
 
 
-@router.command('user_query', 'запросы пользователя по ID', 'user_id')  # /user_query
+@router.command(('user_query', 'uq', 'qu'), 'запросы пользователя по ID', 'user_id')  # /user_query
 @command_arguments.user_id
 async def _(message: Message, user_id: int):
     await pages.user_query(message.from_user.id, user_id)

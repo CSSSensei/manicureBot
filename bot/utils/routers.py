@@ -23,7 +23,7 @@ class BaseRouter(Router):
             self.available_commands.append(
                 CommandUnit(commands[0], commands[1:], description, self.is_admin, placeholders if placeholders else None))
 
-            @self.message(Command(*commands))
+            @self.message(Command(*commands, ignore_case=True))
             async def wrapper(message: Message, **kwargs):
                 if "state" in inspect.signature(handler).parameters:
                     await handler(message, state=kwargs.get("state"))
