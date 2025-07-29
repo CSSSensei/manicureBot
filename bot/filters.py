@@ -17,6 +17,6 @@ class AdminFilter(BaseFilter):
 
 
 class IsCancelActionFilter(Filter):
-    async def __call__(self, callback: CallbackQuery, **data) -> bool:
+    async def __call__(self, callback: CallbackQuery, **data) -> bool:  # Проверка, относится ли коллбэк к кнопке «Отмена»
         callback_data = data.get("callback_data")
         return callback_data.action == 0 if callback_data else False
