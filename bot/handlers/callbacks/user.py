@@ -7,7 +7,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InputMediaPhoto
 
-import bot.keyboards.inline_keyboards as ikb
+import bot.keyboards.inline as ikb
 from DB.models import PhotoModel, UserModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable

@@ -8,7 +8,7 @@ from DB.tables.slots import SlotsTable
 from bot.models import Appointment
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
-from bot.keyboards import inline_keyboards as ikb
+from bot.keyboards import inline as ikb
 from utils import format_string
 
 

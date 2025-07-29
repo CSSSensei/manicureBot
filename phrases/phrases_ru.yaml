@@ -111,16 +111,22 @@ template:
   user_query: "<blockquote>{time}</blockquote> <i>{query}</i>\n\n"
   all_queries: "{username} <blockquote>{time}</blockquote> <i>{query}</i>\n\n"
   user:
-    slot: "<b>Слот {date}:</b> <i>{datetime}</i>\n"
-    service: "<b>{service}</b>\n"
-    photos: "<b>Приложено фото:</b> {len_photos}\n"
-    text: "<b>Примечание:</b> <i>{text}</i>\n"
+    slot: |
+      <b>📅 Дата:</b> <i>{date}</i>
+      <b>⏰ Время:</b>  <i>{datetime}</i>
+
+    service: "<b>💅 Услуга</b>: <i>{service}</i>\n"
+    photos: "<b>Приложено фото:</b> <i>{len_photos}</i>\n"
+    text: "<b>📝 Комментарий:</b> <i>{text}</i>\n"
   master:
-    slot: "<b>Слот {date}:</b> <i>{datetime}</i>\n"
+    slot: |
+      <b>📅 Дата:</b> <i>{date}</i>
+      <b>⏰ Время:</b>  <i>{datetime}</i>
+
     client_username: "<i>от @{username}</i>\n\n"
     client_no_username: "<i>от пользователя без юзернейма (._.)</i><blockquote>Контакт:\n{contact}</blockquote>\n"
-    service: "<b>{service}</b>\n"
-    text: "<b>Примечание:</b><blockquote>{text}</blockquote>\n"
+    service: "<b>💅 Услуга</b>: <i>{service}</i>\n"
+    text: "<b>📝 Комментарий:</b><blockquote>{text}</blockquote>\n"
 
 callback:
   answer:
