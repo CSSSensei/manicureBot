@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from DB.models import AppointmentModel
+from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.base import BaseTable
 
 
@@ -72,6 +73,65 @@ class AppointmentsTable(BaseTable):
                   slot_id=slot_id,
                   appointment_id=appointment_id)
         return appointment_id
+
+    def get_nth_pending_appointment(self, n: int = 0) -> Optional[AppointmentModel]:
+        """Возвращает N-ю по счету pending запись (по умолчанию первую) с возможностью смещения.
+
+        Args:
+            n: Порядковый номер записи (начинается с 0)
+
+        Returns:
+            AppointmentModel или None, если записи не найдены
+        """
+        query = f"""
+        SELECT a.*, s.name as service_name, sl.start_time, sl.end_time
+        FROM {self.__tablename__} a
+        LEFT JOIN services s ON a.service_id = s.id
+        LEFT JOIN slots sl ON a.slot_id = sl.id
+        WHERE a.status = 'pending'
+        ORDER BY sl.start_time ASC, a.created_at ASC
+        LIMIT 1 OFFSET ?
+        """
+
+        # Можно использовать либо n, либо offset в зависимости от логики нумерации
+        self.cursor.execute(query, (n,))  # или (offset,)
+        row = self.cursor.fetchone()
+
+        if not row:
+            return None
+
+        def parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
+            if not dt_str:
+                return None
+            dt = datetime.fromisoformat(dt_str)
+            return dt.astimezone(self.__timezone_offset) if dt.tzinfo else dt.replace(tzinfo=self.__timezone_offset)
+
+        with AppointmentPhotosTable() as app_ph_db:
+            return AppointmentModel(
+                appointment_id=row['id'],
+                client_id=row['client_id'],
+                slot_id=row['slot_id'],
+                service_id=row['service_id'],
+                comment=row['comment'],
+                status=row['status'],
+                created_at=parse_datetime(row['created_at']),
+                updated_at=parse_datetime(row['updated_at']),
+                service_name=row['service_name'],
+                start_time=parse_datetime(row['start_time']),
+                end_time=parse_datetime(row['end_time']),
+                photos=app_ph_db.get_appointment_photos(row['id'])
+            )
+
+    def count_pending_appointments(self) -> int:
+        """Возвращает количество записей со статусом 'pending'."""
+        query = f"""
+        SELECT COUNT(*) as count
+        FROM {self.__tablename__}
+        WHERE status = 'pending'
+        """
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+        return result['count'] if result else 0
 
     def get_client_appointments(self, client_id: int) -> List[AppointmentModel]:
         """Возвращает список записей клиента."""

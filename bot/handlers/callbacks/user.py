@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 from locale import format_string
+from typing import Optional
 
 from aiogram import Router
 from aiogram.filters import StateFilter
@@ -8,7 +9,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InputMediaPhoto
 
 import bot.keyboards.inline as ikb
-from DB.models import PhotoModel, UserModel
+import bot.keyboards.master_inline as master_ikb
+from DB.models import PhotoModel, UserModel, AppointmentModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
@@ -16,7 +18,7 @@ from DB.tables.photos import PhotosTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot.filters import IsCancelActionFilter
-from bot.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack, Appointment
+from bot.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
 
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
@@ -59,10 +61,12 @@ async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCa
 @router.callback_query(SlotCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_SLOT))
 async def handle_slot_selection(callback: CallbackQuery, callback_data: SlotCallBack, state: FSMContext):
     with SlotsTable() as slots_db:
+        slot = slots_db.get_slot(callback_data.slot_id)
         await AppointmentNavigation.update_appointment_data(
             state,
             slot_id=callback_data.slot_id,
-            slot_str=str(slots_db.get_slot(callback_data.slot_id))
+            start_time=slot.start_time,
+            end_time=slot.end_time
         )
 
     await AppointmentNavigation.handle_navigation(
@@ -79,7 +83,7 @@ async def handle_service_selection(callback: CallbackQuery, callback_data: Servi
         await AppointmentNavigation.update_appointment_data(
             state,
             service_id=callback_data.service_id,
-            service_str=service_db.get_service(callback_data.service_id).name
+            service_name=service_db.get_service(callback_data.service_id).name
         )
 
     await AppointmentNavigation.handle_navigation(
@@ -107,12 +111,13 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
     data = await AppointmentNavigation.get_appointment_data(state)
 
     try:
-        success = await process_appointment_creation(callback.from_user.id, data)
-        message = (PHRASES_RU.answer.confirmation_wait if success
+        app_id = await process_appointment_creation(callback.from_user.id, data)
+        message = (PHRASES_RU.answer.confirmation_wait if app_id
                    else PHRASES_RU.error.booking.occupied_slot)
 
-        if success:
+        if app_id:
             data.client_username = callback.from_user.username
+            data.appointment_id = app_id
             if not data.client_username:
                 data.client_contact = user_row.contact
             await notify_master(data)
@@ -142,18 +147,28 @@ async def handle_navigation_actions(
     )
 
 
-async def notify_master(data: Appointment):
+async def notify_master(data: AppointmentModel):
     with MastersTable() as masters_db:
         masters = masters_db.get_all_masters()
         caption = format_string.master_booking_text(data)
         if masters and len(masters) > 0:
-            if data.photos and len(data.photos) > 0:
-                media: list[InputMediaPhoto] = []
-                for photo in data.photos:
-                    media.append(InputMediaPhoto(media=photo.telegram_file_id, caption=caption if len(media) == 0 else None))
-                await bot.send_media_group(chat_id=masters[0].id, media=media)
-                return
-            await bot.send_message(chat_id=masters[0].id, text=caption)
+            master = masters[0]
+            message_id = masters_db.get_message_id(master.id)
+            message_id = None   # TODO WARNING
+            reply_to = None
+            if not message_id:
+                if data.photos and len(data.photos) > 0:
+                    media: list[InputMediaPhoto] = []
+                    for photo in data.photos:
+                        media.append(InputMediaPhoto(media=photo.telegram_file_id))
+                    msgs = await bot.send_media_group(chat_id=master.id, media=media)
+                    reply_to = msgs[0].message_id
+                sent_msg = await bot.send_message(chat_id=master.id,
+                                                  text=caption,
+                                                  reply_markup=master_ikb.base_master_keyboard(appointment_id=data.appointment_id),
+                                                  reply_to_message_id=reply_to)
+                masters_db.update_message_id(master.id, None)  # TODO WARNING
+                # masters_db.update_message_id(master.id, sent_msg.message_id)  # TODO WARNING
 
 
 async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message: str):
@@ -162,24 +177,24 @@ async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message:
     await callback.message.edit_text(text=message, reply_markup=None)
 
 
-async def process_appointment_creation(user_id: int, data: Appointment) -> bool:
+async def process_appointment_creation(user_id: int, data: AppointmentModel) -> Optional[int]:
     """Создает запись и возвращает статус успешности"""
     if not data.is_ready_for_confirmation():
-        return False
+        return None
 
     with SlotsTable() as slots_db, AppointmentsTable() as app_db:
         if not slots_db.reserve_slot(data.slot_id):
-            return False
+            return None
 
         app_id = app_db.create_appointment(
             client_id=user_id,
             slot_id=data.slot_id,
             service_id=data.service_id,
-            comment=data.text
+            comment=data.comment
         )
 
         await _process_appointment_photos(app_id, data.photos)
-        return True
+        return app_id
 
 
 async def _process_appointment_photos(app_id: int, photos: list[PhotoModel]):

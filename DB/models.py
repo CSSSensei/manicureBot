@@ -1,8 +1,13 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
 
+from pydantic import BaseModel
+
 from phrases import PHRASES_RU
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -92,20 +97,55 @@ class PhotoModel:
     caption: Optional[str] = None
 
 
-@dataclass
-class AppointmentModel:
-    """Модель записи на прием"""
-    id: Optional[int] = None
-    client_id: Optional[int] = None
+class AppointmentModel(BaseModel):
+    appointment_id: Optional[int] = None
+    status: str = 'pending'
+    slot_date: Optional[datetime] = None
     slot_id: Optional[int] = None
     service_id: Optional[int] = None
+    service_name: Optional[str] = None
+    photos: Optional[List[PhotoModel]] = None
     comment: Optional[str] = None
-    status: str = 'pending'
+    client_id: Optional[int] = None
+    client_username: Optional[str] = None
+    client_contact: Optional[str] = None
+    message_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    service_name: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
+
+    def is_ready_for_confirmation(self) -> bool:
+        """Проверяет, все ли обязательные поля заполнены"""
+        return all([
+            self.slot_id,
+            self.service_id
+        ])
+
+    @property
+    def formatted_date(self) -> Optional[str]:
+        """Возвращает дату слота в формате '{день недели} %d.%m' или символ ошибки"""
+        if self.slot_date is None:
+            logger.error(f'Message creation error: no slot date in state data')
+            return PHRASES_RU.error.unknown
+
+        weekdays = [
+            "Понедельник",
+            "Вторник",
+            "Среда",
+            "Четверг",
+            "Пятница",
+            "Суббота",
+            "Воскресенье"
+        ]
+
+        return f"{weekdays[self.slot_date.weekday()]} {self.slot_date.strftime('%d.%m')}"
+
+    @property
+    def slot_str(self):
+        start = self.start_time.strftime("%H:%M") if self.start_time else "00:00"
+        end = self.end_time.strftime("%H:%M") if self.end_time else "00:00"
+        return f"{start}{PHRASES_RU.icon.time_separator}{end}"
 
 
 @dataclass
@@ -114,3 +154,5 @@ class Master:
     id: Optional[int] = None
     name: Optional[str] = None
     is_master: Optional[bool] = None
+    message_id: Optional[int] = None
+    message

@@ -53,7 +53,7 @@ class MastersTable(BaseTable):
 
     def get_all_masters(self) -> List[Master]:
         query = f'''
-        SELECT id, name, is_master
+        SELECT *
         FROM {self.__tablename__}
         WHERE is_master = TRUE
         '''
@@ -67,7 +67,8 @@ class MastersTable(BaseTable):
                 master = Master(
                     id=row['id'],
                     name=row['name'],
-                    is_master=bool(row['is_master']))
+                    is_master=bool(row['is_master']),
+                    message_id=row['message_id'])
                 masters.append(master)
             return masters
 
@@ -95,7 +96,7 @@ class MastersTable(BaseTable):
             return row['message_id']
         return None
 
-    def update_message_id(self, master_id: int, message_id: int) -> bool:
+    def update_message_id(self, master_id: int, message_id: Optional[int]) -> bool:
         """Обновляет message_id для указанного мастера.
 
         Args:

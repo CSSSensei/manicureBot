@@ -1,15 +1,6 @@
-import logging
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Tuple, Optional, Any, List
+from typing import Tuple, Optional, Any
 from aiogram.filters.callback_data import CallbackData
-from pydantic import BaseModel
-
-from DB.models import PhotoModel
-from phrases import PHRASES_RU
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -58,40 +49,6 @@ class ActionButtonCallBack(CallbackData, prefix="action_button"):
     current_page: Optional[int] = None
 
 
-class Appointment(BaseModel):
-    slot_date: Optional[datetime] = None
-    slot_id: Optional[int] = None
-    slot_str: Optional[str] = None
-    service_id: Optional[int] = None
-    service_str: Optional[str] = None
-    photos: Optional[List[PhotoModel]] = None
-    text: Optional[str] = None
-    client_username: Optional[str] = None
-    client_contact: Optional[str] = None
-    message_id: Optional[int] = None
-
-    def is_ready_for_confirmation(self) -> bool:
-        """Проверяет, все ли обязательные поля заполнены"""
-        return all([
-            self.slot_id,
-            self.service_id
-        ])
-
-    @property
-    def formatted_date(self) -> Optional[str]:
-        """Возвращает дату слота в формате '{день недели} %d.%m' или символ ошибки"""
-        if self.slot_date is None:
-            logger.error(f'Message creation error: no slot date in state data')
-            return PHRASES_RU.error.unknown
-
-        weekdays = [
-            "Понедельник",
-            "Вторник",
-            "Среда",
-            "Четверг",
-            "Пятница",
-            "Суббота",
-            "Воскресенье"
-        ]
-
-        return f"{weekdays[self.slot_date.weekday()]} {self.slot_date.strftime('%d.%m')}"
+class MasterButtonCallBack(CallbackData, prefix="master"):
+    action: int  # 1 - подтвердить, -1 - отклонить
+    appointment_id: Optional[int] = None
