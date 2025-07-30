@@ -52,6 +52,10 @@ manicureBot/
 │   │   ├── admin/
 │   │   ├── master/
 │   │   └── default/
+│   ├── middlewares/             # Custom middlewares for bot processing
+│   │   ├── get_user.py
+│   │   ├── shadow_ban.py
+│   │   └── logging_query.py
 │   └── ...
 │
 ├── DB/                        # SQLite interface & models
