@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Optional
 
-from DB.models import AppointmentModel
+from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.base import BaseTable
 
@@ -84,10 +84,11 @@ class AppointmentsTable(BaseTable):
             AppointmentModel или None, если записи не найдены
         """
         query = f"""
-        SELECT a.*, s.name as service_name, sl.start_time, sl.end_time
+        SELECT a.*, s.name as service_name, sl.start_time, sl.end_time, u.username, u.contact
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
+        LEFT JOIN users u ON a.client_id = u.user_id
         WHERE a.status = 'pending'
         ORDER BY sl.start_time ASC, a.created_at ASC
         LIMIT 1 OFFSET ?
@@ -109,16 +110,19 @@ class AppointmentsTable(BaseTable):
         with AppointmentPhotosTable() as app_ph_db:
             return AppointmentModel(
                 appointment_id=row['id'],
-                client_id=row['client_id'],
-                slot_id=row['slot_id'],
-                service_id=row['service_id'],
+                client=UserModel(user_id=row['client_id'],
+                                 username=row['username'],
+                                 contact=row['contact']),
+                slot=SlotModel(id=row['slot_id'],
+                               start_time=parse_datetime(row['start_time']),
+                               end_time=parse_datetime(row['end_time']),
+                               is_available=False),
+                service=ServiceModel(id=row['service_id'],
+                                     name=row['service_name']),
                 comment=row['comment'],
                 status=row['status'],
                 created_at=parse_datetime(row['created_at']),
                 updated_at=parse_datetime(row['updated_at']),
-                service_name=row['service_name'],
-                start_time=parse_datetime(row['start_time']),
-                end_time=parse_datetime(row['end_time']),
                 photos=app_ph_db.get_appointment_photos(row['id'])
             )
 
@@ -133,17 +137,59 @@ class AppointmentsTable(BaseTable):
         result = self.cursor.fetchone()
         return result['count'] if result else 0
 
-    def get_client_appointments(self, client_id: int) -> List[AppointmentModel]:
-        """Возвращает список записей клиента."""
-        query = f"""
-        SELECT a.*, s.name as service_name, sl.start_time, sl.end_time
-        FROM {self.__tablename__} a
-        LEFT JOIN services s ON a.service_id = s.id
-        LEFT JOIN slots sl ON a.slot_id = sl.id
-        WHERE a.client_id = ?
-        ORDER BY sl.start_time
+    def get_client_appointments(self, client_id: int, page: int = 1, only_future: bool = True) -> tuple[Optional[AppointmentModel], Pagination]:
+        """Возвращает список актуальных записей клиента с постраничной навигацией.
+        Args:
+            client_id: ID клиента
+            page: Номер страницы
+            only_future: Если True, возвращает только будущие записи (end_time >= now)
         """
-        self.cursor.execute(query, (client_id,))
+        now = datetime.now(self.__timezone_offset)
+        per_page = 1
+        pagination = Pagination(
+            page=page,
+            per_page=per_page,
+            total_items=0,
+            total_pages=0
+        )
+
+        base_conditions = "a.client_id = ?"
+        params = [client_id]
+
+        if only_future:
+            base_conditions += " AND sl.end_time >= ?"
+            params.append(now.isoformat())
+
+        count_query = f"""
+            SELECT COUNT(*) as total
+            FROM {self.__tablename__} a
+            LEFT JOIN slots sl ON a.slot_id = sl.id
+            WHERE {base_conditions}
+            """
+        self.cursor.execute(count_query, params)
+        total_items = self.cursor.fetchone()['total']
+
+        pagination.total_items = total_items
+        pagination.total_pages = max(1, (total_items + per_page - 1) // per_page)
+
+        query = f"""
+            SELECT 
+                a.*, 
+                s.name as service_name, 
+                sl.start_time, 
+                sl.end_time, 
+                u.username, 
+                u.contact
+            FROM {self.__tablename__} a
+            LEFT JOIN services s ON a.service_id = s.id
+            LEFT JOIN slots sl ON a.slot_id = sl.id
+            LEFT JOIN users u ON a.client_id = u.user_id
+            WHERE {base_conditions}
+            ORDER BY sl.start_time ASC
+            LIMIT ? OFFSET ?
+            """
+        params.extend([per_page, pagination.offset])
+        self.cursor.execute(query, params)
 
         def parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
             if not dt_str:
@@ -151,19 +197,35 @@ class AppointmentsTable(BaseTable):
             dt = datetime.fromisoformat(dt_str)
             return dt.astimezone(self.__timezone_offset) if dt.tzinfo else dt.replace(tzinfo=self.__timezone_offset)
 
-        return [AppointmentModel(
-            id=row['id'],
-            client_id=row['client_id'],
-            slot_id=row['slot_id'],
-            service_id=row['service_id'],
-            comment=row['comment'],
-            status=row['status'],
-            created_at=parse_datetime(row['created_at']),
-            updated_at=parse_datetime(row['updated_at']),
-            service_name=row['service_name'],
-            start_time=parse_datetime(row['start_time']),
-            end_time=parse_datetime(row['end_time'])
-        ) for row in self.cursor]
+        row = self.cursor.fetchone()
+        app = None
+        if row:
+            with AppointmentPhotosTable() as app_ph_db:
+                app = AppointmentModel(
+                    appointment_id=row['id'],
+                    client=UserModel(
+                        user_id=row['client_id'],
+                        username=row['username'],
+                        contact=row['contact']
+                    ),
+                    slot=SlotModel(
+                        id=row['slot_id'],
+                        start_time=parse_datetime(row['start_time']),
+                        end_time=parse_datetime(row['end_time']),
+                        is_available=False
+                    ),
+                    service=ServiceModel(
+                        id=row['service_id'],
+                        name=row['service_name']
+                    ),
+                    comment=row['comment'],
+                    status=row['status'],
+                    created_at=parse_datetime(row['created_at']),
+                    updated_at=parse_datetime(row['updated_at']),
+                    photos=app_ph_db.get_appointment_photos(row['id'])
+                )
+
+        return app, pagination
 
     def update_appointment_status(self, appointment_id: int, status: str) -> None:
         """Обновляет статус записи."""
@@ -184,3 +246,60 @@ class AppointmentsTable(BaseTable):
         self._log('UPDATE_APPOINTMENT_STATUS',
                   appointment_id=appointment_id,
                   status=status)
+
+    def get_appointment_by_id(self, appointment_id: int) -> Optional[AppointmentModel]:
+        query = f"""
+        SELECT 
+            a.*, 
+            s.name as service_name, 
+            sl.start_time, 
+            sl.end_time, 
+            u.username, 
+            u.contact
+        FROM {self.__tablename__} a
+        LEFT JOIN services s ON a.service_id = s.id
+        LEFT JOIN slots sl ON a.slot_id = sl.id
+        LEFT JOIN users u ON a.client_id = u.user_id
+        WHERE a.id = ?
+        """
+
+        self.cursor.execute(query, (appointment_id,))
+        row = self.cursor.fetchone()
+
+        if not row:
+            return None
+
+        def parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
+            if not dt_str:
+                return None
+            dt = datetime.fromisoformat(dt_str)
+            return dt.astimezone(self.__timezone_offset) if dt.tzinfo else dt.replace(tzinfo=self.__timezone_offset)
+
+        with AppointmentPhotosTable() as app_ph_db:
+            return AppointmentModel(
+                appointment_id=row['id'],
+                client=UserModel(
+                    user_id=row['client_id'],
+                    username=row['username'],
+                    contact=row['contact']
+                ),
+                slot=SlotModel(
+                    id=row['slot_id'],
+                    start_time=parse_datetime(row['start_time']),
+                    end_time=parse_datetime(row['end_time']),
+                    is_available=False
+                ),
+                service=ServiceModel(
+                    id=row['service_id'],
+                    name=row['service_name']
+                ),
+                comment=row['comment'],
+                status=row['status'],
+                created_at=parse_datetime(row['created_at']),
+                updated_at=parse_datetime(row['updated_at']),
+                photos=app_ph_db.get_appointment_photos(row['id'])
+            )
+
+    @property
+    def valid_statuses(self):
+        return self.__valid_statuses

@@ -8,9 +8,9 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InputMediaPhoto
 
-import bot.keyboards.inline as ikb
-import bot.keyboards.master_inline as master_ikb
-from DB.models import PhotoModel, UserModel, AppointmentModel
+import bot.keyboards.default.inline as ikb
+import bot.keyboards.master.inline as master_ikb
+from DB.models import PhotoModel, UserModel, AppointmentModel, SlotModel, ServiceModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
@@ -64,9 +64,10 @@ async def handle_slot_selection(callback: CallbackQuery, callback_data: SlotCall
         slot = slots_db.get_slot(callback_data.slot_id)
         await AppointmentNavigation.update_appointment_data(
             state,
-            slot_id=callback_data.slot_id,
-            start_time=slot.start_time,
-            end_time=slot.end_time
+            slot=SlotModel(id=callback_data.slot_id,
+                           start_time=slot.start_time,
+                           end_time=slot.end_time,
+                           is_available=False)
         )
 
     await AppointmentNavigation.handle_navigation(
@@ -82,8 +83,10 @@ async def handle_service_selection(callback: CallbackQuery, callback_data: Servi
     with ServicesTable() as service_db:
         await AppointmentNavigation.update_appointment_data(
             state,
-            service_id=callback_data.service_id,
-            service_name=service_db.get_service(callback_data.service_id).name
+            service=ServiceModel(
+                id=callback_data.service_id,
+                name=service_db.get_service(callback_data.service_id).name
+            )
         )
 
     await AppointmentNavigation.handle_navigation(
@@ -116,10 +119,11 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
                    else PHRASES_RU.error.booking.occupied_slot)
 
         if app_id:
-            data.client_username = callback.from_user.username
+            data.client = UserModel(
+                user_id=callback.from_user.id,
+                username=callback.from_user.username,
+                contact=user_row.contact)
             data.appointment_id = app_id
-            if not data.client_username:
-                data.client_contact = user_row.contact
             await notify_master(data)
 
         await clear_and_respond(callback, state, message)
@@ -148,27 +152,44 @@ async def handle_navigation_actions(
 
 
 async def notify_master(data: AppointmentModel):
-    with MastersTable() as masters_db:
+    with (MastersTable() as masters_db, AppointmentsTable() as app_db):
+        total_items = app_db.count_pending_appointments()
         masters = masters_db.get_all_masters()
-        caption = format_string.master_booking_text(data)
+
         if masters and len(masters) > 0:
             master = masters[0]
-            message_id = masters_db.get_message_id(master.id)
-            message_id = None   # TODO WARNING
-            reply_to = None
-            if not message_id:
+            if not master.message_id:
+                msg_to_delete = None
+                caption = format_string.master_booking_text(data, total_items)
+                reply_to = None
                 if data.photos and len(data.photos) > 0:
                     media: list[InputMediaPhoto] = []
                     for photo in data.photos:
                         media.append(InputMediaPhoto(media=photo.telegram_file_id))
-                    msgs = await bot.send_media_group(chat_id=master.id, media=media)
+                    msgs = await bot.send_media_group(chat_id=master.id, media=media[:9])
                     reply_to = msgs[0].message_id
-                sent_msg = await bot.send_message(chat_id=master.id,
-                                                  text=caption,
-                                                  reply_markup=master_ikb.base_master_keyboard(appointment_id=data.appointment_id),
-                                                  reply_to_message_id=reply_to)
-                masters_db.update_message_id(master.id, None)  # TODO WARNING
-                # masters_db.update_message_id(master.id, sent_msg.message_id)  # TODO WARNING
+                    msg_to_delete = f'{msgs[0].message_id},{msgs[-1].message_id}'
+
+                msg = await bot.send_message(
+                    chat_id=master.id,
+                    text=caption,
+                    reply_markup=master_ikb.page_master_keyboard(
+                        appointment_id=data.appointment_id,
+                        msg_to_delete=msg_to_delete),
+                    reply_to_message_id=reply_to)
+                masters_db.update_current_state(master.id, msg.message_id, data.appointment_id, msg_to_delete)
+            else:
+                caption = format_string.master_booking_text(
+                    app_db.get_appointment_by_id(master.current_app_id),
+                    total_items)
+
+                await bot.edit_message_text(chat_id=master.id,
+                                            message_id=master.message_id,
+                                            text=caption,
+                                            reply_markup=master_ikb.page_master_keyboard(
+                                                appointment_id=master.current_app_id,
+                                                msg_to_delete=master.msg_to_delete)
+                                            )
 
 
 async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message: str):
@@ -183,13 +204,13 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
         return None
 
     with SlotsTable() as slots_db, AppointmentsTable() as app_db:
-        if not slots_db.reserve_slot(data.slot_id):
+        if not slots_db.reserve_slot(data.slot.id):
             return None
 
         app_id = app_db.create_appointment(
             client_id=user_id,
-            slot_id=data.slot_id,
-            service_id=data.service_id,
+            slot_id=data.slot.id,
+            service_id=data.service.id,
             comment=data.comment
         )
 

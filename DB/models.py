@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from pydantic import BaseModel
 
@@ -83,9 +83,9 @@ class SlotModel:
     id: Optional[int] = None
 
     def __str__(self):
-        start = self.start_time.strftime("%H:%M") if self.start_time else "00:00"
-        end = self.end_time.strftime("%H:%M") if self.end_time else "00:00"
-        return f"{start}{PHRASES_RU.icon.time_separator}{end}"
+        start = self.start_time.strftime('%H:%M') if self.start_time else '00:00'
+        end = self.end_time.strftime('%H:%M') if self.end_time else '00:00'
+        return f'{start}{PHRASES_RU.icon.time_separator}{end}'
 
 
 @dataclass
@@ -98,54 +98,77 @@ class PhotoModel:
 
 
 class AppointmentModel(BaseModel):
+    """Модель записи на прием с валидацией обязательных полей"""
     appointment_id: Optional[int] = None
     status: str = 'pending'
-    slot_date: Optional[datetime] = None
-    slot_id: Optional[int] = None
-    service_id: Optional[int] = None
-    service_name: Optional[str] = None
+    slot: Optional[SlotModel] = None
+    service: Optional[ServiceModel] = None
     photos: Optional[List[PhotoModel]] = None
     comment: Optional[str] = None
-    client_id: Optional[int] = None
-    client_username: Optional[str] = None
-    client_contact: Optional[str] = None
+    client: Optional[UserModel] = None
     message_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    slot_date: Optional[datetime] = None
 
     def is_ready_for_confirmation(self) -> bool:
         """Проверяет, все ли обязательные поля заполнены"""
         return all([
-            self.slot_id,
-            self.service_id
+            self.slot and self.slot.id is not None,
+            self.service and self.service.id is not None
         ])
 
     @property
-    def formatted_date(self) -> Optional[str]:
-        """Возвращает дату слота в формате '{день недели} %d.%m' или символ ошибки"""
-        if self.slot_date is None:
-            logger.error(f'Message creation error: no slot date in state data')
-            return PHRASES_RU.error.unknown
+    def formatted_date(self) -> str:
+        """Возвращает дату слота в формате '{день недели} %d.%m' или ошибку, если слот не задан"""
+        if not self.slot or not self.slot.start_time:
+            return 'Ошибка: дата не указана'
 
-        weekdays = [
-            "Понедельник",
-            "Вторник",
-            "Среда",
-            "Четверг",
-            "Пятница",
-            "Суббота",
-            "Воскресенье"
-        ]
-
-        return f"{weekdays[self.slot_date.weekday()]} {self.slot_date.strftime('%d.%m')}"
+        weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+        weekday = weekdays[self.slot.start_time.weekday()]
+        return f'{weekday} {self.slot.start_time.strftime("%d.%m")}'
 
     @property
-    def slot_str(self):
-        start = self.start_time.strftime("%H:%M") if self.start_time else "00:00"
-        end = self.end_time.strftime("%H:%M") if self.end_time else "00:00"
-        return f"{start}{PHRASES_RU.icon.time_separator}{end}"
+    def slot_str(self) -> str:
+        """Возвращает временной интервал слота в формате 'HH:MM – HH:MM'"""
+        if not self.slot:
+            return '00:00 – 00:00'
+        return str(self.slot)
+    
+    @classmethod
+    def from_fsm_data(cls, data: dict[str, Any]) -> 'AppointmentModel':
+        """Преобразует данные из FSM в модель AppointmentModel."""
+        slot_data = data.pop('slot', None)
+        service_data = data.pop('service', None)
+        client_data = data.pop('client', None)
+        photos_data = data.pop('photos', None)
+        slot = SlotModel(**slot_data) if slot_data else None
+        service = ServiceModel(**service_data) if service_data else None
+        client = UserModel(**client_data) if client_data else None
+
+        photos = None
+        if photos_data:
+            photos = [PhotoModel(**p) if isinstance(p, dict) else p for p in photos_data]
+
+        base_data = {k: v for k, v in data.items() if k in cls.model_fields}
+
+        return cls(
+            slot=slot,
+            service=service,
+            client=client,
+            photos=photos,
+            **base_data
+        )
+
+    def __str__(self):
+        """Строковое представление записи"""
+        return (
+            f'Запись #{self.appointment_id or "новая"}\n'
+            f'Услуга: {self.service.name if self.service else "не выбрана"}\n'
+            f'Дата: {self.formatted_date}\n'
+            f'Время: {self.slot_str}\n'
+            f'Статус: {self.status}'
+        )
 
 
 @dataclass
@@ -153,5 +176,8 @@ class Master:
     """Класс для представления общей инфо о записи"""
     id: Optional[int] = None
     name: Optional[str] = None
+    specialization: Optional[str] = None
     is_master: Optional[bool] = None
     message_id: Optional[int] = None
+    current_app_id: Optional[int] = None
+    msg_to_delete: Optional[str] = None

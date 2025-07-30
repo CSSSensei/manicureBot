@@ -1,17 +1,43 @@
-from typing import Union, List, Set, Optional
+import calendar
+from datetime import datetime, timedelta, date
+from typing import Union, Optional, List, Set
+
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
-import datetime
-import calendar
-
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from DB.models import Pagination
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
+from bot.utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack
+from DB.models import Pagination
 from config.const import MONTHS
 from phrases import PHRASES_RU
-from bot.utils.models import PageCallBack, MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
+
+
+def booking_page_keyboard(pagination: Pagination, msg_to_delete: Optional[str]) -> Union[IMarkup, None]:
+    if pagination.total_pages <= 1:
+        return None
+
+    no_action = BookingPageCallBack().pack()
+
+    past_button = IButton(
+        text=PHRASES_RU.button.prev_page,
+        callback_data=BookingPageCallBack(page=pagination.page - 1,
+                                          msg_to_delete=msg_to_delete).pack()
+    ) if pagination.page > 1 else IButton(text=' ', callback_data=no_action)
+
+    next_button = IButton(
+        text=PHRASES_RU.button.next_page,
+        callback_data=BookingPageCallBack(
+            page=pagination.page + 1,
+            msg_to_delete=msg_to_delete).pack()
+    ) if pagination.page < pagination.total_pages else IButton(text=' ', callback_data=no_action)
+
+    return IMarkup(inline_keyboard=[[
+        past_button,
+        IButton(text=f'{pagination.page}{PHRASES_RU.icon.page_separator}{pagination.total_pages}', callback_data=no_action),
+        next_button
+    ]])
 
 
 def _base_keyboard(
@@ -49,41 +75,18 @@ def _base_keyboard(
     return IMarkup(inline_keyboard=buttons)
 
 
-def page_keyboard(action: int, pagination: Pagination, user_id: int = 0) -> Union[IMarkup, None]:
-    if pagination.total_pages <= 1:
-        return None
-
-    no_action = PageCallBack(action=-1).pack()
-
-    past_button = IButton(
-        text=PHRASES_RU.button.prev_page,
-        callback_data=PageCallBack(action=action, page=pagination.page - 1, user_id=user_id).pack()
-    ) if pagination.page > 1 else IButton(text=' ', callback_data=no_action)
-
-    next_button = IButton(
-        text=PHRASES_RU.button.next_page,
-        callback_data=PageCallBack(action=action, page=pagination.page + 1, user_id=user_id).pack()
-    ) if pagination.page < pagination.total_pages else IButton(text=' ', callback_data=no_action)
-
-    return IMarkup(inline_keyboard=[[
-        past_button,
-        IButton(text=f'{pagination.page}{PHRASES_RU.icon.page_separator}{pagination.total_pages}', callback_data=no_action),
-        next_button
-    ]])
-
-
 def month_keyboard(m: int, y: int, prev: bool) -> IMarkup:
     """Создает календарную клавиатуру с активными днями, где есть свободные слоты"""
 
-    now = datetime.datetime.now()
+    now = datetime.now()
     today = now.date()
 
     if m == now.month and y == now.year:
         start_date = now
-        end_date = datetime.datetime(y, m, calendar.monthrange(y, m)[1]) + datetime.timedelta(days=1)
+        end_date = datetime(y, m, calendar.monthrange(y, m)[1]) + timedelta(days=1)
     else:
-        start_date = datetime.datetime(y, m, 1)
-        end_date = datetime.datetime(y, m, calendar.monthrange(y, m)[1]) + datetime.timedelta(days=1)
+        start_date = datetime(y, m, 1)
+        end_date = datetime(y, m, calendar.monthrange(y, m)[1]) + timedelta(days=1)
 
     with SlotsTable() as slots_db:
         slots = slots_db.get_available_slots(start_date, end_date)
@@ -125,7 +128,7 @@ def month_keyboard(m: int, y: int, prev: bool) -> IMarkup:
                     week_buttons.append(IButton(text=' ', callback_data=MonthCallBack(day=-1).pack()))
                     continue
 
-                target_date = datetime.date(y, m, day)
+                target_date = date(y, m, day)
                 is_available = target_date in available_dates
                 is_today = target_date == today
 
@@ -162,11 +165,11 @@ def service_keyboard() -> IMarkup:
     )
 
 
-def slots_keyboard(date: datetime.date) -> IMarkup:
+def slots_keyboard(cur_date: datetime.date) -> IMarkup:
     """Клавиатура со слотами времени."""
     builder = InlineKeyboardBuilder()
     with SlotsTable() as slots_db:
-        for slot in slots_db.get_available_slots_by_day(date):
+        for slot in slots_db.get_available_slots_by_day(cur_date):
             builder.button(
                 text=str(slot),
                 callback_data=SlotCallBack(slot_id=slot.id).pack()

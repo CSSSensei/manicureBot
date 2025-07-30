@@ -17,6 +17,8 @@ class MastersTable(BaseTable):
             specialization TEXT,
             is_master BOOLEAN DEFAULT TRUE,
             message_id INTEGER,
+            current_app_id INT,
+            msg_to_delete TEXT,
             FOREIGN KEY (id) REFERENCES users(user_id) ON DELETE CASCADE
         )''')
         self.conn.commit()
@@ -67,8 +69,12 @@ class MastersTable(BaseTable):
                 master = Master(
                     id=row['id'],
                     name=row['name'],
-                    is_master=bool(row['is_master']),
-                    message_id=row['message_id'])
+                    specialization=row['specialization'],
+                    is_master=row['is_master'],
+                    message_id=row['message_id'],
+                    current_app_id=row['current_app_id'],
+                    msg_to_delete=row['msg_to_delete']
+                )
                 masters.append(master)
             return masters
 
@@ -76,33 +82,46 @@ class MastersTable(BaseTable):
             self._log('GET_ALL_MASTERS_ERROR', error=str(e))
             return []
 
-    def get_message_id(self, master_id: int) -> Optional[int]:
+    def get_master(self, master_id: int) -> Optional[Master]:
         """Получает message_id для указанного мастера.
 
         Args:
             master_id: ID мастера
 
         Returns:
-            int: message_id если найден, иначе None
+            Master: Master если найден, иначе None
         """
         query = f"""
-            SELECT message_id FROM {self.__tablename__}
+            SELECT * FROM {self.__tablename__}
             WHERE id = ? AND is_master = TRUE
         """
         self.cursor.execute(query, (master_id,))
         row = self.cursor.fetchone()
 
-        if row and row['message_id'] is not None:
-            return row['message_id']
+        if row:
+            return Master(
+                id=row['id'],
+                name=row['name'],
+                specialization=row['specialization'],
+                is_master=row['is_master'],
+                message_id=row['message_id'],
+                current_app_id=row['current_app_id'],
+                msg_to_delete=row['msg_to_delete']
+            )
         return None
 
-    def update_message_id(self, master_id: int, message_id: Optional[int]) -> bool:
+    def update_current_state(self,
+                             master_id: int,
+                             message_id: Optional[int] = None,
+                             current_app_id: Optional[int] = None,
+                             msg_to_delete: Optional[str] = None) -> bool:
         """Обновляет message_id для указанного мастера.
 
         Args:
             master_id: ID мастера
-            message_id: Новый message_id для установки
-
+            message_id: message_id сообщения, которое висит в ленте
+            current_app_id: Текущий id записи, который висит в ленте
+            msg_to_delete: Строка с message_id фото, которые прикреплены к записи
         Returns:
             bool: True если обновление прошло успешно, False если мастер не найден
         """
@@ -114,12 +133,16 @@ class MastersTable(BaseTable):
         try:
             query = f"""
                 UPDATE {self.__tablename__}
-                SET message_id = ?
+                SET message_id = ?, current_app_id = ?, msg_to_delete = ?
                 WHERE id = ?
             """
-            self.cursor.execute(query, (message_id, master_id))
+            self.cursor.execute(query, (message_id, current_app_id, msg_to_delete, master_id))
             self.conn.commit()
-            self._log('UPDATE_MESSAGE_ID_SUCCESS', master_id=master_id, message_id=message_id)
+            self._log('UPDATE_MESSAGE_ID_SUCCESS',
+                      master_id=master_id,
+                      current_app_id=current_app_id,
+                      message_id=message_id,
+                      msg_to_delete=msg_to_delete)
             return True
         except sqlite3.Error as e:
             self._log('UPDATE_MESSAGE_ID_ERROR', error=str(e), master_id=master_id)

@@ -8,7 +8,7 @@ from DB.tables.slots import SlotsTable
 from DB.models import AppointmentModel
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
-from bot.keyboards import inline as ikb
+from bot.keyboards.default import inline as ikb
 from utils import format_string
 
 
@@ -30,14 +30,16 @@ class AppointmentNavigation:
     @classmethod
     async def get_appointment_data(cls, state: FSMContext) -> AppointmentModel:
         data = await state.get_data()
-        return AppointmentModel(**data)
+        return AppointmentModel.from_fsm_data(data)
 
     @classmethod
     async def update_appointment_data(cls, state: FSMContext, **updates) -> AppointmentModel:
-        current = await cls.get_appointment_data(state)
-        updated = current.model_copy(update=updates)
-        await state.update_data(updated.model_dump())
-        return updated
+        current_data = await state.get_data()
+        current_model = AppointmentModel.from_fsm_data(current_data)
+        updated_model = current_model.model_copy(update=updates)
+        await state.update_data(**updated_model.model_dump())
+
+        return updated_model
 
     @classmethod
     def get_next_state(cls, current_state: str) -> Optional[str]:
@@ -92,8 +94,8 @@ class AppointmentNavigation:
         """Очищает данные, связанные с определенным шагом"""
         clear_rules = {
             'WAITING_FOR_DATE': {'slot_date': None},
-            'WAITING_FOR_SLOT': {'slot_id': None, 'start_time': None, 'end_time': None},
-            'WAITING_FOR_SERVICE': {'service_id': None, 'service_name': None},
+            'WAITING_FOR_SLOT': {'slot': None},
+            'WAITING_FOR_SERVICE': {'service': None},
             'WAITING_FOR_PHOTOS': {'photos': None},
             'WAITING_FOR_COMMENT': {'comment': None}
         }
@@ -114,7 +116,6 @@ class AppointmentNavigation:
             'WAITING_FOR_COMMENT': PHRASES_RU.callback.answer.comment_delete
         }
         await callback.answer(text=notify_rules[step])
-
 
     @classmethod
     async def _call_step_handler(cls, callback: CallbackQuery, state: FSMContext, step: str):

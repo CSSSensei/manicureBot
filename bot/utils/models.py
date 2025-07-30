@@ -23,10 +23,15 @@ class CommandUnit:
         return base
 
 
-class PageCallBack(CallbackData, prefix='cut'):
-    action: int
+class AdminPageCallBack(CallbackData, prefix='cut'):
+    type_of_event: int  # -1 - no action, 1 - get_users, 2 - user_query
     user_id: int = 0
     page: int = 1
+
+
+class BookingPageCallBack(CallbackData, prefix='booking'):
+    page: Optional[int] = None  # None - кнопка с текущей странице, не подразумевает действий
+    msg_to_delete: Optional[str] = None
 
 
 class MonthCallBack(CallbackData, prefix="calendar"):
@@ -50,5 +55,6 @@ class ActionButtonCallBack(CallbackData, prefix="action_button"):
 
 
 class MasterButtonCallBack(CallbackData, prefix="master"):
-    action: int  # 1 - подтвердить, -1 - отклонить
+    status: str  # {'pending', 'confirmed', 'completed', 'cancelled'}
     appointment_id: Optional[int] = None
+    msg_to_delete: Optional[str] = None

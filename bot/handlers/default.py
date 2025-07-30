@@ -6,8 +6,9 @@ from aiogram import Router, F
 from DB.models import PhotoModel
 from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
-from bot.keyboards import default as ukb
-from bot.keyboards import inline as ikb
+from bot import pages
+from bot.keyboards.default import base as ukb
+from bot.keyboards.default import inline as ikb
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
 
@@ -39,6 +40,11 @@ async def booking_message(message: Message, state: FSMContext):
             await message.answer(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
         else:
             await message.answer(PHRASES_RU.error.no_slots)
+
+
+@router.message(F.text == PHRASES_RU.button.active_booking)
+async def active_booking_message(message: Message):
+    await pages.get_active_bookings(message.from_user.id, page=1)
 
 
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_PHOTOS))
