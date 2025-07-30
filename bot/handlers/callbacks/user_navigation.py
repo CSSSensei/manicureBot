@@ -1,19 +1,16 @@
 from datetime import datetime
 import logging
-from locale import format_string
 from typing import Optional
 
 from aiogram import Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InputMediaPhoto
+from aiogram.types import CallbackQuery
 
 import bot.keyboards.default.inline as ikb
-import bot.keyboards.master.inline as master_ikb
 from DB.models import PhotoModel, UserModel, AppointmentModel, SlotModel, ServiceModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
-from DB.tables.masters import MastersTable
 from DB.tables.photos import PhotosTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
@@ -22,9 +19,8 @@ from bot.utils.models import MonthCallBack, ServiceCallBack, ActionButtonCallBac
 
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
-from config import bot
 from phrases import PHRASES_RU
-from utils import format_string
+from bot import pages
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +120,7 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
                 username=callback.from_user.username,
                 contact=user_row.contact)
             data.appointment_id = app_id
-            await notify_master(data)
+            await pages.notify_master(data)
 
         await clear_and_respond(callback, state, message)
     except Exception as e:
@@ -149,47 +145,6 @@ async def handle_navigation_actions(
         current_state=state_name,
         action=callback_data.action,
     )
-
-
-async def notify_master(data: AppointmentModel):
-    with (MastersTable() as masters_db, AppointmentsTable() as app_db):
-        total_items = app_db.count_pending_appointments()
-        masters = masters_db.get_all_masters()
-
-        if masters and len(masters) > 0:
-            master = masters[0]
-            if not master.message_id:
-                msg_to_delete = None
-                caption = format_string.master_booking_text(data, total_items)
-                reply_to = None
-                if data.photos and len(data.photos) > 0:
-                    media: list[InputMediaPhoto] = []
-                    for photo in data.photos:
-                        media.append(InputMediaPhoto(media=photo.telegram_file_id))
-                    msgs = await bot.send_media_group(chat_id=master.id, media=media[:9])
-                    reply_to = msgs[0].message_id
-                    msg_to_delete = f'{msgs[0].message_id},{msgs[-1].message_id}'
-
-                msg = await bot.send_message(
-                    chat_id=master.id,
-                    text=caption,
-                    reply_markup=master_ikb.page_master_keyboard(
-                        appointment_id=data.appointment_id,
-                        msg_to_delete=msg_to_delete),
-                    reply_to_message_id=reply_to)
-                masters_db.update_current_state(master.id, msg.message_id, data.appointment_id, msg_to_delete)
-            else:
-                caption = format_string.master_booking_text(
-                    app_db.get_appointment_by_id(master.current_app_id),
-                    total_items)
-
-                await bot.edit_message_text(chat_id=master.id,
-                                            message_id=master.message_id,
-                                            text=caption,
-                                            reply_markup=master_ikb.page_master_keyboard(
-                                                appointment_id=master.current_app_id,
-                                                msg_to_delete=master.msg_to_delete)
-                                            )
 
 
 async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message: str):

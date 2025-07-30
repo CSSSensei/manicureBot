@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery
 
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
-from bot.handlers.callbacks.user_navigation import notify_master
+from bot import pages
 from bot.utils.models import MasterButtonCallBack
 from config import bot
 
@@ -27,4 +27,4 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             master_db.update_current_state(callback.from_user.id)
             app_data = app_db.get_nth_pending_appointment(0)
             if app_data:
-                await notify_master(app_data)
+                await pages.notify_master(app_data)
