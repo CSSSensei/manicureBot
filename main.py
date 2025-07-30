@@ -50,8 +50,9 @@ async def main() -> None:
     dp.update.middleware(GetUserMiddleware())
     dp.update.middleware(ShadowBanMiddleware())
     dp.message.middleware.register(UserLoggerMiddleware())
+    dp.inline_query.middleware.register(UserLoggerMiddleware())
 
-    logger.info('Manicure Bot starting')
+    logger.info(f'{(await bot.get_me()).first_name} starting\n * Running on http://t.me/{(await bot.get_me()).username}')
     try:
         await dp.start_polling(bot)
     except Exception as e:
