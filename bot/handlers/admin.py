@@ -1,6 +1,7 @@
 import logging
 from aiogram.types import Message
 
+from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
@@ -107,6 +108,26 @@ async def _(message: Message):
 @command_arguments.user_id
 async def _(message: Message, user_id: int):
     await pages.user_query(message.from_user.id, user_id)
+
+
+@router.command('master', 'назначить мастером', 'user_id')  # /master
+@command_arguments.user_id
+async def _(message: Message, user_id):
+    with MastersTable() as masters_db:
+        if masters_db.set_master_status(user_id):
+            await message.answer(PHRASES_RU.replace('success.set_master', user_id=user_id))
+        else:
+            await message.answer(PHRASES_RU.error.db)
+
+
+@router.command('del_master', 'удалить мастера', 'user_id')  # /del_master
+@command_arguments.user_id
+async def _(message: Message, user_id):
+    with MastersTable() as masters_db:
+        if masters_db.set_master_status(user_id, False):
+            await message.answer(PHRASES_RU.replace('success.del_master', user_id=user_id))
+        else:
+            await message.answer(PHRASES_RU.error.db)
 
 
 @router.command('test', 'отладка и тестирование функций')  # /test
