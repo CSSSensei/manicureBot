@@ -31,9 +31,9 @@ class UsersTable(BaseTable):
 
         if existing_user:
             needs_update = (
-                (existing_user.username != user.username and user.username)
-                or (existing_user.first_name != user.first_name and user.first_name)
-                or (existing_user.last_name != user.last_name and user.last_name)
+                (existing_user.username != user.username)
+                or (existing_user.first_name != user.first_name)
+                or (existing_user.last_name != user.last_name)
             )
 
             if needs_update:
