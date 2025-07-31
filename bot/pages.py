@@ -1,19 +1,24 @@
-from typing import Union
+import logging
+from typing import Union, Optional
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InputMediaPhoto
 
 from DB.models import AppointmentModel, Pagination
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
+from bot.utils.msg_sender import send_or_edit_message
 from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from config import bot
-from config.const import USERS_PER_PAGE, QUERIES_PER_PAGE
+from config.const import USERS_PER_PAGE, QUERIES_PER_PAGE, PENDING
 from utils.format_list import format_user_list, format_queries_text
 from utils.format_string import user_sent_booking, master_booking_text
 from bot import keyboards
 from bot.keyboards.admin import inline as admin_ikb
 from bot.keyboards.master import inline as master_ikb
+
+logger = logging.getLogger(__name__)
 
 
 async def get_users(user_id: int, page: int = 1, message_id: Union[int, None] = None):
@@ -68,30 +73,34 @@ async def user_query(user_id: int, user_id_to_find: Union[int, None], page: int 
             )
 
 
-async def get_active_bookings(user_id: int, page=1):
+async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[int] = None):
     with AppointmentsTable() as app_db:
         app, pagination = app_db.get_client_appointments(user_id, page)
+        if not app:
+            await send_or_edit_message(bot=bot,
+                                       chat_id=user_id,
+                                       message_id=message_id,
+                                       text=PHRASES_RU.error.booking.try_again)
+            return
         if pagination.total_items > 0:
-            await _send_user_app(app, pagination)
+            await _send_user_app(app, pagination, message_id)
         else:
-            await bot.send_message(chat_id=user_id, text=PHRASES_RU.replace('answer.no_active_bookings', booking=PHRASES_RU.button.booking),
-                                   reply_markup=keyboards.default.base.keyboard)
+            await send_or_edit_message(bot=bot,
+                                       message_id=message_id,
+                                       chat_id=user_id,
+                                       text=PHRASES_RU.replace('answer.no_active_bookings',
+                                                               booking=PHRASES_RU.button.booking))
 
 
-async def _send_user_app(app: AppointmentModel, pagination: Pagination):
-    caption = user_sent_booking(app)
-    reply_to = None
-    msg_to_delete = None
-    if app.photos and len(app.photos) > 0:
-        media: list[InputMediaPhoto] = []
-        for photo in app.photos:
-            media.append(InputMediaPhoto(media=photo.telegram_file_id))
-
-        msgs = await bot.send_media_group(chat_id=app.client.user_id, media=media[:9])
-        msg_to_delete = f'{msgs[0].message_id},{msgs[-1].message_id}'
-        reply_to = msgs[0].message_id
-    await bot.send_message(chat_id=app.client.user_id, text=caption, reply_to_message_id=reply_to,
-                           reply_markup=keyboards.default.inline.booking_page_keyboard(pagination, msg_to_delete))
+async def _send_user_app(app: AppointmentModel, pagination: Pagination, message_id: Optional[int] = None):
+    caption = user_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
+    await send_or_edit_message(bot=bot,
+                               chat_id=app.client.user_id,
+                               text=caption,
+                               reply_markup=keyboards.default.inline.booking_page_keyboard(
+                                   app,
+                                   pagination),
+                               message_id=message_id)
 
 
 async def notify_master(data: AppointmentModel):
@@ -122,14 +131,24 @@ async def notify_master(data: AppointmentModel):
                     reply_to_message_id=reply_to)
                 masters_db.update_current_state(master.id, msg.message_id, data.appointment_id, msg_to_delete)
             else:
-                caption = master_booking_text(
-                    app_db.get_appointment_by_id(master.current_app_id),
-                    total_items)
-
-                await bot.edit_message_text(chat_id=master.id,
-                                            message_id=master.message_id,
-                                            text=caption,
-                                            reply_markup=master_ikb.page_master_keyboard(
-                                                appointment_id=master.current_app_id,
-                                                msg_to_delete=master.msg_to_delete)
-                                            )
+                current_app = app_db.get_appointment_by_id(master.current_app_id)
+                if current_app.status != PENDING:
+                    total_items += 1
+                caption = master_booking_text(current_app, total_items)
+                try:
+                    await bot.edit_message_text(chat_id=master.id,
+                                                message_id=master.message_id,
+                                                text=caption,
+                                                reply_markup=master_ikb.page_master_keyboard(
+                                                    appointment_id=master.current_app_id,
+                                                    msg_to_delete=master.msg_to_delete)
+                                                )
+                except TelegramBadRequest as e:
+                    if "message is not modified" in str(e):
+                        pass
+                    else:
+                        logger.error(
+                            "TelegramBadRequest while editing message: %s",
+                            e,
+                            exc_info=True
+                        )

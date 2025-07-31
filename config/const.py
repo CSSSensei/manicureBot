@@ -18,3 +18,10 @@ MONTHS = {
     11: "Ноябрь",
     12: "Декабрь",
 }
+
+PENDING = 'pending'
+CONFIRMED = 'confirmed'
+COMPLETED = 'completed'
+CANCELLED = 'cancelled'
+REJECTED = 'rejected'
+BACK = 'back'

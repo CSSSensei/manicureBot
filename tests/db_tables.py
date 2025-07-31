@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 
-from DB.models import SlotModel, ServiceModel, AppointmentModel, PhotoModel
+from DB.models import ServiceModel, PhotoModel
 from DB.tables.slots import SlotsTable
 from DB.tables.services import ServicesTable
 from DB.tables.photos import PhotosTable
@@ -39,7 +39,7 @@ def test_slots_table(dbs):
     available = dbs['slots'].get_available_slots()
     assert any(s.id == slot_id for s in available)
 
-    dbs['slots'].reserve_slot(slot_id)
+    dbs['slots'].set_slot_availability(slot_id)
     assert all(not s.is_available for s in dbs['slots'].get_available_slots())
 
 

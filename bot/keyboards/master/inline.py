@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 
 from bot.utils.models import MasterButtonCallBack
+from config import const
 from phrases import PHRASES_RU
 
 
@@ -10,12 +11,12 @@ def page_master_keyboard(appointment_id: int, msg_to_delete: Optional[str] = Non
     keyboard = [[
         IButton(
             text=PHRASES_RU.button.admin.reject,
-            callback_data=MasterButtonCallBack(status='cancelled',
+            callback_data=MasterButtonCallBack(status=const.REJECTED,
                                                appointment_id=appointment_id,
                                                msg_to_delete=msg_to_delete).pack()),
         IButton(
             text=PHRASES_RU.button.admin.confirm,
-            callback_data=MasterButtonCallBack(status='confirmed',
+            callback_data=MasterButtonCallBack(status=const.CONFIRMED,
                                                appointment_id=appointment_id,
                                                msg_to_delete=msg_to_delete).pack()
         )]

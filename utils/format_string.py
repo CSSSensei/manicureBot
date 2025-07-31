@@ -1,4 +1,7 @@
+from typing import Optional
+
 from DB.models import AppointmentModel
+from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
 from phrases import PHRASES_RU
 
 
@@ -16,21 +19,23 @@ def get_query_count_emoji(count: int) -> str:
 
 
 def get_status_app_string(status: str) -> str:
-    if status == 'pending':
+    if status == PENDING:
         return PHRASES_RU.answer.status.pending
-    elif status == 'confirmed':
+    elif status == CONFIRMED:
         return PHRASES_RU.answer.status.confirmed
-    elif status == 'completed':
+    elif status == COMPLETED:
         return PHRASES_RU.answer.status.completed
-    elif status == 'cancelled':
+    elif status == CANCELLED:
         return PHRASES_RU.answer.status.cancelled
+    elif status == REJECTED:
+        return PHRASES_RU.answer.status.rejected
     return ''
 
 
-def user_booking_text(data: AppointmentModel) -> str:
-    text = (PHRASES_RU.title.booking +
-            PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
-                               datetime=data.slot_str)) if data.slot else ''
+def user_booking_text(data: AppointmentModel, header: Optional[str] = PHRASES_RU.title.new_booking) -> str:
+    text = header
+    text += PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
+                               datetime=data.slot_str) if data.slot else ''
     if data.service and data.service.name:
         text += PHRASES_RU.replace('template.user.service', service=data.service.name)
     if data.photos and len(data.photos) > 0:
@@ -41,8 +46,8 @@ def user_booking_text(data: AppointmentModel) -> str:
     return text
 
 
-def user_sent_booking(data: AppointmentModel) -> str:
-    text = user_booking_text(data)
+def user_sent_booking(data: AppointmentModel, header: str) -> str:
+    text = user_booking_text(data, header)
     if data.status:
         text += '\n' + get_status_app_string(data.status)
     return text

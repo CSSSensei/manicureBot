@@ -126,18 +126,35 @@ class SlotsTable(BaseTable):
             return datetime.fromisoformat(row['start_time']) if row['start_time'] else None
         return None
 
-    def reserve_slot(self, slot_id: int) -> bool:
-        """Помечает слот как занятый."""
-        if not self._check_record_exists('slots', 'id', slot_id):
-            raise ValueError(f"Slot with id {slot_id} not found")
-        if self.is_available(slot_id):
-            query = f"UPDATE {self.__tablename__} SET is_available = FALSE WHERE id = ?"
-            self.cursor.execute(query, (slot_id,))
-            self.conn.commit()
-            self._log('RESERVE_SLOT', slot_id=slot_id)
-            return True
-        else:
-            return False
+    def set_slot_availability(self, slot_id: int, available: bool = False) -> bool:
+        """Обновляет статус доступности слота.
+
+        Args:
+            slot_id: ID слота для обновления
+            available: Новый статус доступности (True - доступен, False - занят)
+
+        Returns:
+            bool: True если статус был изменен, False если слот уже был в нужном состоянии
+
+        Raises:
+            ValueError: Если слот с указанным ID не существует
+        """
+        current_status = self.is_available(slot_id)
+        if current_status == available:
+            return False  # Статус уже соответствует желаемому
+
+        query = f'UPDATE {self.__tablename__} SET is_available = ? WHERE id = ?'
+        self.cursor.execute(query, (available, slot_id))
+        self.conn.commit()
+
+        action = 'FREE SLOT' if available else 'RESERVE SLOT'
+        self._log(f'{action} (ID: {slot_id})',
+                  operation='UPDATE_SLOT_STATUS',
+                  old_status=current_status,
+                  new_status=available,
+                  slot_id=slot_id)
+
+        return True
 
 
 if __name__ == '__main__':

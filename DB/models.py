@@ -5,6 +5,7 @@ from typing import Optional, List, Any
 
 from pydantic import BaseModel
 
+from config.const import PENDING
 from phrases import PHRASES_RU
 
 logger = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ class PhotoModel:
 class AppointmentModel(BaseModel):
     """Модель записи на прием с валидацией обязательных полей"""
     appointment_id: Optional[int] = None
-    status: str = 'pending'
+    status: str = PENDING
     slot: Optional[SlotModel] = None
     service: Optional[ServiceModel] = None
     photos: Optional[List[PhotoModel]] = None

@@ -31,7 +31,16 @@ class AdminPageCallBack(CallbackData, prefix='cut'):
 
 class BookingPageCallBack(CallbackData, prefix='booking'):
     page: Optional[int] = None  # None - кнопка с текущей странице, не подразумевает действий
-    msg_to_delete: Optional[str] = None
+    action: Optional[str] = None  # 'cancel' - отменить запись, 'back' - разад
+
+
+class BookingStatusCallBack(CallbackData, prefix='status'):
+    status: Optional[str] = None  # 'cancel'
+    app_id: Optional[int] = None
+
+
+class PhotoAppCallBack(CallbackData, prefix='photo'):
+    app_id: Optional[int] = None
 
 
 class MonthCallBack(CallbackData, prefix="calendar"):

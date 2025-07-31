@@ -159,7 +159,7 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
         return None
 
     with SlotsTable() as slots_db, AppointmentsTable() as app_db:
-        if not slots_db.reserve_slot(data.slot.id):
+        if not slots_db.set_slot_availability(data.slot.id, False):
             return None
 
         app_id = app_db.create_appointment(

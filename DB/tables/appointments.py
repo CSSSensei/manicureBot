@@ -4,11 +4,12 @@ from typing import Optional
 from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.base import BaseTable
+from config.const import PENDING, COMPLETED, CONFIRMED, CANCELLED, REJECTED
 
 
 class AppointmentsTable(BaseTable):
     __tablename__ = 'appointments'
-    __valid_statuses = {'pending', 'confirmed', 'completed', 'cancelled'}
+    __valid_statuses = {PENDING, CONFIRMED, CANCELLED, COMPLETED, REJECTED}
     __timezone_offset = timezone(timedelta(hours=3))  # Для MSK (UTC+3)
 
     def create_table(self) -> None:
@@ -20,7 +21,7 @@ class AppointmentsTable(BaseTable):
                 slot_id INTEGER NOT NULL,
                 service_id INTEGER NOT NULL,
                 comment TEXT,
-                status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+                status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'completed', 'cancelled', 'rejected')),
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (client_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -153,7 +154,7 @@ class AppointmentsTable(BaseTable):
             total_pages=0
         )
 
-        base_conditions = "a.client_id = ?"
+        base_conditions = "a.client_id = ? AND status != 'cancelled'"
         params = [client_id]
 
         if only_future:

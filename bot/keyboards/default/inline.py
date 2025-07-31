@@ -1,6 +1,6 @@
 import calendar
 from datetime import datetime, timedelta, date
-from typing import Union, Optional, List, Set
+from typing import Optional, List, Set
 
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
@@ -8,13 +8,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot.utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack
-from DB.models import Pagination
-from config.const import MONTHS
+from bot.utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
+    PhotoAppCallBack
+from DB.models import Pagination, AppointmentModel
+from config.const import MONTHS, CANCELLED, REJECTED, BACK
 from phrases import PHRASES_RU
 
 
-def booking_page_keyboard(pagination: Pagination, msg_to_delete: Optional[str]) -> Union[IMarkup, None]:
+def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination) -> Optional[IMarkup]:
     if pagination.total_pages <= 1:
         return None
 
@@ -22,22 +23,51 @@ def booking_page_keyboard(pagination: Pagination, msg_to_delete: Optional[str]) 
 
     past_button = IButton(
         text=PHRASES_RU.button.prev_page,
-        callback_data=BookingPageCallBack(page=pagination.page - 1,
-                                          msg_to_delete=msg_to_delete).pack()
+        callback_data=BookingPageCallBack(page=pagination.page - 1).pack()
     ) if pagination.page > 1 else IButton(text=' ', callback_data=no_action)
 
     next_button = IButton(
         text=PHRASES_RU.button.next_page,
         callback_data=BookingPageCallBack(
-            page=pagination.page + 1,
-            msg_to_delete=msg_to_delete).pack()
+            page=pagination.page + 1).pack()
     ) if pagination.page < pagination.total_pages else IButton(text=' ', callback_data=no_action)
-
-    return IMarkup(inline_keyboard=[[
+    booking_keyboard = [[
         past_button,
         IButton(text=f'{pagination.page}{PHRASES_RU.icon.page_separator}{pagination.total_pages}', callback_data=no_action),
         next_button
-    ]])
+    ]]
+    if appointment.photos and len(appointment.photos) > 0:
+        booking_keyboard.append([
+            IButton(text=PHRASES_RU.button.photos, callback_data=PhotoAppCallBack(
+                app_id=appointment.appointment_id
+            ).pack())
+        ])
+    if appointment.status != CANCELLED and appointment.status != REJECTED:
+        booking_keyboard.append([
+            IButton(text=PHRASES_RU.button.cancel2, callback_data=BookingPageCallBack(
+                page=pagination.page,
+                action=CANCELLED
+            ).pack())
+        ])
+
+    return IMarkup(inline_keyboard=booking_keyboard)
+
+
+def user_cancel_keyboard(appointment_id: int, page: int) -> Optional[IMarkup]:
+    back_button = IButton(
+        text=PHRASES_RU.button.back, callback_data=BookingPageCallBack(
+            page=page,
+            action=BACK).pack()
+    )
+
+    cancel_button = IButton(
+        text=PHRASES_RU.button.cancel3,
+        callback_data=BookingStatusCallBack(
+            status=CANCELLED,
+            app_id=appointment_id).pack()
+    )
+    keyboard = [[back_button], [cancel_button]]
+    return IMarkup(inline_keyboard=keyboard)
 
 
 def _base_keyboard(
