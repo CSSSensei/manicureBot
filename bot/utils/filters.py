@@ -3,8 +3,9 @@ from typing import Optional
 from aiogram.filters import BaseFilter, Filter
 from aiogram.types import Message, CallbackQuery
 
+from DB.tables.masters import MastersTable
 from DB.tables.users import UsersTable
-from DB.models import UserModel
+from DB.models import UserModel, Master
 
 
 class AdminFilter(BaseFilter):
@@ -13,6 +14,15 @@ class AdminFilter(BaseFilter):
             user: Optional[UserModel] = users_db.get_user(message.from_user.id)
             if user:
                 return user.is_admin
+            return False
+
+
+class MasterFilter(BaseFilter):
+    async def __call__(self, message: Message) -> bool:
+        with MastersTable() as master_db:
+            user_master: Optional[Master] = master_db.get_master(message.from_user.id)
+            if user_master:
+                return user_master.is_master
             return False
 
 

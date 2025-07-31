@@ -47,11 +47,17 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
     if status is None or appointment_id is None:  # пустой коллбэк
         return
     with AppointmentsTable() as app_db, SlotsTable() as slots_db:
+        app = app_db.get_appointment_by_id(appointment_id)
+
         if status == const.CANCELLED:
-            app_db.update_appointment_status(appointment_id, status)
-            appointment = app_db.get_appointment_by_id(appointment_id)
-            slots_db.set_slot_availability(appointment.slot.id, True)
-            await callback.message.edit_text(PHRASES_RU.answer.status.cancelled)
+            if app.status == const.REJECTED:
+                await callback.message.edit_text(PHRASES_RU.answer.status.already_rejected)
+
+            elif app.status in {const.PENDING, const.CONFIRMED}:
+                app_db.update_appointment_status(appointment_id, status)
+                appointment = app_db.get_appointment_by_id(appointment_id)
+                slots_db.set_slot_availability(appointment.slot.id, True)
+                await callback.message.edit_text(PHRASES_RU.answer.status.cancelled)
 
 
 @router.callback_query(PhotoAppCallBack.filter())

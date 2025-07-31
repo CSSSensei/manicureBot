@@ -16,5 +16,7 @@ async def cut_message_distributor(callback: CallbackQuery, callback_data: AdminP
         await pages.get_users(callback.from_user.id, page, callback.message.message_id)
     elif type_of_event == 2:
         await pages.user_query(callback.from_user.id, user_id, page, callback.message.message_id)
+    elif type_of_event == 3:
+        await pages.get_history(callback.from_user.id, page, callback.message.message_id)
     elif type_of_event == -1:
         await callback.answer()

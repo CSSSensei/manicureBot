@@ -39,6 +39,7 @@ async def main() -> None:
 
     logger.info('Including routers')
     dp.include_router(handlers.admin.router)
+    dp.include_router(handlers.master.router)
     dp.include_router(handlers.commands.router)
     dp.include_router(handlers.default.router)
     dp.include_router(handlers.callbacks.admin.router)

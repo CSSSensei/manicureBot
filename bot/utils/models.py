@@ -24,7 +24,7 @@ class CommandUnit:
 
 
 class AdminPageCallBack(CallbackData, prefix='cut'):
-    type_of_event: int  # -1 - no action, 1 - get_users, 2 - user_query
+    type_of_event: int  # -1 - no action, 1 - get_users, 2 - user_query, 3 - action master history
     user_id: int = 0
     page: int = 1
 

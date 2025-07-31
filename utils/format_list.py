@@ -1,8 +1,9 @@
 from typing import List, Optional
-from DB.models import UserModel, QueryModel
+from DB.models import UserModel, QueryModel, AppointmentModel
 from phrases import PHRASES_RU
 from DB.models import Pagination
 from utils import format_string
+from utils.format_string import get_status_app_string
 
 
 def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str:
@@ -66,5 +67,36 @@ def format_queries_text(
             'username': f'@{query.user.username}' if show_username and query.user and query.user.username else ''
         }
         txt.append(line_template.format(**line_data))
+
+    return ''.join(txt)
+
+
+def format_app_actions(appointments: List[AppointmentModel], pagination: Pagination) -> str:
+    txt = [PHRASES_RU.title.actions,
+           PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
+
+    for app in appointments:
+        slot_time = PHRASES_RU.error.unknown
+        slot_date = PHRASES_RU.error.unknown
+        status = get_status_app_string(app.status)
+        username = ''
+        if app.slot:
+            slot_time = str(app.slot)
+            slot_date = app.formatted_date
+        if app.client:
+            if app.client.username:
+                username = f'@{app.client.username}'
+            elif app.client.contact:
+                username = f'\nКонтакт пользователя: <i>{app.client.contact}</i>'
+        line_data = {
+            'time': app.updated_at.strftime('%d.%m.%Y %H:%M:%S') if app.updated_at else PHRASES_RU.error.unknown,
+            'slot_date': slot_date,
+            'slot_time': slot_time,
+            'status': status,
+            'username': username,
+        }
+
+        app_line = PHRASES_RU.replace('template.master.appointment_str', **line_data) + '\n'
+        txt.append(app_line)
 
     return ''.join(txt)

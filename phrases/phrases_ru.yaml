@@ -37,6 +37,7 @@ answer:
     completed: "Выполнено"
     cancelled: "🗑 Отменено"
     rejected: "🚫 Отклонено"
+    already_rejected: "Ничего не произошло, потому что запись уже отклонена"
 
 button:
   next_page: "»"
@@ -50,6 +51,9 @@ button:
   back: "🔙 Назад"
   confirm: "✅ Подтвердить"
   photos: "Прикрепленные фото"
+  master:
+    clients_today: "Записи на сегодня"
+    menu: "Меню"
   admin:
     confirm: "✅ Подтвердить"
     reject: "❌ Отклонить"
@@ -94,6 +98,13 @@ error:
   no_slots: "⚠️ Свободных слотов нет!"
   no_photos: "⚠️ Нет прикрепленных фото к этой записи!"
 
+callback_data:
+  master:
+    history: "history"
+    clients: "clients"
+    delete_slots: "delete_slots"
+    add_slots: "add_slots"
+
 title:
   users: "<b>Пользователи</b>"
   commands: "<b>Доступные команды</b>\n\n"
@@ -101,6 +112,7 @@ title:
   new_booking: "<b>Текущая запись</b>\n\n"
   admin_new_booking: "<b>Новая запись</b>"
   booking: "<b>Запись</b>\n\n"
+  actions: "<b>История действий</b>"
 
 subtitle:
   admin_commands: "<i>Админские</i>\n"
@@ -140,6 +152,10 @@ template:
     photos: "<b>Приложено фото:</b> <i>{len_photos}</i>\n"
     text: "<b>📝 Комментарий:</b> <i>{text}</i>\n"
   master:
+    appointment_str: |
+      <blockquote>{time}</blockquote>Слот <b>{slot_date}</b>
+      <i>{slot_time}</i>  {username}
+      Действие: <b>{status}</b>
     slot: |
       <b>📅 Дата:</b> <i>{date}</i>
       <b>⏰ Время:</b>  <i>{datetime}</i>

@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.types import CallbackQuery
 
 from DB.tables.appointments import AppointmentsTable
@@ -8,6 +8,7 @@ from bot import pages
 from bot.utils.models import MasterButtonCallBack
 from config import bot
 from config import const
+from phrases import PHRASES_RU
 
 router = Router()
 
@@ -47,3 +48,13 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
 
         if next_app := app_db.get_nth_pending_appointment(0):
             await pages.notify_master(next_app)
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.clients)
+async def _(callback: CallbackQuery):
+    await callback.message.edit_text(text='Была нажата истории')
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.history)
+async def _(callback: CallbackQuery):
+    await pages.get_history(callback.from_user.id)

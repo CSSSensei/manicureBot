@@ -7,7 +7,7 @@ from DB.models import PhotoModel
 from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
 from bot import pages
-from bot.keyboards.default import base as ukb
+from bot.keyboards import get_keyboard
 from bot.keyboards.default import inline as ikb
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
@@ -25,10 +25,10 @@ async def _(message: Message):
     with UsersTable() as users_db:
         if users_db.set_admin(message.from_user.id, message.from_user.id):
             await message.delete()
-            await message.answer(PHRASES_RU.success.promoted, reply_markup=ukb.keyboard)
+            await message.answer(PHRASES_RU.success.promoted, reply_markup=get_keyboard(message.from_user.id))
             await command_getcmds(message)
         else:
-            await message.answer(PHRASES_RU.error.db, reply_markup=ukb.keyboard)
+            await message.answer(PHRASES_RU.error.db, reply_markup=get_keyboard(message.from_user.id))
 
 
 @router.message(F.text == PHRASES_RU.button.booking)
@@ -37,7 +37,8 @@ async def booking_message(message: Message, state: FSMContext):
     with SlotsTable() as slots_db:
         first_slot = slots_db.get_first_available_slot()
         if first_slot:
-            await message.answer(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
+            await message.answer(PHRASES_RU.answer.choose_date,
+                                 reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
         else:
             await message.answer(PHRASES_RU.error.no_slots)
 
@@ -68,7 +69,10 @@ async def _(message: Message, state: FSMContext):
             photos=updated_photos
         )
         await message.reply("✅ Фото прикреплено!", reply=False)  # TODO убрать во phrases
-        await bot.edit_message_text(chat_id=message.from_user.id, message_id=data.message_id, text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo, reply_markup=ikb.photo_keyboard())
+        await bot.edit_message_text(chat_id=message.from_user.id,
+                                    message_id=data.message_id,
+                                    text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
+                                    reply_markup=ikb.photo_keyboard())
 
 
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_COMMENT))
@@ -86,7 +90,10 @@ async def _(message: Message, state: FSMContext):
                 reply_to_message_id=data.message_id
             )
         data.comment = message.text
-        await bot.edit_message_text(chat_id=message.from_user.id, message_id=data.message_id, text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment, reply_markup=ikb.comment_keyboard())
+        await bot.edit_message_text(chat_id=message.from_user.id,
+                                    message_id=data.message_id,
+                                    text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
+                                    reply_markup=ikb.comment_keyboard())
 
 
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_CONTACT))
@@ -100,4 +107,4 @@ async def process_contact(message: Message, state: FSMContext):
 
 @router.message()
 async def _(message: Message):
-    await message.answer(text=PHRASES_RU.answer.unknown, reply_markup=ukb.keyboard)
+    await message.answer(text=PHRASES_RU.answer.unknown, reply_markup=get_keyboard(message.from_user.id))
