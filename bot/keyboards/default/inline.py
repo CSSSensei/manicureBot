@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot.utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
+from bot.bot_utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
     PhotoAppCallBack
 from DB.models import Pagination, AppointmentModel
 from config.const import MONTHS, CANCELLED, REJECTED, BACK

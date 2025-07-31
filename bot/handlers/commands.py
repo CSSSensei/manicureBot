@@ -2,7 +2,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot.keyboards import get_keyboard
-from bot.utils.routers import UserRouter, BaseRouter
+from bot.bot_utils.routers import UserRouter, BaseRouter
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
 

@@ -5,7 +5,7 @@ from aiogram.types import Message, TelegramObject, InlineQuery
 
 from DB.tables.queries import QueriesTable
 from DB.models import UserModel as UserModel, QueryModel
-from bot.utils.routers import BaseRouter
+from bot.bot_utils.routers import BaseRouter
 
 
 logger = logging.getLogger(__name__)

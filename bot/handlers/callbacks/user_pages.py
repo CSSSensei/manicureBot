@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery, InputMediaPhoto
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.slots import SlotsTable
 from bot.pages import get_active_bookings
-from bot.utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
+from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
 from bot.keyboards.default import inline as ikb
 from config import bot
 from config import const

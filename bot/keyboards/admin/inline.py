@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup as IMarkup
 
 from DB.models import Pagination
 from phrases import PHRASES_RU
-from bot.utils.models import AdminPageCallBack
+from bot.bot_utils.models import AdminPageCallBack
 
 
 def page_keyboard(type_of_event: int, pagination: Pagination, user_id: int = 0) -> Optional[IMarkup]:

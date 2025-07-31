@@ -7,8 +7,8 @@ from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from utils import format_list
 from bot import pages
-from bot.utils import command_arguments
-from bot.utils.routers import AdminRouter, BaseRouter
+from bot.bot_utils import command_arguments
+from bot.bot_utils.routers import AdminRouter, BaseRouter
 import temp
 
 router = AdminRouter()

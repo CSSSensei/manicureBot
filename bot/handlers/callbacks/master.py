@@ -5,7 +5,7 @@ from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
 from DB.tables.slots import SlotsTable
 from bot import pages
-from bot.utils.models import MasterButtonCallBack
+from bot.bot_utils.models import MasterButtonCallBack
 from config import bot
 from config import const
 from phrases import PHRASES_RU

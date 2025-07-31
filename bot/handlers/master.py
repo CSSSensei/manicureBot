@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
-from bot.utils.filters import MasterFilter
+from bot.bot_utils.filters import MasterFilter
 from bot.keyboards import get_keyboard
 from phrases import PHRASES_RU
 from bot.keyboards.master import inline as inline_mkb

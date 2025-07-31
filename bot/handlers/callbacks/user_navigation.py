@@ -14,8 +14,8 @@ from DB.tables.appointments import AppointmentsTable
 from DB.tables.photos import PhotosTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot.utils.filters import IsCancelActionFilter
-from bot.utils.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
+from bot.bot_utils.filters import IsCancelActionFilter
+from bot.bot_utils.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
 
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates

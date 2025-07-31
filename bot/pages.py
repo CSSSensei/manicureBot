@@ -6,7 +6,7 @@ from aiogram.types import InputMediaPhoto
 from DB.models import AppointmentModel, Pagination
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
-from bot.utils.msg_sender import send_or_edit_message
+from bot.bot_utils.msg_sender import send_or_edit_message
 from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
