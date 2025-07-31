@@ -16,26 +16,25 @@ from phrases import PHRASES_RU
 
 
 def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination) -> Optional[IMarkup]:
-    if pagination.total_pages <= 1:
-        return None
+    booking_keyboard = []
+    if pagination.total_pages > 1:
+        no_action = BookingPageCallBack().pack()
 
-    no_action = BookingPageCallBack().pack()
+        past_button = IButton(
+            text=PHRASES_RU.button.prev_page,
+            callback_data=BookingPageCallBack(page=pagination.page - 1).pack()
+        ) if pagination.has_prev else IButton(text=' ', callback_data=no_action)
 
-    past_button = IButton(
-        text=PHRASES_RU.button.prev_page,
-        callback_data=BookingPageCallBack(page=pagination.page - 1).pack()
-    ) if pagination.page > 1 else IButton(text=' ', callback_data=no_action)
-
-    next_button = IButton(
-        text=PHRASES_RU.button.next_page,
-        callback_data=BookingPageCallBack(
-            page=pagination.page + 1).pack()
-    ) if pagination.page < pagination.total_pages else IButton(text=' ', callback_data=no_action)
-    booking_keyboard = [[
-        past_button,
-        IButton(text=f'{pagination.page}{PHRASES_RU.icon.page_separator}{pagination.total_pages}', callback_data=no_action),
-        next_button
-    ]]
+        next_button = IButton(
+            text=PHRASES_RU.button.next_page,
+            callback_data=BookingPageCallBack(
+                page=pagination.page + 1).pack()
+        ) if pagination.has_next else IButton(text=' ', callback_data=no_action)
+        booking_keyboard.append([
+            past_button,
+            IButton(text=f'{pagination.page}{PHRASES_RU.icon.page_separator}{pagination.total_pages}', callback_data=no_action),
+            next_button
+        ])
     if appointment.photos and len(appointment.photos) > 0:
         booking_keyboard.append([
             IButton(text=PHRASES_RU.button.photos, callback_data=PhotoAppCallBack(
