@@ -1,8 +1,10 @@
 import logging
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
-from typing import Optional, Union
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
+from typing import Optional, Union, List
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message, InputMediaPhoto
+
+from DB.models import PhotoModel
 
 logger = logging.getLogger(__name__)
 
@@ -66,3 +68,10 @@ async def send_or_edit_message(
             exc_info=True
         )
         raise
+
+
+def get_media_from_photos(photos: List[PhotoModel], caption: Optional[str] = None) -> List[InputMediaPhoto]:
+    media: List[InputMediaPhoto] = []
+    for photo in photos:
+        media.append(InputMediaPhoto(media=photo.telegram_file_id, caption=caption if len(media) == 0 else None))
+    return media[:9]

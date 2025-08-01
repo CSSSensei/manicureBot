@@ -49,7 +49,7 @@ class AppointmentsTable(BaseTable):
             END;
             ''')
         self.conn.commit()
-        self._log('CREATE_TABLE')
+        self._log('CREATE_TABLE', __timezone_offset=self.__timezone_offset)
 
     def create_appointment(
             self,
@@ -117,8 +117,8 @@ class AppointmentsTable(BaseTable):
                                  username=row['username'],
                                  contact=row['contact']),
                 slot=SlotModel(id=row['slot_id'],
-                               start_time=self._parse_datetime(row['start_time']),
-                               end_time=self._parse_datetime(row['end_time']),
+                               start_time=datetime.fromisoformat(row['start_time']),
+                               end_time=datetime.fromisoformat(row['end_time']),
                                is_available=False),
                 service=ServiceModel(id=row['service_id'],
                                      name=row['service_name']),
@@ -158,7 +158,7 @@ class AppointmentsTable(BaseTable):
 
         if only_future:
             conditions.append("sl.start_time >= ?")
-            params.append(now.isoformat())
+            params.append(now)
 
         if conditions:
             base_query += " WHERE " + " AND ".join(conditions)
@@ -188,7 +188,7 @@ class AppointmentsTable(BaseTable):
 
         if only_future:
             base_conditions += " AND sl.end_time >= ?"
-            params.append(now.isoformat())
+            params.append(now)
 
         count_query = f"""
             SELECT COUNT(*) as total
@@ -234,8 +234,8 @@ class AppointmentsTable(BaseTable):
                     ),
                     slot=SlotModel(
                         id=row['slot_id'],
-                        start_time=self._parse_datetime(row['start_time']),
-                        end_time=self._parse_datetime(row['end_time']),
+                        start_time=datetime.fromisoformat(row['start_time']),
+                        end_time=datetime.fromisoformat(row['end_time']),
                         is_available=False
                     ),
                     service=ServiceModel(
@@ -303,8 +303,8 @@ class AppointmentsTable(BaseTable):
                 ),
                 slot=SlotModel(
                     id=row['slot_id'],
-                    start_time=self._parse_datetime(row['start_time']),
-                    end_time=self._parse_datetime(row['end_time']),
+                    start_time=datetime.fromisoformat(row['start_time']),
+                    end_time=datetime.fromisoformat(row['end_time']),
                     is_available=False
                 ),
                 service=ServiceModel(
@@ -317,6 +317,84 @@ class AppointmentsTable(BaseTable):
                 updated_at=self._parse_datetime(row['updated_at']),
                 photos=app_ph_db.get_appointment_photos(row['id'])
             )
+
+    def get_appointments_by_status_and_date(self, date: datetime, status: str = CONFIRMED) -> list[AppointmentModel]:
+        """Возвращает все записи с указанным статусом за указанный день.
+
+        Args:
+            status: Статус записи (должен быть одним из допустимых значений)
+            date: Дата для фильтрации (учитывается только дата, время игнорируется)
+
+        Returns:
+            Список AppointmentModel объектов, удовлетворяющих условиям
+
+        Raises:
+            ValueError: Если передан недопустимый статус
+        """
+        if status not in self.__valid_statuses:
+            raise ValueError(f"Invalid status. Allowed values: {self.__valid_statuses}")
+
+        start_of_day = date.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        end_of_day = start_of_day + timedelta(days=1)
+
+        query = f"""
+        SELECT 
+            a.*, 
+            s.name as service_name, 
+            sl.start_time, 
+            sl.end_time, 
+            u.username, 
+            u.contact
+        FROM {self.__tablename__} a
+        LEFT JOIN services s ON a.service_id = s.id
+        LEFT JOIN slots sl ON a.slot_id = sl.id
+        LEFT JOIN users u ON a.client_id = u.user_id
+        WHERE a.status = ? 
+        AND sl.end_time >= ? 
+        AND sl.start_time < ?
+        ORDER BY sl.start_time ASC
+        """
+
+        params = (
+            status,
+            date,
+            end_of_day
+        )
+
+        self.cursor.execute(query, params)
+        rows = self.cursor.fetchall()
+
+        appointments = []
+        with AppointmentPhotosTable() as app_ph_db:
+            for row in rows:
+                appointment = AppointmentModel(
+                    appointment_id=row['id'],
+                    client=UserModel(
+                        user_id=row['client_id'],
+                        username=row['username'],
+                        contact=row['contact']
+                    ),
+                    slot=SlotModel(
+                        id=row['slot_id'],
+                        start_time=datetime.fromisoformat(row['start_time']),
+                        end_time=datetime.fromisoformat(row['end_time']),
+                        is_available=False
+                    ),
+                    service=ServiceModel(
+                        id=row['service_id'],
+                        name=row['service_name']
+                    ),
+                    comment=row['comment'],
+                    status=row['status'],
+                    created_at=self._parse_datetime(row['created_at']),
+                    updated_at=self._parse_datetime(row['updated_at']),
+                    photos=app_ph_db.get_appointment_photos(row['id'])
+                )
+                appointments.append(appointment)
+
+        return appointments
 
     def get_master_actions(self, page: int = 1, per_page: int = 10) -> tuple[list[AppointmentModel], Pagination]:
         """Возвращает список подтвержденных и отклоненных записей (действия админа) с пагинацией"""
@@ -364,8 +442,8 @@ class AppointmentsTable(BaseTable):
                     ),
                     slot=SlotModel(
                         id=row['slot_id'],
-                        start_time=self._parse_datetime(row['start_time']),
-                        end_time=self._parse_datetime(row['end_time']),
+                        start_time=datetime.fromisoformat(row['start_time']),
+                        end_time=datetime.fromisoformat(row['end_time']),
                         is_available=False
                     ),
                     service=ServiceModel(

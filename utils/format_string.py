@@ -53,6 +53,11 @@ def user_sent_booking(data: AppointmentModel, header: str) -> str:
     return text
 
 
+def master_sent_booking(data: AppointmentModel, header: str) -> str:
+    text = user_booking_text(data, header)
+    return text
+
+
 def master_booking_text(data: AppointmentModel, total_items: int = 1) -> str:
     text = PHRASES_RU.title.admin_new_booking + PHRASES_RU.replace('footnote.total', total=total_items)
     if data.client and data.client.username:

@@ -162,10 +162,10 @@ def month_keyboard(m: int, y: int, prev: bool) -> IMarkup:
                 is_today = target_date == today
 
                 if is_available:
-                    text = f'[{day}]' if is_today else str(day)
+                    text = f'· [{day}]' if is_today else f'· {day}'
                     callback = MonthCallBack(day=day, month=m, year=y, action=0).pack()
                 else:
-                    text = ' '
+                    text = f'[{day}]' if is_today else f'{day}'
                     callback = MonthCallBack(day=-1, month=m, year=y, action=0).pack()
 
                 week_buttons.append(IButton(

@@ -1,4 +1,5 @@
-from datetime import datetime, date, timedelta, time
+from datetime import datetime, date, timedelta, time, timezone
+from string import ascii_lowercase
 from typing import Optional, List
 
 from DB.models import SlotModel
@@ -9,17 +10,50 @@ class SlotsTable(BaseTable):
     __tablename__ = 'slots'
 
     def create_table(self):
-        """Создание таблицы slots"""
-        self.cursor.execute(f'''
+        """Создание таблицы slots с триггером для автоматического обновления статуса"""
+        __timezone_offset = timezone(timedelta(hours=3))  # Для MSK (UTC+3)
+        self.cursor.executescript(f'''
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             start_time TIMESTAMP NOT NULL,
             end_time TIMESTAMP NOT NULL,
             is_available BOOLEAN NOT NULL DEFAULT 1,
             UNIQUE (start_time)
-        )''')
+        );
+
+        CREATE TRIGGER IF NOT EXISTS update_past_slots
+        AFTER INSERT ON {self.__tablename__}
+        BEGIN
+            UPDATE {self.__tablename__} 
+            SET is_available = 0 
+            WHERE start_time < datetime('now', '+3 hours') AND id = NEW.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS check_slots_availability
+        AFTER UPDATE OF start_time ON {self.__tablename__}
+        WHEN NEW.start_time < datetime('now', '+3 hours')
+        BEGIN
+            UPDATE {self.__tablename__} 
+            SET is_available = 0 
+            WHERE id = NEW.id;
+        END;
+        ''')
         self.conn.commit()
         self._log('CREATE_TABLE')
+
+    def _update_past_slots_status(self):
+        query = f"""
+        UPDATE {self.__tablename__}
+        SET is_available = 0
+        WHERE is_available = 1 
+        AND start_time < datetime('now', '+3 hours')
+        """
+        self.cursor.execute(query)
+        updated = self.cursor.rowcount
+        self.conn.commit()
+        if updated > 0:
+            self._log('UPDATE_PAST_SLOTS', count=updated)
+        return updated
 
     def add_slot(self, start_time: datetime, end_time: datetime) -> int:
         """Добавляет новый слот для записи и возвращает его ID."""
@@ -33,6 +67,7 @@ class SlotsTable(BaseTable):
         return self.cursor.lastrowid
 
     def is_available(self, slot_id: int) -> Optional[bool]:
+        self._update_past_slots_status()
         query = f"""
             SELECT * FROM {self.__tablename__} 
             WHERE id = ?
@@ -67,6 +102,7 @@ class SlotsTable(BaseTable):
 
     def get_available_slots(self, from_time: Optional[datetime] = None, to_time: Optional[datetime] = None) -> List[SlotModel]:
         """Возвращает список доступных слотов."""
+        self._update_past_slots_status()
         if from_time and to_time and to_time < from_time:
             raise ValueError("Конечное время не может быть раньше начального")
 
@@ -113,6 +149,7 @@ class SlotsTable(BaseTable):
         Returns:
             Optional[datetime]: Дата начала первого свободного слота или None, если свободных слотов нет.
         """
+        self._update_past_slots_status()
         query = f"""
             SELECT start_time FROM {self.__tablename__} 
             WHERE is_available = TRUE
@@ -159,14 +196,4 @@ class SlotsTable(BaseTable):
 
 if __name__ == '__main__':
     with SlotsTable() as slots_db:
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=5), datetime.now() + timedelta(days=7, hours=5))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=6), datetime.now() + timedelta(days=7, hours=8))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=13), datetime.now() + timedelta(days=7, hours=15))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=23), datetime.now() + timedelta(days=7, hours=25))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=33), datetime.now() + timedelta(days=7, hours=35))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=26), datetime.now() + timedelta(days=7, hours=27))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=56), datetime.now() + timedelta(days=7, hours=59))
-        slots_db.add_slot(datetime.now() + timedelta(days=7, hours=50), datetime.now() + timedelta(days=7, hours=52))
-
-        print(slots_db.get_available_slots(datetime.now(), datetime.now() + timedelta(hours=8)))
-        print(slots_db.get_available_slots(datetime.now(), datetime.now() + timedelta(hours=40)))
+        # slots_db.add_slots_for_next_month()

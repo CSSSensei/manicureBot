@@ -58,3 +58,4 @@ async def _(callback: CallbackQuery):
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.history)
 async def _(callback: CallbackQuery):
     await pages.get_history(callback.from_user.id)
+    await callback.answer()

@@ -27,6 +27,7 @@ answer:
   confirm: "Подтвердить?"
   confirmation_wait: "Ожидайте подтверждения записи мастером"
   contact_saved: "✅ Контакт сохранён!"
+  no_apps_today: "На сегодня встреч не назначено"
   no_active_bookings: |
     У Вас сейчас нет активных записей
     

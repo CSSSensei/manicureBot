@@ -3,6 +3,7 @@ from aiogram.types import CallbackQuery, InputMediaPhoto
 
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.slots import SlotsTable
+from bot.bot_utils.msg_sender import get_media_from_photos
 from bot.pages import get_active_bookings
 from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
 from bot.keyboards.default import inline as ikb
@@ -69,11 +70,8 @@ async def booking_photos_distributor(callback: CallbackQuery, callback_data: Pho
     with AppointmentsTable() as app_db:
         appointment = app_db.get_appointment_by_id(appointment_id)
         if appointment and appointment.photos and len(appointment.photos) > 0:
-            media: list[InputMediaPhoto] = []
-            for photo in appointment.photos:
-                media.append(InputMediaPhoto(media=photo.telegram_file_id))
             await bot.send_media_group(chat_id=callback.from_user.id,
-                                       media=media[:9],
+                                       media=get_media_from_photos(appointment.photos),
                                        reply_to_message_id=callback.message.message_id)
         else:
             await callback.message.reply(text=PHRASES_RU.error.no_photos)
