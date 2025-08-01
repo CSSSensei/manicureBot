@@ -1,4 +1,6 @@
-from typing import Optional
+import re
+from datetime import datetime, timedelta
+from typing import Optional, List, Tuple
 
 from DB.models import AppointmentModel
 from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
@@ -72,3 +74,88 @@ def master_booking_text(data: AppointmentModel, total_items: int = 1) -> str:
         text += PHRASES_RU.replace('template.master.text', text=data.comment)
     text += '\n'
     return text
+
+
+def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
+    """
+    Парсит текст в формате:
+    "месяц
+    число - время-время время-время
+    число - время время"
+
+    Возвращает список кортежей (start_datetime, end_datetime)
+    Автоматически определяет год (текущий или следующий) в зависимости от месяца
+    """
+    now = datetime.now()
+    current_year = now.year
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+
+    if not lines:
+        raise ValueError("Пустой текст")
+
+    month_line = lines[0].lower()
+    month_map = {
+        'январь': 1, 'февраль': 2, 'март': 3, 'апрель': 4,
+        'май': 5, 'июнь': 6, 'июль': 7, 'август': 8,
+        'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12
+    }
+
+    month = None
+    for name, num in month_map.items():
+        if name in month_line:
+            month = num
+            break
+
+    if month is None:
+        raise ValueError(f"Не удалось распознать месяц в строке: {month_line}")
+
+    year = current_year
+    if month < now.month:
+        year = current_year + 1
+
+    slots = []
+
+    symbol = '-'
+    for line in lines[1:]:
+        if symbol not in line:
+            symbol = '—'
+            if symbol not in line:
+                raise ValueError(f"Неправильный формат строки: {line}")
+
+        day_part, times_part = line.split(symbol, 1)
+        day = int(day_part.strip())
+
+        time_parts = re.findall(r'\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?', times_part)
+
+        for time_str in time_parts:
+            if '-' in time_str:  # Полный интервал (14:30-16:30)
+                start_time_str, end_time_str = time_str.split('-')
+                start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                end_time = datetime.strptime(end_time_str, '%H:%M').time()
+            else:  # Только начало (14:30) - ставим +3 часа
+                start_time = datetime.strptime(time_str, '%H:%M').time()
+                end_time = (datetime.combine(datetime.min, start_time) +
+                            timedelta(hours=3)).time()
+
+            start_datetime = datetime(
+                year=year,
+                month=month,
+                day=day,
+                hour=start_time.hour,
+                minute=start_time.minute
+            )
+
+            end_datetime = datetime(
+                year=year,
+                month=month,
+                day=day,
+                hour=end_time.hour,
+                minute=end_time.minute
+            )
+
+            if start_datetime < now:
+                raise ValueError(f"Слот {start_datetime} уже прошел!")
+
+            slots.append((start_datetime, end_datetime))
+
+    return slots

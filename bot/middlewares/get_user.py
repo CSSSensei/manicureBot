@@ -8,7 +8,7 @@ from aiogram.types import Update, User, Message
 
 from DB.tables.users import UsersTable
 from DB.models import UserModel as UserModel
-from bot.states import AppointmentStates
+from bot.states import UserStates
 from phrases import PHRASES_RU
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class GetUserMiddleware(BaseMiddleware):
                     current_state = await state.get_state() if state else None
 
                     is_allowed_command = message.text and message.text.startswith(('/start', '/add_contact'))
-                    is_contact_input_state = current_state == AppointmentStates.WAITING_FOR_CONTACT
+                    is_contact_input_state = current_state == UserStates.WAITING_FOR_CONTACT
 
                     if is_allowed_command or is_contact_input_state:
                         return await handler(event, data)

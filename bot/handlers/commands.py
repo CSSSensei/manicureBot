@@ -3,7 +3,7 @@ from aiogram.types import Message
 
 from bot.keyboards import get_keyboard
 from bot.bot_utils.routers import UserRouter, BaseRouter
-from bot.states import AppointmentStates
+from bot.states import UserStates
 from phrases import PHRASES_RU
 
 router = UserRouter()
@@ -33,4 +33,4 @@ async def _(message: Message):
 @router.command('add_contact', 'добавление контактной информации')          # /add_contact
 async def add_contact(message: Message, state: FSMContext):
     await message.answer("Введите номер телефона или любую контактную информацию")
-    await state.set_state(AppointmentStates.WAITING_FOR_CONTACT)
+    await state.set_state(UserStates.WAITING_FOR_CONTACT)

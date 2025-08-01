@@ -93,7 +93,6 @@ class AppointmentNavigation:
     async def _clear_step_data(cls, state: FSMContext, step: str) -> bool:
         """Очищает данные, связанные с определенным шагом"""
         clear_rules = {
-            'WAITING_FOR_DATE': {'slot_date': None},
             'WAITING_FOR_SLOT': {'slot': None},
             'WAITING_FOR_SERVICE': {'service': None},
             'WAITING_FOR_PHOTOS': {'photos': None},
@@ -134,9 +133,16 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: AppointmentModel):
         with SlotsTable() as slots_db:
+            prev = False
             first_slot = slots_db.get_first_available_slot()
+            if data.slot_date:
+                if data.slot_date.month != first_slot.month:
+                    prev = True
+                first_slot = data.slot_date
             if first_slot:
-                await callback.message.edit_text(PHRASES_RU.answer.choose_date, reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
+                await callback.message.edit_text(
+                    PHRASES_RU.answer.choose_date,
+                    reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, prev))
             else:
                 await callback.message.edit_text(PHRASES_RU.error.no_slots)
 

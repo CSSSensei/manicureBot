@@ -10,7 +10,7 @@ from bot import pages
 from bot.keyboards import get_keyboard
 from bot.keyboards.default import inline as ikb
 from bot.navigation import AppointmentNavigation
-from bot.states import AppointmentStates
+from bot.states import AppointmentStates, UserStates
 
 from config import config, bot
 from phrases import PHRASES_RU
@@ -96,8 +96,11 @@ async def _(message: Message, state: FSMContext):
                                     reply_markup=ikb.comment_keyboard())
 
 
-@router.message(StateFilter(AppointmentStates.WAITING_FOR_CONTACT))
+@router.message(StateFilter(UserStates.WAITING_FOR_CONTACT))
 async def process_contact(message: Message, state: FSMContext):
+    if not message.text:
+        await message.answer(PHRASES_RU.error.state.contact_not_text_type)
+        return
     with UsersTable() as db:
         db.update_contact(message.from_user.id, message.text)
 

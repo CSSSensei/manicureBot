@@ -1,4 +1,6 @@
 from aiogram import Router, F
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from DB.tables.appointments import AppointmentsTable
@@ -6,8 +8,10 @@ from DB.tables.masters import MastersTable
 from DB.tables.slots import SlotsTable
 from bot import pages
 from bot.bot_utils.models import MasterButtonCallBack
-from config import bot
-from config import const
+from bot.handlers.master import send_master_menu
+from bot.states import MasterStates
+from bot.keyboards.master import inline as inline_mkb
+from config import const, bot
 from phrases import PHRASES_RU
 
 router = Router()
@@ -50,9 +54,46 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             await pages.notify_master(next_app)
 
 
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SLOT), F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
+async def _(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    slots = data.get('parsed_slots', [])
+
+    if not slots:
+        await callback.message.edit_text("⚠️ Не найдены слоты для добавления")
+        return
+    added_slots = []
+    with SlotsTable() as db:
+        for start, end in slots:
+            slot_id = db.add_slot(start, end)
+            added_slots.append((slot_id, start, end))
+
+    result_text = "✅ *Успешно добавлены слоты:*\n\n"
+    for slot_id, start, end in added_slots:
+        result_text += (
+            f"• *{start.strftime('%d.%m.%Y')}* "
+            f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')} "
+            f"(ID: `{slot_id}`)\n"
+        )
+    await callback.message.edit_text(result_text, parse_mode="Markdown")
+    await state.clear()
+
+
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.clients)
 async def _(callback: CallbackQuery):
-    await callback.message.edit_text(text='Была нажата истории')
+    await callback.message.edit_text(text='Клиенты')
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(MasterStates.WAITING_FOR_SLOT)
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slot, reply_markup=inline_mkb.master_add_slot())
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.cancel)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await send_master_menu(callback.from_user.id, callback.message.message_id)
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.history)
