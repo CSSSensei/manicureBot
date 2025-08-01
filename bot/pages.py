@@ -76,13 +76,13 @@ async def user_query(user_id: int, user_id_to_find: Union[int, None], page: int 
 async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[int] = None):
     with AppointmentsTable() as app_db:
         app, pagination = app_db.get_client_appointments(user_id, page)
-        if not app:
-            await send_or_edit_message(bot=bot,
-                                       chat_id=user_id,
-                                       message_id=message_id,
-                                       text=PHRASES_RU.error.booking.try_again)
-            return
         if pagination.total_items > 0:
+            if not app:
+                await send_or_edit_message(bot=bot,
+                                           chat_id=user_id,
+                                           message_id=message_id,
+                                           text=PHRASES_RU.error.booking.try_again)
+                return
             await _send_user_app(app, pagination, message_id)
         else:
             await send_or_edit_message(bot=bot,
