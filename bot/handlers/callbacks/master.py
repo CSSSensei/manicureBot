@@ -8,12 +8,13 @@ from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages
-from bot.bot_utils.models import MasterButtonCallBack
+from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack
 from bot.handlers.master import send_master_menu
 from bot.states import MasterStates
 from bot.keyboards.master import inline as inline_mkb
 from config import const, bot
 from phrases import PHRASES_RU
+from utils import format_list, format_string, db_filler
 
 router = Router()
 
@@ -55,6 +56,29 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             await pages.notify_master(next_app)
 
 
+@router.callback_query(AddSlotsMonthCallBack.filter())
+async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlotsMonthCallBack):
+    action = callback_data.action
+    month = callback_data.month
+    year = callback_data.year
+
+    slots = format_list.generate_slots_for_month(month, year)
+    slots_text = format_string.slots_to_text(slots)
+    match action:
+        case 'check':
+            text = f'Проверьте, что слоты сгенерированы верно\n\n<code>{slots_text}</code>'
+            await callback.message.edit_text(text=text,
+                                             reply_markup=inline_mkb.master_confirm_adding(month, year))
+        case 'add':
+            text = db_filler.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
+            text_chunks = format_string.split_text(text, 4096)
+            for i in range(len(text_chunks)):
+                if i == 0:
+                    await callback.message.edit_text(text_chunks[i], parse_mode="Markdown")
+                else:
+                    await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
+
+
 @router.callback_query(StateFilter(MasterStates.WAITING_FOR_SLOT), F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
 async def _(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -63,20 +87,19 @@ async def _(callback: CallbackQuery, state: FSMContext):
     if not slots:
         await callback.message.edit_text("⚠️ Не найдены слоты для добавления")  # TODO
         return
-    added_slots = []
-    with SlotsTable() as db:
-        for start, end in slots:
-            slot_id = db.add_slot(start, end)
-            added_slots.append((slot_id, start, end))
+    result_text = db_filler.add_slots_from_list(slots)
+    text_chunks = format_string.split_text(result_text, 4096)
+    await state.clear()
+    for i in range(len(text_chunks)):
+        if i == 0:
+            await callback.message.edit_text(text_chunks[i], parse_mode="Markdown")
+        else:
+            await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
 
-    result_text = "✅ *Успешно добавлены слоты:*\n\n"
-    for slot_id, start, end in added_slots:
-        result_text += (
-            f"• *{start.strftime('%d.%m.%Y')}* "
-            f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')} "
-            f"(ID: `{slot_id}`)\n"
-        )
-    await callback.message.edit_text(result_text, parse_mode="Markdown", reply_markup=inline_mkb.cancel_button())
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
     await state.clear()
 
 
@@ -103,15 +126,34 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SERVICE), F.data == PHRASES_RU.callback_data.master.cancel)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await message_service_editor(callback)
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_adding_slots)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await add_menu(callback)
+
+
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.clients)
 async def _(callback: CallbackQuery):
     await callback.message.edit_text(text='Клиенты')
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_manual_slots)
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MasterStates.WAITING_FOR_SLOT)
-    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slot, reply_markup=inline_mkb.cancel_button())
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_manual_slot,
+                                     reply_markup=inline_mkb.back_to_adding())
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots)
+async def add_menu(callback: CallbackQuery):
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slots_menu,
+                                     reply_markup=inline_mkb.add_slots_menu())
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.cancel)
@@ -121,8 +163,9 @@ async def _(callback: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.service_editor)
-async def _(callback: CallbackQuery):
-    await callback.message.edit_text(text=PHRASES_RU.answer.master.service_editor, reply_markup=inline_mkb.master_service_editor())
+async def message_service_editor(callback: CallbackQuery):
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.service_editor,
+                                     reply_markup=inline_mkb.master_service_editor())
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.add_service)

@@ -67,3 +67,9 @@ class MasterButtonCallBack(CallbackData, prefix="master"):
     status: str  # {'pending', 'confirmed', 'completed', 'cancelled'}
     appointment_id: Optional[int] = None
     msg_to_delete: Optional[str] = None
+
+
+class AddSlotsMonthCallBack(CallbackData, prefix="add_slots_month"):
+    action: str = 'check'  # 'check', 'add'
+    month: int
+    year: int

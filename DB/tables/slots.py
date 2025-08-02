@@ -1,6 +1,5 @@
 from datetime import datetime, date, timedelta, time, timezone
-from string import ascii_lowercase
-from typing import Optional, List
+from typing import Optional, List, Union, Tuple
 
 from DB.models import SlotModel
 from DB.tables.base import BaseTable
@@ -55,16 +54,40 @@ class SlotsTable(BaseTable):
             self._log('UPDATE_PAST_SLOTS', count=updated)
         return updated
 
-    def add_slot(self, start_time: datetime, end_time: datetime) -> int:
+    def add_slot(self, start_time: datetime, end_time: datetime) -> Tuple[bool, Union[int, str]]:
         """Добавляет новый слот для записи и возвращает его ID."""
-        query = f"""
-        INSERT INTO {self.__tablename__} (start_time, end_time)
-        VALUES (?, ?)
-        """
-        self.cursor.execute(query, (start_time, end_time))
-        self._log('ADD_SLOT', start_time=start_time, end_time=end_time)
-        self.conn.commit()
-        return self.cursor.lastrowid
+        try:
+            if not isinstance(start_time, datetime) or not isinstance(end_time, datetime):
+                return False, "Неверные параметры времени"
+
+            if end_time <= start_time:
+                print(end_time, start_time)
+                return False, "Время окончания должно быть позже времени начала"
+
+            query_check = f"""
+                SELECT id FROM {self.__tablename__} 
+                WHERE start_time = ?
+                """
+            self.cursor.execute(query_check, (start_time,))
+            if self.cursor.fetchone():
+                return False, "Интервал с таким временем начала уже существует"
+
+            query_insert = f"""
+                INSERT INTO {self.__tablename__} (start_time, end_time)
+                VALUES (?, ?)
+                """
+            self.cursor.execute(query_insert, (start_time, end_time))
+            self.conn.commit()
+
+            slot_id = self.cursor.lastrowid
+            self._log('ADD_SLOT', start_time=start_time, end_time=end_time)
+            return True, slot_id
+
+        except Exception as e:
+            self.conn.rollback()
+            error_msg = f"Error adding slot: {str(e)}"
+            self._log('ADD_SLOT_ERROR', error=error_msg)
+            return False, error_msg
 
     def is_available(self, slot_id: int) -> Optional[bool]:
         self._update_past_slots_status()
@@ -192,8 +215,3 @@ class SlotsTable(BaseTable):
                   slot_id=slot_id)
 
         return True
-
-
-if __name__ == '__main__':
-    with SlotsTable() as slots_db:
-        # slots_db.add_slots_for_next_month()

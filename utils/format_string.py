@@ -1,10 +1,36 @@
 import re
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 
-from DB.models import AppointmentModel, ServiceModel
+from DB.models import AppointmentModel, ServiceModel, SlotModel
+from DB.tables.slots import SlotsTable
+from config import const
 from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
 from phrases import PHRASES_RU
+
+
+def split_text(text, n):
+    result = []
+    lines = text.split('\n')
+    current_chunk = ''
+    current_length = 0
+
+    for line in lines:
+        if len(current_chunk) + len(line) + 1 <= n:  # Check if adding the line and '\n' fits in the chunk
+            if current_chunk:  # Add '\n' if it's not the first line in the chunk
+                current_chunk += '\n'
+            current_chunk += line
+            current_length += len(line) + 1
+        else:
+            result.append(current_chunk)
+            current_chunk = line
+            current_length = len(line)
+
+    if current_chunk:
+        result.append(current_chunk)
+
+    return result
 
 
 def clear_string(text: str):
@@ -110,7 +136,7 @@ def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
     for line in lines[1:]:
         line = line.replace('—', '-')
         if '-' not in line:
-            raise ValueError(f'Ожидался символ '-' в строке: {line}')
+            raise ValueError(f'Ожидался символ "-" в строке: {line}')
 
         try:
             day_part, times_part = line.split('-', 1)
@@ -120,7 +146,7 @@ def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
 
         time_parts = re.findall(r'\b\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?\b', times_part)
         if not time_parts:
-            raise ValueError(f'Не найдено допустимых временных интервалов в строке: {line}')
+            raise ValueError(f'Не найдено временных интервалов в строке: {line}')
 
         for time_str in time_parts:
             try:
@@ -128,21 +154,70 @@ def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
                     start_str, end_str = time_str.split('-')
                     start_time = datetime.strptime(start_str.strip(), '%H:%M').time()
                     end_time = datetime.strptime(end_str.strip(), '%H:%M').time()
+
+                    start_datetime = datetime(year, month, day, start_time.hour, start_time.minute)
+
+                    if end_time > start_time:
+                        end_datetime = datetime(year, month, day, end_time.hour, end_time.minute)
+                    else:
+                        end_datetime = datetime(year, month, day, end_time.hour, end_time.minute) + timedelta(days=1)
                 else:
                     start_time = datetime.strptime(time_str.strip(), '%H:%M').time()
-                    end_time = (datetime.combine(datetime.min, start_time) + timedelta(hours=3)).time()
+                    start_datetime = datetime(year, month, day, start_time.hour, start_time.minute)
+                    end_datetime = start_datetime + timedelta(hours=3)
 
-                start_datetime = datetime(year, month, day, start_time.hour, start_time.minute)
-                end_datetime = datetime(year, month, day, end_time.hour, end_time.minute)
+                if start_datetime < now:
+                    raise ValueError(f'Слот {start_datetime} уже прошел')
+
+                slots.append((start_datetime, end_datetime))
+
             except ValueError as e:
-                raise ValueError(f'Ошибка при разборе времени: {time_str}. {str(e)}')
-
-            if start_datetime < now:
-                raise ValueError(f'Слот {start_datetime} уже прошел')
-
-            slots.append((start_datetime, end_datetime))
+                raise ValueError(f'Ошибка при разборе времени "{time_str}": {str(e)}')
 
     return slots
+
+
+def slots_to_text(slots: List[SlotModel]) -> str:
+    if not slots:
+        return ""
+
+    # Группируем слоты сначала по году-месяцу, затем по дню
+    slots_by_month = defaultdict(lambda: defaultdict(list))
+    for slot in slots:
+        year_month = (slot.start_time.year, slot.start_time.month)
+        day = slot.start_time.day
+        slots_by_month[year_month][day].append(slot)
+
+    # Сортируем месяцы по порядку
+    sorted_months = sorted(slots_by_month.keys())
+
+    result_lines = []
+
+    for year, month in sorted_months:
+        month_name = const.MONTHS[month].capitalize()
+        result_lines.append(month_name)
+
+        days_slots = slots_by_month[(year, month)]
+
+        for day in sorted(days_slots.keys()):
+            date_slots = days_slots[day]
+            date_slots.sort(key=lambda x: x.start_time)
+
+            slot_strings = []
+            for slot in date_slots:
+                duration = slot.end_time - slot.start_time
+                if duration.total_seconds() == 3 * 3600:
+                    # Если длительность ровно 3 часа, пишем только начало
+                    slot_str = slot.start_time.strftime("%H:%M")
+                else:
+                    # Иначе пишем начало-конец
+                    slot_str = f"{slot.start_time.strftime('%H:%M')}-{slot.end_time.strftime('%H:%M')}"
+                slot_strings.append(slot_str)
+
+            line = f"{day} - {' '.join(slot_strings)}"
+            result_lines.append(line)
+
+    return "\n".join(result_lines)
 
 
 def parse_service_text(text: str) -> ServiceModel:
@@ -177,3 +252,8 @@ def parse_service_text(text: str) -> ServiceModel:
 
     return service
 
+
+if __name__ == '__main__':
+    with SlotsTable() as slots_db:
+        slots = slots_db.get_available_slots(datetime(2024, 1, 1), datetime(2027, 1, 1))
+        print(slots_to_text(slots))

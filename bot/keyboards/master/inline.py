@@ -1,9 +1,10 @@
+from datetime import datetime
 from typing import Optional
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 
 from DB.models import Pagination
-from bot.bot_utils.models import MasterButtonCallBack
+from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack
 from bot.keyboards.admin import inline as admin_ikb
 from config import const
 from phrases import PHRASES_RU
@@ -46,10 +47,45 @@ def cancel_button() -> IMarkup:
     return IMarkup(inline_keyboard=keyboard)
 
 
-def master_confirm_adding() -> IMarkup:
+def back_to_adding() -> IMarkup:
+    keyboard = [[IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.back_to_adding_slots)]]
+    return IMarkup(inline_keyboard=keyboard)
+
+
+def add_slots_menu() -> IMarkup:
+    now = datetime.now()
+    current_month = now.month
+    current_year = now.year
+
+    next_month = current_month + 1 if current_month < 12 else 1
+    next_year = current_year + 1 if current_month == 12 else current_year
+
     keyboard = [
-        [IButton(text=PHRASES_RU.button.cancel, callback_data=PHRASES_RU.callback_data.master.cancel)],
-        [IButton(text=PHRASES_RU.button.confirm, callback_data=PHRASES_RU.callback_data.master.confirm_add_slot)]
+        [
+            IButton(
+                text=f'на {const.MONTHS[current_month].lower()}',
+                callback_data=AddSlotsMonthCallBack(month=current_month, year=current_year).pack()),
+            IButton(
+                text=f'на {const.MONTHS[next_month].lower()}',
+                callback_data=AddSlotsMonthCallBack(month=next_month, year=next_year).pack())
+        ],
+        [
+            IButton(text="Добавить вручную", callback_data=PHRASES_RU.callback_data.master.add_manual_slots)
+        ],
+        [
+            IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)
+        ]
+    ]
+    return IMarkup(inline_keyboard=keyboard)
+
+
+def master_confirm_adding(month: Optional[int] = None, year: Optional[int] = None) -> IMarkup:
+    keyboard = [
+        [IButton(text=PHRASES_RU.button.cancel,
+                 callback_data=PHRASES_RU.callback_data.master.back_to_adding_slots)],
+        [IButton(text=PHRASES_RU.button.confirm,
+                 callback_data=AddSlotsMonthCallBack(action='add', month=month, year=year).pack() if month and year else
+                 PHRASES_RU.callback_data.master.confirm_add_slot)]
     ]
     return IMarkup(inline_keyboard=keyboard)
 

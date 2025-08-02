@@ -1,5 +1,6 @@
+from datetime import time, date, timedelta, datetime
 from typing import List, Optional
-from DB.models import UserModel, QueryModel, AppointmentModel
+from DB.models import UserModel, QueryModel, AppointmentModel, SlotModel
 from phrases import PHRASES_RU
 from DB.models import Pagination
 from utils import format_string
@@ -100,3 +101,40 @@ def format_app_actions(appointments: List[AppointmentModel], pagination: Paginat
         txt.append(app_line)
 
     return ''.join(txt)
+
+
+def generate_slots_for_month(month: int, year: int) -> List[SlotModel]:
+    time_slots = [
+        (time(11, 0), time(14, 0)),
+        (time(14, 30), time(17, 30)),
+        (time(18, 0), time(21, 0))
+    ]
+
+    added_slots = []
+    today = datetime.now().date()
+
+    first_day = date(year, month, 1)
+
+    if month == 12:
+        last_day = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+    # Если передан текущий месяц, начинаем со следующего дня
+    start_day = today + timedelta(days=1) if (today.year == year and today.month == month) else first_day
+
+    current_day = start_day
+    while current_day <= last_day:
+        # вторник - 1, суббота - 5
+        if current_day.weekday() not in [1, 5]:
+            for slot in time_slots:
+                start_datetime = datetime.combine(current_day, slot[0])
+                end_datetime = datetime.combine(current_day, slot[1])
+                added_slots.append(SlotModel(
+                    start_time=start_datetime,
+                    end_time=end_datetime,
+                    is_available=True
+                ))
+        current_day += timedelta(days=1)
+
+    return added_slots

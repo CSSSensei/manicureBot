@@ -49,7 +49,8 @@ answer:
       "о: описание (опционально)
       "с: стоимость (опционально)
       "д: длительность в минутах (опционально)</code>
-    add_slot: |
+    add_slots_menu: "Выберите месяц для автоматического добавления слотов или добавьте слоты вручную"
+    add_manual_slot: |
       <b>Добавление слотов</b>
       
       Отправьте текст в формате:
@@ -131,6 +132,8 @@ callback_data:
     clients: "clients"
     delete_slots: "delete_slots"
     add_slots: "add_slots"
+    add_manual_slots: "add_manual_slots"
+    back_to_adding_slots: "back_to_adding_slots"
     cancel: "master_cancel_callback"
     confirm_add_slot: "confirm_add_slot"
     service_editor: "service_editor"
