@@ -29,6 +29,9 @@ async def _(message: Message, state: FSMContext):
     if message.text:
         try:
             slots = format_string.parse_slots_text(message.text)
+            if not slots:
+                await message.answer('❌ <b>Ошибка при обработке запроса: время слотов не было найдено</b>')
+                return
             confirmation_text = "🔍 *Проверьте распознанные слоты:*\n\n"
             for i, (start, end) in enumerate(slots, 1):
                 confirmation_text += (
@@ -41,7 +44,7 @@ async def _(message: Message, state: FSMContext):
             await message.answer(
                 confirmation_text,
                 parse_mode="Markdown",
-                reply_markup=inline_mkb.master_confirm_adding()
+                reply_markup=inline_mkb.master_confirm_adding_slot()
             )
 
         except Exception as e:
@@ -61,7 +64,7 @@ async def _(message: Message, state: FSMContext):
         await message.answer(PHRASES_RU.error.state.slot_not_text_type)
 
 
-@router.message(StateFilter(MasterStates.WAITING_FOR_SERVICE))
+@router.message(StateFilter(MasterStates.WAITING_FOR_NEW_SERVICE))
 async def _(message: Message, state: FSMContext):
     if message.text:
         try:
@@ -78,11 +81,55 @@ async def _(message: Message, state: FSMContext):
                 response += f"▪ Длительность: <i>{service.duration} мин.</i>"
 
             await state.update_data(parsed_service=service)
-            await message.answer(response, reply_markup=inline_mkb.master_confirm_adding())
+            await message.answer(response, reply_markup=inline_mkb.master_confirm_adding_service())
 
         except Exception as e:
             error_msg = (                                            # TODO
                 "❌ Ошибка при добавлении услуги:\n"
+                f"{str(e)}\n\n"
+                "Формат ввода:\n"
+                "<code>Название услуги\n"
+                "о: описание (не обязательно)\n"
+                "с: стоимость (не обязательно)\n"
+                "д: длительность в минутах (не обязательно)</code>\n\n"
+                "Пример:\n"
+                "<code>Маникюр\n"
+                "о: Классический маникюр\n"
+                "с: 1500\n"
+                "д: 60</code>"
+            )
+            await message.answer(error_msg)
+    else:
+        await message.answer(PHRASES_RU.error.state.service_not_text_type)
+
+
+@router.message(StateFilter(MasterStates.WAITING_FOR_EDIT_SERVICE))
+async def _(message: Message, state: FSMContext):
+    data = await state.get_data()
+    service_id = data.get('service_id')
+    if not service_id:
+        await message.answer(PHRASES_RU.error.booking.try_again)
+        await state.clear()
+        return
+    if message.text:
+        try:
+            service = format_string.parse_service_text(message.text)
+
+            response = f"Подтвердите обновление услуги\n\n"          # TODO
+            response += f"▪ Название: <i>{service.name}</i>\n"
+            if service.description:
+                response += f"▪ Описание: <i>{service.description}</i>\n"
+            if service.price:
+                response += f"▪ Стоимость: <i>{service.price} руб.</i>\n"
+            if service.duration:
+                response += f"▪ Длительность: <i>{service.duration} мин.</i>"
+            service.id = service_id
+            await state.update_data(parsed_service=service)
+            await message.answer(response, reply_markup=inline_mkb.master_confirm_edit_service(service_id))
+
+        except Exception as e:
+            error_msg = (                                            # TODO
+                "❌ Ошибка при обновлении услуги:\n"   # TODO подзаголовок отличается
                 f"{str(e)}\n\n"
                 "Формат ввода:\n"
                 "<code>Название услуги\n"
@@ -118,4 +165,3 @@ async def _(message: Message):
 @router.message(F.text == PHRASES_RU.button.master.menu)
 async def _(message: Message):
     await send_master_menu(message.from_user.id)
-

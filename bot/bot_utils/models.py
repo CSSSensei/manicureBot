@@ -73,3 +73,12 @@ class AddSlotsMonthCallBack(CallbackData, prefix="add_slots_month"):
     action: str = 'check'  # 'check', 'add'
     month: int
     year: int
+
+
+class MasterServiceCallBack(CallbackData, prefix="master_service"):
+    service_id: int
+    action: Optional[str] = None  # 'set_active', 'set_inactive', 'updated'
+
+
+class EditServiceCallBack(CallbackData, prefix="edit_master_service"):
+    service_id: int

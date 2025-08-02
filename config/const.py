@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from attr import dataclass
+
 BASE_DIR = Path(__file__).parent.parent
 USERS_PER_PAGE = 15
 ACTIONS_PER_PAGE = 5
@@ -26,3 +28,9 @@ COMPLETED = 'completed'
 CANCELLED = 'cancelled'
 REJECTED = 'rejected'
 BACK = 'back'
+
+
+class Action:
+    set_active: str = 'set_active'
+    set_inactive: str = 'set_inactive'
+    service_update: str = 'service_update'

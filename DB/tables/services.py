@@ -45,6 +45,19 @@ class ServicesTable(BaseTable):
             is_active=bool(row['is_active'])
         ) for row in self.cursor]
 
+    def get_all_services(self) -> List[ServiceModel]:
+        """Возвращает список услуг."""
+        query = f"SELECT * FROM {self.__tablename__}"
+        self.cursor.execute(query)
+        return [ServiceModel(
+            id=row['id'],
+            name=row['name'],
+            description=row['description'],
+            duration=row['duration'],
+            price=row['price'],
+            is_active=bool(row['is_active'])
+        ) for row in self.cursor]
+
     def get_service(self, service_id) -> Optional[ServiceModel]:
         query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
         self.cursor.execute(query, (service_id,))
@@ -67,6 +80,31 @@ class ServicesTable(BaseTable):
         self.cursor.execute(query, (int(is_active), service_id))
         self.conn.commit()
         self._log('TOGGLE_SERVICE_ACTIVE', service_id=service_id, is_active=is_active)
+
+    def update_service(self, service: ServiceModel) -> None:
+        """Обновляет данные существующей услуги."""
+        if not self._check_record_exists(self.__tablename__, 'id', service.id):
+            raise ValueError(f"Service with id {service.id} not found")
+
+        query = f"""
+        UPDATE {self.__tablename__} 
+        SET name = ?,
+            description = ?,
+            duration = ?,
+            price = ?,
+            is_active = ?
+        WHERE id = ?
+        """
+        self.cursor.execute(query, (
+            service.name,
+            service.description,
+            service.duration,
+            service.price,
+            int(service.is_active),
+            service.id
+        ))
+        self.conn.commit()
+        self._log('UPDATE_SERVICE', service_id=service.id)
 
 
 if __name__ == '__main__':

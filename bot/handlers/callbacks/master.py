@@ -8,7 +8,7 @@ from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages
-from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack
+from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack
 from bot.handlers.master import send_master_menu
 from bot.states import MasterStates
 from bot.keyboards.master import inline as inline_mkb
@@ -68,7 +68,7 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
         case 'check':
             text = f'Проверьте, что слоты сгенерированы верно\n\n<code>{slots_text}</code>'
             await callback.message.edit_text(text=text,
-                                             reply_markup=inline_mkb.master_confirm_adding(month, year))
+                                             reply_markup=inline_mkb.master_confirm_adding_slot(month, year))
         case 'add':
             text = db_filler.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
             text_chunks = format_string.split_text(text, 4096)
@@ -77,6 +77,38 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
                     await callback.message.edit_text(text_chunks[i], parse_mode="Markdown")
                 else:
                     await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
+
+
+@router.callback_query(MasterServiceCallBack.filter())
+async def handle_service_edit(callback: CallbackQuery, callback_data: MasterServiceCallBack, state: FSMContext):
+    await state.clear()
+    service_id = callback_data.service_id
+    action = callback_data.action
+    with ServicesTable() as db:
+        service = db.get_service(service_id)
+        service_text = format_string.service_text(service)
+        text = '<i>Нажмите на соответствующую кнопку для изменения текущей услуги</i>\n\n'
+        if action:
+            match action:
+                case const.Action.set_active:
+                    db.toggle_service_active(service_id, True)
+                    service.is_active = True
+                case const.Action.set_inactive:
+                    db.toggle_service_active(service_id, False)
+                    service.is_active = False
+                case const.Action.service_update:
+                    text = '✅ Услуга обновлена и уже активна!\n\n' + text
+
+        await callback.message.edit_text(text=text + service_text, reply_markup=inline_mkb.edit_current_service(service))
+
+
+@router.callback_query(EditServiceCallBack.filter())
+async def _(callback: CallbackQuery, callback_data: EditServiceCallBack, state: FSMContext):
+    service_id = callback_data.service_id
+    await state.update_data(service_id=service_id)
+    await state.set_state(MasterStates.WAITING_FOR_EDIT_SERVICE)
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_service,
+                                     reply_markup=inline_mkb.back_to_edit_service(service_id))
 
 
 @router.callback_query(StateFilter(MasterStates.WAITING_FOR_SLOT), F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
@@ -103,7 +135,27 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SERVICE), F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_EDIT_SERVICE), F.data == PHRASES_RU.callback_data.master.confirm_edit_service)
+async def _(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    service = data.get('parsed_service')
+
+    if not service:
+        await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
+        return
+    with ServicesTable() as db:
+        db.update_service(service)
+
+    await handle_service_edit(callback, MasterServiceCallBack(service_id=service.id, action=const.Action.service_update), state)
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_edit_service)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
+    await state.clear()
+
+
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_NEW_SERVICE), F.data == PHRASES_RU.callback_data.master.confirm_add_service)
 async def _(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     service = data.get('parsed_service')
@@ -122,14 +174,14 @@ async def _(callback: CallbackQuery, state: FSMContext):
     if service.duration:
         response += f"▪ Длительность: <i>{service.duration} мин.</i>"
 
-    await callback.message.edit_text(response, reply_markup=inline_mkb.cancel_button())
+    await callback.message.edit_text(response, reply_markup=inline_mkb.back_to_service_menu())
     await state.clear()
 
 
-@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SERVICE), F.data == PHRASES_RU.callback_data.master.cancel)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_service)
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await message_service_editor(callback)
+    await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_adding_slots)
@@ -162,16 +214,29 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await send_master_menu(callback.from_user.id, callback.message.message_id)
 
 
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_service_menu)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await message_service_editor(callback)
+
+
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.service_editor)
 async def message_service_editor(callback: CallbackQuery):
     await callback.message.edit_text(text=PHRASES_RU.answer.master.service_editor,
-                                     reply_markup=inline_mkb.master_service_editor())
+                                     reply_markup=inline_mkb.master_service_menu())
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.add_service)
 async def _(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(MasterStates.WAITING_FOR_SERVICE)
-    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_service, reply_markup=inline_mkb.cancel_button())
+    await state.set_state(MasterStates.WAITING_FOR_NEW_SERVICE)
+    await callback.message.edit_text(text=PHRASES_RU.title.new_service + PHRASES_RU.answer.master.add_service,
+                                     reply_markup=inline_mkb.back_to_service_menu())
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.edit_service)
+async def edit_service_menu(callback: CallbackQuery):
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.edit_service,
+                                     reply_markup=inline_mkb.master_service_editor())
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.history)

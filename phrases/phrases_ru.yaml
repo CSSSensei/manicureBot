@@ -41,9 +41,8 @@ answer:
     already_rejected: "Ничего не произошло, потому что запись уже отклонена"
   master:
     service_editor: "Здесь вы можете отредактировать существующие услуги или добавить новые"
+    edit_service: "Выберите услугу для редактирования"
     add_service: |
-      <b>Добавление услуги</b>
-      
       Отправьте текст в формате:
       "<code>Название услуги"
       "о: описание (опционально)
@@ -139,6 +138,9 @@ callback_data:
     service_editor: "service_editor"
     edit_service: "edit_service"
     add_service: "add_service"
+    confirm_add_service: "confirm_add_service"
+    back_to_service_menu: "back_to_service_menu"
+    confirm_edit_service: "confirm_edit_service"
 
 title:
   users: "<b>Пользователи</b>"
@@ -148,6 +150,7 @@ title:
   admin_new_booking: "<b>Новая запись</b>"
   booking: "<b>Запись</b>\n\n"
   actions: "<b>История действий</b>"
+  new_service: "<b>Добавление услуги</b>\n\n"
 
 subtitle:
   admin_commands: "<i>Админские</i>\n"

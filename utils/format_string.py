@@ -205,16 +205,9 @@ def slots_to_text(slots: List[SlotModel]) -> str:
 
             slot_strings = []
             for slot in date_slots:
-                duration = slot.end_time - slot.start_time
-                if duration.total_seconds() == 3 * 3600:
-                    # Если длительность ровно 3 часа, пишем только начало
-                    slot_str = slot.start_time.strftime("%H:%M")
-                else:
-                    # Иначе пишем начало-конец
-                    slot_str = f"{slot.start_time.strftime('%H:%M')}-{slot.end_time.strftime('%H:%M')}"
-                slot_strings.append(slot_str)
+                slot_strings.append(slot.start_time.strftime("%H:%M"))
 
-            line = f"{day} - {' '.join(slot_strings)}"
+            line = f"{day} — {' '.join(slot_strings)}"
             result_lines.append(line)
 
     return "\n".join(result_lines)
@@ -246,11 +239,22 @@ def parse_service_text(text: str) -> ServiceModel:
         elif key == 'д:':
             if not value.isdigit():
                 raise ValueError("Длительность должна быть числом (в минутах)")
-            service.duration = timedelta(minutes=int(value))
+            service.duration = int(value)
         else:
             raise ValueError(f"Неизвестный префикс: {key}")
 
     return service
+
+
+def service_text(service: ServiceModel):
+    text = f'<blockquote>{service.name}</blockquote>\n'
+    if service.price:
+        text += f'{service.price} ₽\n'
+    if service.duration:
+        text += f'Приблизительная длительность: <i>{service.duration} мин</i>\n'
+    if service.description:
+        text += f'Описание:\n<i>{service.description}</i>\n'
+    return text
 
 
 if __name__ == '__main__':
