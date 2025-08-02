@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery
 
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
+from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages
 from bot.bot_utils.models import MasterButtonCallBack
@@ -60,7 +61,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
     slots = data.get('parsed_slots', [])
 
     if not slots:
-        await callback.message.edit_text("⚠️ Не найдены слоты для добавления")
+        await callback.message.edit_text("⚠️ Не найдены слоты для добавления")  # TODO
         return
     added_slots = []
     with SlotsTable() as db:
@@ -75,7 +76,30 @@ async def _(callback: CallbackQuery, state: FSMContext):
             f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')} "
             f"(ID: `{slot_id}`)\n"
         )
-    await callback.message.edit_text(result_text, parse_mode="Markdown")
+    await callback.message.edit_text(result_text, parse_mode="Markdown", reply_markup=inline_mkb.cancel_button())
+    await state.clear()
+
+
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SERVICE), F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
+async def _(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    service = data.get('parsed_service')
+
+    if not service:
+        await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
+        return
+    with ServicesTable() as db:
+        db.add_service(service)
+    response = f"✅ Услуга добавлена\n\n"
+    response += f"▪ Название: <i>{service.name}</i>\n"  # TODO
+    if service.description:
+        response += f"▪ Описание: <i>{service.description}</i>\n"
+    if service.price:
+        response += f"▪ Стоимость: <i>{service.price} руб.</i>\n"
+    if service.duration:
+        response += f"▪ Длительность: <i>{service.duration} мин.</i>"
+
+    await callback.message.edit_text(response, reply_markup=inline_mkb.cancel_button())
     await state.clear()
 
 
@@ -87,7 +111,7 @@ async def _(callback: CallbackQuery):
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots)
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MasterStates.WAITING_FOR_SLOT)
-    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slot, reply_markup=inline_mkb.master_add_slot())
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slot, reply_markup=inline_mkb.cancel_button())
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.cancel)
@@ -96,7 +120,18 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await send_master_menu(callback.from_user.id, callback.message.message_id)
 
 
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.service_editor)
+async def _(callback: CallbackQuery):
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.service_editor, reply_markup=inline_mkb.master_service_editor())
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_service)
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(MasterStates.WAITING_FOR_SERVICE)
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_service, reply_markup=inline_mkb.cancel_button())
+
+
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.history)
 async def _(callback: CallbackQuery):
-    await pages.get_history(callback.from_user.id)
+    await pages.get_history(user_id=callback.from_user.id, message_id=callback.message.message_id)
     await callback.answer()

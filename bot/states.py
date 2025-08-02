@@ -16,3 +16,4 @@ class UserStates(StatesGroup):
 
 class MasterStates(StatesGroup):
     WAITING_FOR_SLOT = State()
+    WAITING_FOR_SERVICE = State()

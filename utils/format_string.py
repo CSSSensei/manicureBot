@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 
-from DB.models import AppointmentModel
+from DB.models import AppointmentModel, ServiceModel
 from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
 from phrases import PHRASES_RU
 
@@ -100,62 +100,80 @@ def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
         'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12
     }
 
-    month = None
-    for name, num in month_map.items():
-        if name in month_line:
-            month = num
-            break
-
+    month = next((num for name, num in month_map.items() if name in month_line), None)
     if month is None:
-        raise ValueError(f"Не удалось распознать месяц в строке: {month_line}")
+        raise ValueError(f'Не удалось распознать месяц: {month_line}')
 
-    year = current_year
-    if month < now.month:
-        year = current_year + 1
-
+    year = current_year if month >= now.month else current_year + 1
     slots = []
 
-    symbol = '-'
     for line in lines[1:]:
-        if symbol not in line:
-            symbol = '—'
-            if symbol not in line:
-                raise ValueError(f"Неправильный формат строки: {line}")
+        line = line.replace('—', '-')
+        if '-' not in line:
+            raise ValueError(f'Ожидался символ '-' в строке: {line}')
 
-        day_part, times_part = line.split(symbol, 1)
-        day = int(day_part.strip())
+        try:
+            day_part, times_part = line.split('-', 1)
+            day = int(day_part.strip())
+        except Exception:
+            raise ValueError(f'Некорректный формат строки: {line}')
 
-        time_parts = re.findall(r'\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?', times_part)
+        time_parts = re.findall(r'\b\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?\b', times_part)
+        if not time_parts:
+            raise ValueError(f'Не найдено допустимых временных интервалов в строке: {line}')
 
         for time_str in time_parts:
-            if '-' in time_str:  # Полный интервал (14:30-16:30)
-                start_time_str, end_time_str = time_str.split('-')
-                start_time = datetime.strptime(start_time_str, '%H:%M').time()
-                end_time = datetime.strptime(end_time_str, '%H:%M').time()
-            else:  # Только начало (14:30) - ставим +3 часа
-                start_time = datetime.strptime(time_str, '%H:%M').time()
-                end_time = (datetime.combine(datetime.min, start_time) +
-                            timedelta(hours=3)).time()
+            try:
+                if '-' in time_str:
+                    start_str, end_str = time_str.split('-')
+                    start_time = datetime.strptime(start_str.strip(), '%H:%M').time()
+                    end_time = datetime.strptime(end_str.strip(), '%H:%M').time()
+                else:
+                    start_time = datetime.strptime(time_str.strip(), '%H:%M').time()
+                    end_time = (datetime.combine(datetime.min, start_time) + timedelta(hours=3)).time()
 
-            start_datetime = datetime(
-                year=year,
-                month=month,
-                day=day,
-                hour=start_time.hour,
-                minute=start_time.minute
-            )
-
-            end_datetime = datetime(
-                year=year,
-                month=month,
-                day=day,
-                hour=end_time.hour,
-                minute=end_time.minute
-            )
+                start_datetime = datetime(year, month, day, start_time.hour, start_time.minute)
+                end_datetime = datetime(year, month, day, end_time.hour, end_time.minute)
+            except ValueError as e:
+                raise ValueError(f'Ошибка при разборе времени: {time_str}. {str(e)}')
 
             if start_datetime < now:
-                raise ValueError(f"Слот {start_datetime} уже прошел!")
+                raise ValueError(f'Слот {start_datetime} уже прошел')
 
             slots.append((start_datetime, end_datetime))
 
     return slots
+
+
+def parse_service_text(text: str) -> ServiceModel:
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    if not lines:
+        raise ValueError("Пустой запрос")
+
+    service = ServiceModel(name=lines[0])
+    seen_keys = set()
+
+    for line in lines[1:]:
+        if ':' not in line:
+            raise ValueError(f"Некорректный формат строки: {line}")
+
+        key, value = line[:2], line[2:].strip()
+        if key in seen_keys:
+            raise ValueError(f"Поле {key} указано более одного раза")
+        seen_keys.add(key)
+
+        if key == 'о:':
+            service.description = value
+        elif key == 'с:':
+            if not value.isdigit():
+                raise ValueError("Стоимость должна быть числом")
+            service.price = int(value)
+        elif key == 'д:':
+            if not value.isdigit():
+                raise ValueError("Длительность должна быть числом (в минутах)")
+            service.duration = timedelta(minutes=int(value))
+        else:
+            raise ValueError(f"Неизвестный префикс: {key}")
+
+    return service
+

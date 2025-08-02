@@ -159,8 +159,7 @@ async def get_history(user_id: int, page: int = 1, message_id: Optional[int] = N
         appointments, pagination = app_db.get_master_actions(page, ACTIONS_PER_PAGE)
 
         txt = format_app_actions(appointments, pagination)
-        reply_markup = admin_ikb.page_keyboard(type_of_event=3, pagination=pagination)
-
+        reply_markup = master_ikb.master_history_keyboard(pagination)
         if message_id:
             await bot.edit_message_text(chat_id=user_id, message_id=message_id, text=txt,
                                         reply_markup=reply_markup)
