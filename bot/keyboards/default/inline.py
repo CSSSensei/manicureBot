@@ -1,6 +1,6 @@
 import calendar
 from datetime import datetime, timedelta, date
-from typing import Optional, List, Set
+from typing import Optional, List, Set, Tuple
 
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
@@ -104,7 +104,7 @@ def _base_keyboard(
     return IMarkup(inline_keyboard=buttons)
 
 
-def month_keyboard(m: int, y: int, prev: bool) -> IMarkup:
+def month_keyboard(m: int, y: int, prev: bool) -> Tuple[str, IMarkup]:
     """Создает календарную клавиатуру с активными днями, где есть свободные слоты"""
 
     now = datetime.now()
@@ -173,8 +173,12 @@ def month_keyboard(m: int, y: int, prev: bool) -> IMarkup:
                     callback_data=callback
                 ))
             array_buttons.append(week_buttons)
-
-        return IMarkup(inline_keyboard=array_buttons)
+        if len(slots) > 0:
+            text = PHRASES_RU.replace('answer.available_slots', month=MONTHS[m], len_slots=len(slots)
+                                      ) + PHRASES_RU.answer.choose_date
+        else:
+            text = PHRASES_RU.replace('answer.no_available_slots', month=MONTHS[m].lower())
+        return text, IMarkup(inline_keyboard=array_buttons)
 
 
 def service_keyboard() -> IMarkup:

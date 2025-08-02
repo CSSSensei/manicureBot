@@ -37,8 +37,8 @@ async def booking_message(message: Message, state: FSMContext):
     with SlotsTable() as slots_db:
         first_slot = slots_db.get_first_available_slot()
         if first_slot:
-            await message.answer(PHRASES_RU.answer.choose_date,
-                                 reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, False))
+            text, reply_markup = ikb.month_keyboard(first_slot.month, first_slot.year, False)
+            await message.answer(text=text, reply_markup=reply_markup)
         else:
             await message.answer(PHRASES_RU.error.no_slots)
 

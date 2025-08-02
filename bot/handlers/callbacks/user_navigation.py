@@ -37,9 +37,8 @@ async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCa
         month = 1 if month > 12 else 12 if month < 1 else month
 
         prev_enabled = not (month == datetime.now().month and year == datetime.now().year)
-        await callback.message.edit_reply_markup(
-            reply_markup=ikb.month_keyboard(month, year, prev_enabled)
-        )
+        text, reply_markup = ikb.month_keyboard(month, year, prev_enabled)
+        await callback.message.edit_text(text=text, reply_markup=reply_markup)
         return
     if callback_data.day <= 0:
         await callback.answer(PHRASES_RU.error.date)

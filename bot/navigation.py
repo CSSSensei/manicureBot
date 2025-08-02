@@ -140,9 +140,8 @@ class AppointmentNavigation:
                     prev = True
                 first_slot = data.slot_date
             if first_slot:
-                await callback.message.edit_text(
-                    PHRASES_RU.answer.choose_date,
-                    reply_markup=ikb.month_keyboard(first_slot.month, first_slot.year, prev))
+                text, reply_markup = ikb.month_keyboard(first_slot.month, first_slot.year, prev)
+                await callback.message.edit_text(text, reply_markup=reply_markup)
             else:
                 await callback.message.edit_text(PHRASES_RU.error.no_slots)
 
