@@ -81,6 +81,7 @@ class SlotModel:
     start_time: datetime
     end_time: datetime
     is_available: bool
+    is_deleted: bool = False
     id: Optional[int] = None
 
     def __str__(self):

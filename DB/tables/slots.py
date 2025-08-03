@@ -17,7 +17,7 @@ class SlotsTable(BaseTable):
             start_time TIMESTAMP NOT NULL,
             end_time TIMESTAMP NOT NULL,
             is_available BOOLEAN NOT NULL DEFAULT 1,
-            UNIQUE (start_time)
+            is_deleted BOOLEAN NOT NULL DEFAULT 0
         );
 
         CREATE TRIGGER IF NOT EXISTS update_past_slots
@@ -66,7 +66,7 @@ class SlotsTable(BaseTable):
 
             query_check = f"""
                 SELECT id FROM {self.__tablename__} 
-                WHERE start_time = ?
+                WHERE start_time = ? AND is_deleted = 0
                 """
             self.cursor.execute(query_check, (start_time,))
             if self.cursor.fetchone():
@@ -99,15 +99,15 @@ class SlotsTable(BaseTable):
         self.cursor.execute(query, (slot_id,))
         row = self.cursor.fetchone()
         if row:
-            return bool(row['is_available'])
+            return bool(row['is_available']) and not bool(row['is_deleted'])
         else:
             return None
 
     def get_slot(self, slot_id: int) -> Optional[SlotModel]:
-        """Возвращает список доступных слотов."""
+        """Возвращает слот, если он не удален."""
         query = f"""
             SELECT * FROM {self.__tablename__} 
-            WHERE id = ?
+            WHERE id = ? AND is_deleted = 0
             """
         self.cursor.execute(query, (slot_id,))
 
@@ -131,7 +131,7 @@ class SlotsTable(BaseTable):
 
         query = f"""
             SELECT * FROM {self.__tablename__} 
-            WHERE is_available = TRUE
+            WHERE is_available = TRUE AND is_deleted = 0
             """
 
         params = []
@@ -175,7 +175,7 @@ class SlotsTable(BaseTable):
         self._update_past_slots_status()
         query = f"""
             SELECT start_time FROM {self.__tablename__} 
-            WHERE is_available = TRUE
+            WHERE is_available = TRUE and is_deleted = 0
             ORDER BY start_time ASC
             LIMIT 1
         """
@@ -218,7 +218,7 @@ class SlotsTable(BaseTable):
 
     def delete_slot(self, slot_id: int) -> Tuple[bool, str]:
         """
-        Удаляет слот, если он существует и не занят.
+        Помечает слот как удаленный (мягкое удаление), если он существует и не занят.
 
         Args:
             slot_id: ID слота для удаления
@@ -236,11 +236,11 @@ class SlotsTable(BaseTable):
             if not slot.is_available:
                 return False, "Невозможно удалить занятый слот"
 
-            query = f"DELETE FROM {self.__tablename__} WHERE id = ?"
+            query = f"UPDATE {self.__tablename__} SET is_deleted = 1, is_available = FALSE WHERE id = ?"
             self.cursor.execute(query, (slot_id,))
             self.conn.commit()
 
-            self._log('DELETE_SLOT', slot_id=slot_id)
+            self._log('SOFT_DELETE_SLOT', slot_id=slot_id)
             return True, "Слот успешно удален"
 
         except Exception as e:
