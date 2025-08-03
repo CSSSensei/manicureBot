@@ -1,6 +1,5 @@
 from pathlib import Path
-
-from attr import dataclass
+from enum import Enum
 
 BASE_DIR = Path(__file__).parent.parent
 USERS_PER_PAGE = 15
@@ -34,3 +33,11 @@ class Action:
     set_active: str = 'set_active'
     set_inactive: str = 'set_inactive'
     service_update: str = 'service_update'
+    slot_calendar: str = 'slot_calendar'
+    check_slot_to_delete: str = 'check_slot_to_delete'
+    delete_slot: str = 'delete_slot'
+
+
+class CalendarMode(Enum):
+    BOOKING = "booking"  # Режим записи (для клиентов)
+    DELETE = "delete"  # Режим удаления (для мастера)

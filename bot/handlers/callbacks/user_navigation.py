@@ -7,7 +7,6 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-import bot.keyboards.default.inline as ikb
 from DB.models import PhotoModel, UserModel, AppointmentModel, SlotModel, ServiceModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
@@ -29,17 +28,6 @@ router = Router()
 
 @router.callback_query(MonthCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_DATE))
 async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCallBack, state: FSMContext):
-    if callback_data.action != 0:
-        # Обработка переключения месяцев
-        month = callback_data.month + callback_data.action
-        year = callback_data.year
-        year += month // 12 if month > 12 else -1 if month < 1 else 0
-        month = 1 if month > 12 else 12 if month < 1 else month
-
-        prev_enabled = not (month == datetime.now().month and year == datetime.now().year)
-        text, reply_markup = ikb.month_keyboard(month, year, prev_enabled)
-        await callback.message.edit_text(text=text, reply_markup=reply_markup)
-        return
     if callback_data.day <= 0:
         await callback.answer(PHRASES_RU.error.date)
         return

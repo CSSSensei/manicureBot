@@ -4,11 +4,14 @@ from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from DB.models import Pagination, ServiceModel
+from DB.models import Pagination, ServiceModel, SlotModel
 from DB.tables.services import ServicesTable
-from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack
+from DB.tables.slots import SlotsTable
+from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, \
+    DeleteSlotCallBack, MonthCallBack
 from bot.keyboards.admin import inline as admin_ikb
 from config import const
+from config.const import CalendarMode
 from phrases import PHRASES_RU
 
 
@@ -180,4 +183,43 @@ def edit_current_service(service: ServiceModel) -> IMarkup:
 def back_to_edit_service(service_id: int) -> IMarkup:
     keyboard = [[IButton(text=PHRASES_RU.button.back,
                          callback_data=MasterServiceCallBack(service_id=service_id).pack())]]
+    return IMarkup(inline_keyboard=keyboard)
+
+
+def delete_slots_menu(cur_date: datetime.date) -> IMarkup:
+    builder = InlineKeyboardBuilder()
+    with SlotsTable() as slots_db:
+        for slot in slots_db.get_available_slots_by_day(cur_date):
+            builder.button(
+                text=str(slot),
+                callback_data=DeleteSlotCallBack(slot_id=slot.id,
+                                                 slot_date=slot.start_time.date(),
+                                                 action=const.Action.check_slot_to_delete).pack()
+            )
+    builder.adjust(2)
+    builder.row(
+        IButton(
+            text=PHRASES_RU.button.back,
+            callback_data=DeleteSlotCallBack(slot_date=cur_date).pack()
+        )
+    )
+    return builder.as_markup()
+
+
+def slot_deletion(slot: SlotModel) -> IMarkup:
+    keyboard = [
+        [IButton(text=PHRASES_RU.button.delete,
+                 callback_data=DeleteSlotCallBack(slot_id=slot.id,
+                                                  slot_date=slot.start_time.date(),
+                                                  action=const.Action.delete_slot).pack())],
+        [IButton(
+            text=PHRASES_RU.button.back,
+            callback_data=MonthCallBack(
+                day=slot.start_time.day,
+                month=slot.start_time.month,
+                year=slot.start_time.year,
+                action=0,
+                mode=CalendarMode.DELETE
+            ).pack())]
+    ]
     return IMarkup(inline_keyboard=keyboard)

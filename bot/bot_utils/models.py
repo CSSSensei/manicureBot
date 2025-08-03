@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from datetime import date
 from typing import Tuple, Optional, Any
 from aiogram.filters.callback_data import CallbackData
+
+from config.const import CalendarMode, Action
 
 
 @dataclass
@@ -47,11 +50,13 @@ class MonthCallBack(CallbackData, prefix="calendar"):
     day: int = 0
     month: int = 0
     year: int = 0
-    action: int = 0  # 0 -ничего, 1 - след месяц, -1 - предыдущий месяц, 3 - след год, 4 - пред год
+    action: int = 0  # 0 - ничего, 1 - след месяц, -1 - предыдущий месяц
+    mode: CalendarMode = CalendarMode.BOOKING
 
 
 class SlotCallBack(CallbackData, prefix="slot"):
     slot_id: int
+    mode: CalendarMode = CalendarMode.BOOKING
 
 
 class ServiceCallBack(CallbackData, prefix="service"):
@@ -82,3 +87,9 @@ class MasterServiceCallBack(CallbackData, prefix="master_service"):
 
 class EditServiceCallBack(CallbackData, prefix="edit_master_service"):
     service_id: int
+
+
+class DeleteSlotCallBack(CallbackData, prefix="delete_slot"):
+    slot_id: Optional[int] = None
+    slot_date: Optional[date] = None
+    action: str = Action.slot_calendar

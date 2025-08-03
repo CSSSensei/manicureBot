@@ -215,3 +215,36 @@ class SlotsTable(BaseTable):
                   slot_id=slot_id)
 
         return True
+
+    def delete_slot(self, slot_id: int) -> Tuple[bool, str]:
+        """
+        Удаляет слот, если он существует и не занят.
+
+        Args:
+            slot_id: ID слота для удаления
+
+        Returns:
+            Tuple[bool, str]:
+                - True и сообщение об успехе, если удаление прошло успешно
+                - False и сообщение об ошибке, если удаление не удалось
+        """
+        try:
+            slot = self.get_slot(slot_id)
+            if not slot:
+                return False, "Слот с указанным ID не существует"
+
+            if not slot.is_available:
+                return False, "Невозможно удалить занятый слот"
+
+            query = f"DELETE FROM {self.__tablename__} WHERE id = ?"
+            self.cursor.execute(query, (slot_id,))
+            self.conn.commit()
+
+            self._log('DELETE_SLOT', slot_id=slot_id)
+            return True, "Слот успешно удален"
+
+        except Exception as e:
+            self.conn.rollback()
+            error_msg = f"Ошибка при удалении слота: {str(e)}"
+            self._log('DELETE_SLOT_ERROR', error=error_msg)
+            return False, error_msg

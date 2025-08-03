@@ -11,7 +11,7 @@ from DB.tables.slots import SlotsTable
 from bot.bot_utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
     PhotoAppCallBack
 from DB.models import Pagination, AppointmentModel
-from config.const import MONTHS, CANCELLED, REJECTED, BACK
+from config.const import MONTHS, CANCELLED, REJECTED, BACK, CalendarMode
 from phrases import PHRASES_RU
 
 
@@ -104,81 +104,183 @@ def _base_keyboard(
     return IMarkup(inline_keyboard=buttons)
 
 
-def month_keyboard(m: int, y: int, prev: bool) -> Tuple[str, IMarkup]:
-    """Создает календарную клавиатуру с активными днями, где есть свободные слоты"""
+def first_page_calendar(mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[Optional[str], Optional[IMarkup]]:
+    with SlotsTable() as slots_db:
+        first_slot = slots_db.get_first_available_slot()
+        if not first_slot:
+            return None, None
 
+        current_date = datetime.now()
+        is_current_month = (first_slot.month == current_date.month and
+                            first_slot.year == current_date.year)
+        prev_enabled = not is_current_month
+
+        return create_calendar_keyboard(first_slot.month, first_slot.year, prev_enabled, mode)
+
+
+def create_calendar_keyboard(month: int, year: int, prev: bool, mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[str, IMarkup]:
     now = datetime.now()
     today = now.date()
+    month_days = calendar.monthrange(year, month)[1]
 
-    if m == now.month and y == now.year:
+    if month == now.month and year == now.year:
         start_date = now
-        end_date = datetime(y, m, calendar.monthrange(y, m)[1]) + timedelta(days=1)
+        end_date = datetime(year, month, month_days) + timedelta(days=1)
     else:
-        start_date = datetime(y, m, 1)
-        end_date = datetime(y, m, calendar.monthrange(y, m)[1]) + timedelta(days=1)
+        start_date = datetime(year, month, 1)
+        end_date = datetime(year, month, month_days) + timedelta(days=1)
 
+    available_dates, slots_len = _get_available_dates(start_date, end_date, today)
+
+    header_text = _generate_header_text(month, slots_len, mode)
+
+    keyboard = _build_calendar_keyboard(
+        month=month,
+        year=year,
+        prev_enabled=prev,
+        available_dates=available_dates,
+        today=today,
+        mode=mode
+    )
+    if mode == CalendarMode.DELETE:
+        keyboard.inline_keyboard.append([IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)])
+
+    return header_text, keyboard
+
+
+def _get_available_dates(start_date: datetime, end_date: datetime, today: date) -> Tuple[Set[date], int]:
     with SlotsTable() as slots_db:
         slots = slots_db.get_available_slots(start_date, end_date)
+        return {s.start_time.date() for s in slots if s.start_time.date() >= today}, len(slots)
 
-        available_dates: Set[datetime.date] = set()
-        for slot in slots:
-            slot_date = slot.start_time.date()
-            if slot_date >= today:
-                available_dates.add(slot_date)
 
-        array_buttons: List[List[IButton]] = [
-            [
-                IButton(
-                    text=' ' if not prev else PHRASES_RU.button.prev_page,
-                    callback_data=MonthCallBack(day=-1, month=m, year=y, action=(0 if not prev else -1)).pack()
-                ),
-                IButton(
-                    text=f'{MONTHS[m]} {y}',
-                    callback_data=MonthCallBack(action=0).pack()
-                ),
-                IButton(
-                    text=PHRASES_RU.button.next_page,
-                    callback_data=MonthCallBack(month=m, year=y, action=1).pack()
+def _generate_header_text(month: int, slots_count: int, mode: CalendarMode) -> str:
+    if mode == CalendarMode.BOOKING:
+        if slots_count > 0:
+            return (PHRASES_RU.replace('answer.available_slots', month=MONTHS[month], len_slots=slots_count) +
+                    PHRASES_RU.answer.choose_date)
+        return PHRASES_RU.replace('answer.no_available_slots', month=MONTHS[month].lower())
+
+    elif mode == CalendarMode.DELETE:
+        if slots_count > 0:
+            return PHRASES_RU.replace('answer.master.choose_date_to_delete', month=MONTHS[month], len_slots=slots_count)
+        return PHRASES_RU.replace('answer.master.no_available_slots', month=MONTHS[month])
+
+    return ""
+
+
+def _build_calendar_keyboard(
+        month: int,
+        year: int,
+        prev_enabled: bool,
+        available_dates: Set[date],
+        today: date,
+        mode: CalendarMode
+) -> IMarkup:
+    navigation_buttons = _create_navigation_row(month, year, prev_enabled, mode)
+    weekdays_row = _create_weekdays_row(mode)
+    calendar_rows = _create_calendar_days_rows(
+        month=month,
+        year=year,
+        available_dates=available_dates,
+        today=today,
+        mode=mode
+    )
+
+    all_buttons = [navigation_buttons, weekdays_row] + calendar_rows
+
+    return IMarkup(inline_keyboard=all_buttons)
+
+
+def _create_navigation_row(
+        month: int,
+        year: int,
+        prev_enabled: bool,
+        mode: CalendarMode
+) -> List[IButton]:
+    return [
+        IButton(
+            text=' ' if not prev_enabled else PHRASES_RU.button.prev_page,
+            callback_data=MonthCallBack(
+                day=-1, month=month, year=year,
+                action=(0 if not prev_enabled else -1),
+                mode=mode
+            ).pack()
+        ),
+        IButton(
+            text=f'{MONTHS[month]} {year}',
+            callback_data=MonthCallBack(action=0, mode=mode).pack()
+        ),
+        IButton(
+            text=PHRASES_RU.button.next_page,
+            callback_data=MonthCallBack(
+                month=month, year=year, action=1, mode=mode
+            ).pack()
+        )
+    ]
+
+
+def _create_weekdays_row(mode: CalendarMode) -> List[IButton]:
+    return [
+        IButton(
+            text=day,
+            callback_data=MonthCallBack(month=-1, mode=mode).pack()
+        )
+        for day in ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+    ]
+
+
+def _create_calendar_days_rows(
+        month: int,
+        year: int,
+        available_dates: Set[date],
+        today: date,
+        mode: CalendarMode
+) -> List[List[IButton]]:
+    rows = []
+    month_cal = calendar.monthcalendar(year, month)
+
+    for week in month_cal:
+        week_buttons = []
+        for day in week:
+            if day == 0:
+                week_buttons.append(
+                    IButton(text=' ', callback_data=MonthCallBack(day=-1, mode=mode).pack())
                 )
-            ]
-        ]
+                continue
 
-        week_days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-        array_buttons.append([
-            IButton(text=day, callback_data=MonthCallBack(month=-1).pack())
-            for day in week_days
-        ])
+            target_date = date(year, month, day)
+            is_available = target_date in available_dates
+            is_today = target_date == today
 
-        cal = calendar.monthcalendar(y, m)
-        for week in cal:
-            week_buttons = []
-            for day in week:
-                if day == 0:
-                    week_buttons.append(IButton(text=' ', callback_data=MonthCallBack(day=-1).pack()))
-                    continue
+            btn_text = _get_day_button_text(day, is_today, is_available)
+            callback = _get_day_callback_data(day, month, year, is_available, mode)
 
-                target_date = date(y, m, day)
-                is_available = target_date in available_dates
-                is_today = target_date == today
+            week_buttons.append(IButton(text=btn_text, callback_data=callback))
 
-                if is_available:
-                    text = f'· [{day}]' if is_today else f'· {day}'
-                    callback = MonthCallBack(day=day, month=m, year=y, action=0).pack()
-                else:
-                    text = f'[{day}]' if is_today else f'{day}'
-                    callback = MonthCallBack(day=-1, month=m, year=y, action=0).pack()
+        rows.append(week_buttons)
 
-                week_buttons.append(IButton(
-                    text=text,
-                    callback_data=callback
-                ))
-            array_buttons.append(week_buttons)
-        if len(slots) > 0:
-            text = PHRASES_RU.replace('answer.available_slots', month=MONTHS[m], len_slots=len(slots)
-                                      ) + PHRASES_RU.answer.choose_date
-        else:
-            text = PHRASES_RU.replace('answer.no_available_slots', month=MONTHS[m].lower())
-        return text, IMarkup(inline_keyboard=array_buttons)
+    return rows
+
+
+def _get_day_button_text(day: int, is_today: bool, is_available: bool) -> str:
+    if is_today and is_available:
+        return f'· [{day}]'
+    elif is_today:
+        return f'[{day}]'
+    elif is_available:
+        return f'· {day}'
+    return f'{day}'
+
+
+def _get_day_callback_data(day: int, month: int, year: int, is_available: bool, mode: CalendarMode) -> str:
+    return MonthCallBack(
+        day=day if is_available else -1,
+        month=month,
+        year=year,
+        action=0,
+        mode=mode
+    ).pack()
 
 
 def service_keyboard() -> IMarkup:

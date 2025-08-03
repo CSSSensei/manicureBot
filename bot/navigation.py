@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Optional, Awaitable, Callable
 
 from aiogram.fsm.context import FSMContext
@@ -133,14 +134,10 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: AppointmentModel):
         with SlotsTable() as slots_db:
-            prev = False
-            first_slot = slots_db.get_first_available_slot()
-            if data.slot_date:
-                if data.slot_date.month != first_slot.month:
-                    prev = True
-                first_slot = data.slot_date
-            if first_slot:
-                text, reply_markup = ikb.month_keyboard(first_slot.month, first_slot.year, prev)
+            slot_date = data.slot_date if data.slot_date else slots_db.get_first_available_slot()
+            prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
+            if slot_date:
+                text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled)
                 await callback.message.edit_text(text, reply_markup=reply_markup)
             else:
                 await callback.message.edit_text(PHRASES_RU.error.no_slots)

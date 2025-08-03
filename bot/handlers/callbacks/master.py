@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -8,15 +10,78 @@ from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages
-from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack
+from bot.bot_utils.filters import NotBookingCalendar
+from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
+    DeleteSlotCallBack
 from bot.handlers.master import send_master_menu
 from bot.states import MasterStates
 from bot.keyboards.master import inline as inline_mkb
+from bot.keyboards.default import inline as ikb
 from config import const, bot
+from config.const import CalendarMode
 from phrases import PHRASES_RU
 from utils import format_list, format_string, db_filler
 
 router = Router()
+
+
+@router.callback_query(MonthCallBack.filter(), NotBookingCalendar())
+async def handle_day_of_slot_deletion(callback: CallbackQuery, callback_data: MonthCallBack, state: FSMContext):
+    if callback_data.action != 0:
+        # Обработка переключения месяцев
+        month = callback_data.month + callback_data.action
+        year = callback_data.year
+        year += month // 12 if month > 12 else -1 if month < 1 else 0
+        mode = callback_data.mode
+        month = 1 if month > 12 else 12 if month < 1 else month
+
+        prev_enabled = not (month == datetime.now().month and year == datetime.now().year)
+        text, reply_markup = ikb.create_calendar_keyboard(month, year, prev_enabled, mode)
+        await callback.message.edit_text(text=text, reply_markup=reply_markup)
+        return
+    if callback_data.day <= 0:
+        await callback.answer(PHRASES_RU.error.date)
+        return
+    selected_date = datetime(callback_data.year, callback_data.month, callback_data.day)
+    await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.choose_slot_to_delete',
+                                                             date=selected_date.strftime('%d.%m.%Y')),
+                                     reply_markup=inline_mkb.delete_slots_menu(selected_date.date()))
+
+
+@router.callback_query(DeleteSlotCallBack.filter())
+async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlotCallBack, state: FSMContext):
+    action = callback_data.action
+    slot_date = callback_data.slot_date
+    match action:
+        case const.Action.slot_calendar:
+            prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
+            text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled, CalendarMode.DELETE)
+            await callback.message.edit_text(text=text, reply_markup=reply_markup)
+        case const.Action.check_slot_to_delete:
+            slot_id = callback_data.slot_id
+            with SlotsTable() as db:
+                slot = db.get_slot(slot_id)
+                await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.slot_info',
+                                                                         date=slot.start_time.date().strftime('%d.%m.%Y'),
+                                                                         slot_str=str(slot)),
+                                                 reply_markup=inline_mkb.slot_deletion(slot))
+        case const.Action.delete_slot:
+            slot_id = callback_data.slot_id
+            with SlotsTable() as db:
+                success, message = db.delete_slot(slot_id)
+                await callback.answer(message)
+            reply_markup = inline_mkb.delete_slots_menu(slot_date)
+            if len(reply_markup.inline_keyboard) > 1:  # проверка, что после удаления остались ещё свободные слоты на этот день
+                await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.choose_slot_to_delete',
+                                                                         date=slot_date.strftime('%d.%m.%Y')),
+                                                 reply_markup=reply_markup)
+            else:  # если слотов не осталось, то отправляем клавиатуру календаря
+                current_date = datetime.now()
+                is_current_month = (slot_date.month == current_date.month and
+                                    slot_date.year == current_date.year)
+                prev_enabled = not is_current_month
+                text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled, CalendarMode.DELETE)
+                await callback.message.edit_text(text=text, reply_markup=reply_markup)
 
 
 @router.callback_query(MasterButtonCallBack.filter())
@@ -206,6 +271,16 @@ async def _(callback: CallbackQuery, state: FSMContext):
 async def add_menu(callback: CallbackQuery):
     await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slots_menu,
                                      reply_markup=inline_mkb.add_slots_menu())
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.delete_slots)
+async def delete_slots_calendar_handler(callback: CallbackQuery):
+    text, reply_markup = ikb.first_page_calendar(CalendarMode.DELETE)
+    if text and reply_markup:
+        await callback.message.edit_text(text=text, reply_markup=reply_markup)
+    else:
+        await callback.answer(text=PHRASES_RU.error.no_slots)
+        await send_master_menu(callback.from_user.id, callback.message.message_id)
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.cancel)

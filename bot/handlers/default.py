@@ -4,7 +4,6 @@ from aiogram.types import Message
 from aiogram import Router, F
 
 from DB.models import PhotoModel
-from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
 from bot import pages
 from bot.keyboards import get_keyboard
@@ -33,14 +32,12 @@ async def _(message: Message):
 
 @router.message(F.text == PHRASES_RU.button.booking)
 async def booking_message(message: Message, state: FSMContext):
-    await state.set_state(AppointmentStates.WAITING_FOR_DATE)
-    with SlotsTable() as slots_db:
-        first_slot = slots_db.get_first_available_slot()
-        if first_slot:
-            text, reply_markup = ikb.month_keyboard(first_slot.month, first_slot.year, False)
-            await message.answer(text=text, reply_markup=reply_markup)
-        else:
-            await message.answer(PHRASES_RU.error.no_slots)
+    text, reply_markup = ikb.first_page_calendar()
+    if text and reply_markup:
+        await message.answer(text=text, reply_markup=reply_markup)
+        await state.set_state(AppointmentStates.WAITING_FOR_DATE)
+    else:
+        await message.answer(PHRASES_RU.error.no_slots)
 
 
 @router.message(F.text == PHRASES_RU.button.active_booking)
