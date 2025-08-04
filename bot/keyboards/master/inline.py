@@ -34,7 +34,9 @@ def action_master_keyboard(appointment_id: int, msg_to_delete: Optional[str] = N
 
 def menu_master_keyboard() -> IMarkup:
     keyboard = [
-        [IButton(text="Клиенты", callback_data=PHRASES_RU.callback_data.master.clients)],  # TODO заменить кнопки на phrases
+        [
+            IButton(text="Карта записей", callback_data=PHRASES_RU.callback_data.master.appointment_map),
+            IButton(text="Клиенты", callback_data=PHRASES_RU.callback_data.master.clients)],  # TODO заменить кнопки на phrases
         [
             IButton(text="Удалить слоты", callback_data=PHRASES_RU.callback_data.master.delete_slots),
             IButton(text="Добавить слоты", callback_data=PHRASES_RU.callback_data.master.add_slots)

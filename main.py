@@ -44,7 +44,7 @@ async def main() -> None:
     dp.include_router(handlers.default.router)
     dp.include_router(handlers.callbacks.admin.router)
     dp.include_router(handlers.callbacks.master.router)
-    dp.include_router(handlers.callbacks.user_pages.router)
+    dp.include_router(handlers.callbacks.appointment_pages.router)
     dp.include_router(handlers.callbacks.user_navigation.router)
 
     logger.info('Including middlewares')

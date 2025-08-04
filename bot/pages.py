@@ -1,7 +1,8 @@
 import logging
+import datetime
 from typing import Union, Optional
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InputMediaPhoto
+from aiogram.types import InputMediaPhoto, CallbackQuery
 
 from DB.models import AppointmentModel, Pagination
 from DB.tables.appointments import AppointmentsTable
@@ -11,9 +12,9 @@ from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from config import bot
-from config.const import USERS_PER_PAGE, ACTIONS_PER_PAGE, QUERIES_PER_PAGE, PENDING
+from config.const import USERS_PER_PAGE, ACTIONS_PER_PAGE, QUERIES_PER_PAGE, PENDING, AppListMode, CONFIRMED
 from utils.format_list import format_user_list, format_queries_text, format_app_actions
-from utils.format_string import user_sent_booking, master_booking_text
+from utils.format_string import user_sent_booking, master_booking_text, master_sent_booking
 from bot import keyboards
 from bot.keyboards.admin import inline as admin_ikb
 from bot.keyboards.master import inline as master_ikb
@@ -83,7 +84,7 @@ async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[
                                            message_id=message_id,
                                            text=PHRASES_RU.error.booking.try_again)
                 return
-            await _send_user_app(app, pagination, message_id)
+            await _send_appointment_message(user_id, app, pagination, message_id)
         else:
             await send_or_edit_message(bot=bot,
                                        message_id=message_id,
@@ -92,14 +93,46 @@ async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[
                                                                booking=PHRASES_RU.button.booking))
 
 
-async def _send_user_app(app: AppointmentModel, pagination: Pagination, message_id: Optional[int] = None):
-    caption = user_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
+def get_day_range(date: datetime.date) -> tuple[datetime.datetime, datetime.datetime]:
+    now = datetime.datetime.now()
+    today = now.date()
+    if date == today:
+        start_of_day = now
+    else:
+        start_of_day = datetime.datetime.combine(date, datetime.time.min)
+    end_of_day = datetime.datetime.combine(date, datetime.time.max)
+    return start_of_day, end_of_day
+
+
+async def get_master_apps(callback: CallbackQuery, date: datetime.date, page: int = 1):
+    start_of_day, end_of_day = get_day_range(date)
+
+    with AppointmentsTable() as app_db:
+        app, pagination = app_db.get_appointments_by_status_and_time_range(CONFIRMED, start_of_day, end_of_day, page)
+        if not app:
+            await callback.message.edit_text(text=PHRASES_RU.error.booking.try_again)
+            return
+        await _send_appointment_message(callback.from_user.id, app[0], pagination, callback.message.message_id, AppListMode.MASTER)
+
+
+async def _send_appointment_message(user_id: int,
+                                    app: AppointmentModel,
+                                    pagination: Pagination,
+                                    message_id: Optional[int] = None,
+                                    mode: AppListMode = AppListMode.USER):
+    caption = PHRASES_RU.error.unknown
+    match mode:
+        case AppListMode.USER:
+            caption = user_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
+        case AppListMode.MASTER:
+            caption = master_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
     await send_or_edit_message(bot=bot,
-                               chat_id=app.client.user_id,
+                               chat_id=user_id,
                                text=caption,
                                reply_markup=keyboards.default.inline.booking_page_keyboard(
                                    app,
-                                   pagination),
+                                   pagination,
+                                   mode),
                                message_id=message_id)
 
 

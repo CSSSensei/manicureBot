@@ -36,4 +36,4 @@ class IsCancelActionFilter(Filter):
 class NotBookingCalendar(Filter):
     async def __call__(self, callback: CallbackQuery, **data) -> bool:  # Проверка, относится ли коллбэк к кнопке календаря для удаления слота
         callback_data = data.get("callback_data")
-        return callback_data.mode == const.CalendarMode.DELETE or callback_data.action != 0 if callback_data else False
+        return callback_data.mode in {const.CalendarMode.DELETE, const.CalendarMode.APPOINTMENT_MAP} or callback_data.action != 0 if callback_data else False

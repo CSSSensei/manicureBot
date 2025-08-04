@@ -6,29 +6,35 @@ from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from DB.tables.appointments import AppointmentsTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot.bot_utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
     PhotoAppCallBack
 from DB.models import Pagination, AppointmentModel
-from config.const import MONTHS, CANCELLED, REJECTED, BACK, CalendarMode
+from config.const import MONTHS, CANCELLED, REJECTED, CONFIRMED, CalendarMode, AppListMode, AppointmentPageAction
 from phrases import PHRASES_RU
 
 
-def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination) -> Optional[IMarkup]:
+def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination, mode: AppListMode) -> Optional[IMarkup]:
     booking_keyboard = []
     if pagination.total_pages > 1:
         no_action = BookingPageCallBack().pack()
 
         past_button = IButton(
             text=PHRASES_RU.button.prev_page,
-            callback_data=BookingPageCallBack(page=pagination.page - 1).pack()
+            callback_data=BookingPageCallBack(page=pagination.page - 1,
+                                              mode=mode,
+                                              app_id=appointment.appointment_id,
+                                              app_date=appointment.slot.start_time.date()).pack()
         ) if pagination.has_prev else IButton(text=' ', callback_data=no_action)
 
         next_button = IButton(
             text=PHRASES_RU.button.next_page,
-            callback_data=BookingPageCallBack(
-                page=pagination.page + 1).pack()
+            callback_data=BookingPageCallBack(page=pagination.page + 1,
+                                              mode=mode,
+                                              app_id=appointment.appointment_id,
+                                              app_date=appointment.slot.start_time.date()).pack()
         ) if pagination.has_next else IButton(text=' ', callback_data=no_action)
         booking_keyboard.append([
             past_button,
@@ -45,27 +51,42 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination)
         booking_keyboard.append([
             IButton(text=PHRASES_RU.button.cancel2, callback_data=BookingPageCallBack(
                 page=pagination.page,
-                action=CANCELLED
+                action=AppointmentPageAction.SET_CANCELLED,
+                app_id=appointment.appointment_id,
+                app_date=appointment.slot.start_time.date(),
+                mode=mode
+            ).pack())
+        ])
+    if mode == AppListMode.MASTER:
+        booking_keyboard.append([
+            IButton(text=PHRASES_RU.button.back, callback_data=BookingPageCallBack(
+                page=pagination.page,
+                app_date=appointment.slot.start_time.date(),
+                action=AppointmentPageAction.BACK_TO_MAP,
+                mode=mode
             ).pack())
         ])
 
     return IMarkup(inline_keyboard=booking_keyboard)
 
 
-def user_cancel_keyboard(appointment_id: int, page: int) -> Optional[IMarkup]:
+def user_cancel_keyboard(appointment_id: int, page: int, mode: AppListMode, app_date: Optional[date]) -> Optional[IMarkup]:
     back_button = IButton(
         text=PHRASES_RU.button.back, callback_data=BookingPageCallBack(
             page=page,
-            action=BACK).pack()
+            action=AppointmentPageAction.BACK,
+            app_id=appointment_id,
+            app_date=app_date,
+            mode=mode).pack()
     )
 
     cancel_button = IButton(
         text=PHRASES_RU.button.cancel3,
         callback_data=BookingStatusCallBack(
-            status=CANCELLED,
+            status=CANCELLED if mode == AppListMode.USER else REJECTED,
             app_id=appointment_id).pack()
     )
-    keyboard = [[back_button], [cancel_button]]
+    keyboard = [[cancel_button], [back_button]]
     return IMarkup(inline_keyboard=keyboard)
 
 
@@ -130,8 +151,13 @@ def create_calendar_keyboard(month: int, year: int, prev: bool, mode: CalendarMo
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month, month_days) + timedelta(days=1)
 
-    available_dates, slots_len = _get_available_dates(start_date, end_date, today)
+    available_dates, slots_len = {}, 0
 
+    match mode:
+        case CalendarMode.BOOKING | CalendarMode.DELETE:
+            available_dates, slots_len = _get_available_dates(start_date, end_date)
+        case CalendarMode.APPOINTMENT_MAP:
+            available_dates, slots_len = _get_appointment_dates(start_date, end_date)
     header_text = _generate_header_text(month, slots_len, mode)
 
     keyboard = _build_calendar_keyboard(
@@ -142,29 +168,42 @@ def create_calendar_keyboard(month: int, year: int, prev: bool, mode: CalendarMo
         today=today,
         mode=mode
     )
-    if mode == CalendarMode.DELETE:
+    if mode == CalendarMode.DELETE or mode == CalendarMode.APPOINTMENT_MAP:
         keyboard.inline_keyboard.append([IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)])
 
     return header_text, keyboard
 
 
-def _get_available_dates(start_date: datetime, end_date: datetime, today: date) -> Tuple[Set[date], int]:
+def _get_available_dates(start_date: datetime, end_date: datetime) -> Tuple[Set[date], int]:
     with SlotsTable() as slots_db:
         slots = slots_db.get_available_slots(start_date, end_date)
-        return {s.start_time.date() for s in slots if s.start_time.date() >= today}, len(slots)
+        return {s.start_time.date() for s in slots}, len(slots)
+
+
+def _get_appointment_dates(start_date: datetime, end_date: datetime) -> Tuple[Set[date], int]:
+    with AppointmentsTable() as db:
+        booked_slots = db.get_booked_slot_dates(CONFIRMED, start_date, end_date)
+        len_booked_slots = db.count_appointments_by_status_and_time(CONFIRMED, start_date, end_date)
+        return booked_slots, len_booked_slots
 
 
 def _generate_header_text(month: int, slots_count: int, mode: CalendarMode) -> str:
-    if mode == CalendarMode.BOOKING:
-        if slots_count > 0:
-            return (PHRASES_RU.replace('answer.available_slots', month=MONTHS[month], len_slots=slots_count) +
-                    PHRASES_RU.answer.choose_date)
-        return PHRASES_RU.replace('answer.no_available_slots', month=MONTHS[month].lower())
+    match mode:
+        case CalendarMode.BOOKING:
+            if slots_count > 0:
+                return (PHRASES_RU.replace('answer.available_slots', month=MONTHS[month], len_slots=slots_count) +
+                        PHRASES_RU.answer.choose_date)
+            return PHRASES_RU.replace('answer.no_available_slots', month=MONTHS[month].lower())
 
-    elif mode == CalendarMode.DELETE:
-        if slots_count > 0:
-            return PHRASES_RU.replace('answer.master.choose_date_to_delete', month=MONTHS[month], len_slots=slots_count)
-        return PHRASES_RU.replace('answer.master.no_available_slots', month=MONTHS[month])
+        case CalendarMode.DELETE:
+            if slots_count > 0:
+                return PHRASES_RU.replace('answer.master.choose_date_to_delete', month=MONTHS[month], len_slots=slots_count)
+            return PHRASES_RU.replace('answer.master.no_available_slots', month=MONTHS[month])
+
+        case CalendarMode.APPOINTMENT_MAP:
+            if slots_count > 0:
+                return PHRASES_RU.replace('answer.master.choose_appointment_date', month=MONTHS[month], len_slots=slots_count)
+            return PHRASES_RU.replace('answer.master.no_appointments', month=MONTHS[month])
 
     return ""
 

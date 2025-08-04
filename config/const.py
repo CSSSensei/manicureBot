@@ -7,18 +7,18 @@ ACTIONS_PER_PAGE = 5
 QUERIES_PER_PAGE = 6
 
 MONTHS = {
-    1: "Январь",
-    2: "Февраль",
-    3: "Март",
-    4: "Апрель",
-    5: "Май",
-    6: "Июнь",
-    7: "Июль",
-    8: "Август",
-    9: "Сентябрь",
-    10: "Октябрь",
-    11: "Ноябрь",
-    12: "Декабрь",
+    1: 'Январь',
+    2: 'Февраль',
+    3: 'Март',
+    4: 'Апрель',
+    5: 'Май',
+    6: 'Июнь',
+    7: 'Июль',
+    8: 'Август',
+    9: 'Сентябрь',
+    10: 'Октябрь',
+    11: 'Ноябрь',
+    12: 'Декабрь',
 }
 
 PENDING = 'pending'
@@ -27,6 +27,12 @@ COMPLETED = 'completed'
 CANCELLED = 'cancelled'
 REJECTED = 'rejected'
 BACK = 'back'
+
+
+class AppointmentPageAction(Enum):
+    BACK_TO_MAP = 'back_to_app_map'
+    SET_CANCELLED = 'set_cancelled'
+    BACK = 'back'
 
 
 class Action:
@@ -39,5 +45,11 @@ class Action:
 
 
 class CalendarMode(Enum):
-    BOOKING = "booking"  # Режим записи (для клиентов)
-    DELETE = "delete"  # Режим удаления (для мастера)
+    BOOKING = 'booking'  # Режим записи (для клиентов)
+    DELETE = 'delete'  # Режим удаления (для мастера)
+    APPOINTMENT_MAP = 'appointment_map'  # Просмотр запланированных встреч (для мастера)
+
+
+class AppListMode(Enum):
+    USER = 'USER'
+    MASTER = 'MASTER'

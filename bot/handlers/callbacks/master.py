@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from aiogram import Router, F
 from aiogram.filters import StateFilter
@@ -10,7 +10,7 @@ from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages
-from bot.bot_utils.filters import NotBookingCalendar
+from bot.bot_utils.filters import NotBookingCalendar, MasterFilter
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
     DeleteSlotCallBack
 from bot.handlers.master import send_master_menu
@@ -26,7 +26,7 @@ router = Router()
 
 
 @router.callback_query(MonthCallBack.filter(), NotBookingCalendar())
-async def handle_day_of_slot_deletion(callback: CallbackQuery, callback_data: MonthCallBack, state: FSMContext):
+async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCallBack):
     if callback_data.action != 0:
         # Обработка переключения месяцев
         month = callback_data.month + callback_data.action
@@ -42,18 +42,23 @@ async def handle_day_of_slot_deletion(callback: CallbackQuery, callback_data: Mo
     if callback_data.day <= 0:
         await callback.answer(PHRASES_RU.error.date)
         return
-    selected_date = datetime(callback_data.year, callback_data.month, callback_data.day)
-    await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.choose_slot_to_delete',
-                                                             date=selected_date.strftime('%d.%m.%Y')),
-                                     reply_markup=inline_mkb.delete_slots_menu(selected_date.date()))
+    mode = callback_data.mode
+    selected_date = date(callback_data.year, callback_data.month, callback_data.day)
+    match mode:
+        case CalendarMode.DELETE:
+            await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.choose_slot_to_delete',
+                                                                     date=selected_date.strftime('%d.%m.%Y')),
+                                             reply_markup=inline_mkb.delete_slots_menu(selected_date))
+        case CalendarMode.APPOINTMENT_MAP:
+            await pages.get_master_apps(callback, selected_date, 1)
 
 
-@router.callback_query(DeleteSlotCallBack.filter())
-async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlotCallBack, state: FSMContext):
+@router.callback_query(DeleteSlotCallBack.filter(), MasterFilter())
+async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlotCallBack):
     action = callback_data.action
     slot_date = callback_data.slot_date
     match action:
-        case const.Action.slot_calendar:
+        case const.Action.slot_calendar:  # BACK
             prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
             text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled, CalendarMode.DELETE)
             await callback.message.edit_text(text=text, reply_markup=reply_markup)
@@ -84,7 +89,7 @@ async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlo
                 await callback.message.edit_text(text=text, reply_markup=reply_markup)
 
 
-@router.callback_query(MasterButtonCallBack.filter())
+@router.callback_query(MasterButtonCallBack.filter(), MasterFilter())
 async def handle_navigation_actions(callback: CallbackQuery, callback_data: MasterButtonCallBack):
     status_to_set = callback_data.status
 
@@ -121,7 +126,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             await pages.notify_master(next_app)
 
 
-@router.callback_query(AddSlotsMonthCallBack.filter())
+@router.callback_query(AddSlotsMonthCallBack.filter(), MasterFilter())
 async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlotsMonthCallBack):
     action = callback_data.action
     month = callback_data.month
@@ -144,7 +149,7 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
                     await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
 
 
-@router.callback_query(MasterServiceCallBack.filter())
+@router.callback_query(MasterServiceCallBack.filter(), MasterFilter())
 async def handle_service_edit(callback: CallbackQuery, callback_data: MasterServiceCallBack, state: FSMContext):
     await state.clear()
     service_id = callback_data.service_id
@@ -167,7 +172,7 @@ async def handle_service_edit(callback: CallbackQuery, callback_data: MasterServ
         await callback.message.edit_text(text=text + service_text, reply_markup=inline_mkb.edit_current_service(service))
 
 
-@router.callback_query(EditServiceCallBack.filter())
+@router.callback_query(EditServiceCallBack.filter(), MasterFilter())
 async def _(callback: CallbackQuery, callback_data: EditServiceCallBack, state: FSMContext):
     service_id = callback_data.service_id
     await state.update_data(service_id=service_id)
@@ -176,7 +181,7 @@ async def _(callback: CallbackQuery, callback_data: EditServiceCallBack, state: 
                                      reply_markup=inline_mkb.back_to_edit_service(service_id))
 
 
-@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SLOT), F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_SLOT), F.data == PHRASES_RU.callback_data.master.confirm_add_slot, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     slots = data.get('parsed_slots', [])
@@ -194,13 +199,15 @@ async def _(callback: CallbackQuery, state: FSMContext):
             await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_slot)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_slot, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
     await state.clear()
 
 
-@router.callback_query(StateFilter(MasterStates.WAITING_FOR_EDIT_SERVICE), F.data == PHRASES_RU.callback_data.master.confirm_edit_service)
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_EDIT_SERVICE),
+                       F.data == PHRASES_RU.callback_data.master.confirm_edit_service,
+                       MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     service = data.get('parsed_service')
@@ -214,13 +221,15 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await handle_service_edit(callback, MasterServiceCallBack(service_id=service.id, action=const.Action.service_update), state)
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_edit_service)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_edit_service, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
     await state.clear()
 
 
-@router.callback_query(StateFilter(MasterStates.WAITING_FOR_NEW_SERVICE), F.data == PHRASES_RU.callback_data.master.confirm_add_service)
+@router.callback_query(StateFilter(MasterStates.WAITING_FOR_NEW_SERVICE),
+                       F.data == PHRASES_RU.callback_data.master.confirm_add_service,
+                       MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     service = data.get('parsed_service')
@@ -243,37 +252,44 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_service)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_service, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_adding_slots)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_adding_slots, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await add_menu(callback)
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.clients)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.clients, MasterFilter())
 async def _(callback: CallbackQuery):
     await callback.message.edit_text(text='Клиенты')
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_manual_slots)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.appointment_map, MasterFilter())
+async def _(callback: CallbackQuery):
+    now = datetime.now()
+    text, reply_markup = ikb.create_calendar_keyboard(now.month, now.year, False, CalendarMode.APPOINTMENT_MAP)
+    await callback.message.edit_text(text=text, reply_markup=reply_markup)
+
+
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_manual_slots, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MasterStates.WAITING_FOR_SLOT)
     await callback.message.edit_text(text=PHRASES_RU.answer.master.add_manual_slot,
                                      reply_markup=inline_mkb.back_to_adding())
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots, MasterFilter())
 async def add_menu(callback: CallbackQuery):
     await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slots_menu,
                                      reply_markup=inline_mkb.add_slots_menu())
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.delete_slots)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.delete_slots, MasterFilter())
 async def delete_slots_calendar_handler(callback: CallbackQuery):
     text, reply_markup = ikb.first_page_calendar(CalendarMode.DELETE)
     if text and reply_markup:
@@ -283,38 +299,38 @@ async def delete_slots_calendar_handler(callback: CallbackQuery):
         await send_master_menu(callback.from_user.id, callback.message.message_id)
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.cancel)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.cancel, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await send_master_menu(callback.from_user.id, callback.message.message_id)
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_service_menu)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.back_to_service_menu, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await message_service_editor(callback)
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.service_editor)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.service_editor, MasterFilter())
 async def message_service_editor(callback: CallbackQuery):
     await callback.message.edit_text(text=PHRASES_RU.answer.master.service_editor,
                                      reply_markup=inline_mkb.master_service_menu())
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_service)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.add_service, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MasterStates.WAITING_FOR_NEW_SERVICE)
     await callback.message.edit_text(text=PHRASES_RU.title.new_service + PHRASES_RU.answer.master.add_service,
                                      reply_markup=inline_mkb.back_to_service_menu())
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.edit_service)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.edit_service, MasterFilter())
 async def edit_service_menu(callback: CallbackQuery):
     await callback.message.edit_text(text=PHRASES_RU.answer.master.edit_service,
                                      reply_markup=inline_mkb.master_service_editor())
 
 
-@router.callback_query(F.data == PHRASES_RU.callback_data.master.history)
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.history, MasterFilter())
 async def _(callback: CallbackQuery):
     await pages.get_history(user_id=callback.from_user.id, message_id=callback.message.message_id)
     await callback.answer()

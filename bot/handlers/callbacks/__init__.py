@@ -1,1 +1,1 @@
-from . import admin, master, user_navigation, user_pages
+from . import admin, master, user_navigation, appointment_pages

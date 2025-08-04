@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import datetime, timedelta, timezone, date
+from typing import Optional, Set, Tuple, List
 
 from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination
 from DB.tables.appointment_photos import AppointmentPhotosTable
@@ -318,12 +318,12 @@ class AppointmentsTable(BaseTable):
                 photos=app_ph_db.get_appointment_photos(row['id'])
             )
 
-    def get_appointments_by_status_and_date(self, date: datetime, status: str = CONFIRMED) -> list[AppointmentModel]:
+    def get_appointments_by_status_and_date(self, app_date: datetime, status: str = CONFIRMED) -> list[AppointmentModel]:
         """Возвращает все записи с указанным статусом за указанный день.
 
         Args:
             status: Статус записи (должен быть одним из допустимых значений)
-            date: Дата для фильтрации (учитывается только дата, время игнорируется)
+            app_date: Дата для фильтрации (учитывается только дата, время игнорируется)
 
         Returns:
             Список AppointmentModel объектов, удовлетворяющих условиям
@@ -334,7 +334,7 @@ class AppointmentsTable(BaseTable):
         if status not in self.__valid_statuses:
             raise ValueError(f"Invalid status. Allowed values: {self.__valid_statuses}")
 
-        start_of_day = date.replace(
+        start_of_day = app_date.replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         end_of_day = start_of_day + timedelta(days=1)
@@ -353,13 +353,13 @@ class AppointmentsTable(BaseTable):
         LEFT JOIN users u ON a.client_id = u.user_id
         WHERE a.status = ? 
         AND sl.end_time >= ? 
-        AND sl.start_time < ?
+        AND sl.start_time <= ?
         ORDER BY sl.start_time ASC
         """
 
         params = (
             status,
-            date,
+            app_date,
             end_of_day
         )
 
@@ -459,6 +459,172 @@ class AppointmentsTable(BaseTable):
                 appointments.append(appointment)
 
         return appointments, pagination
+
+    def get_appointments_by_status_and_time_range(
+            self,
+            status: str,
+            from_time: datetime,
+            to_time: datetime,
+            page: int = 1,
+            per_page: int = 1
+    ) -> Tuple[List[AppointmentModel], Pagination]:
+        """Возвращает список записей по статусу и временному интервалу с пагинацией.
+
+        Args:
+            status: Статус записи (должен быть одним из допустимых значений)
+            from_time: Начало временного интервала (включительно)
+            to_time: Конец временного интервала (включительно)
+            page: Номер страницы (начинается с 1)
+            per_page: Количество записей на странице
+
+        Returns:
+            Кортеж (список AppointmentModel, объект Pagination)
+
+        Raises:
+            ValueError: Если передан недопустимый статус или некорректный временной интервал
+        """
+        if status not in self.__valid_statuses:
+            raise ValueError(f"Invalid status. Allowed values: {self.__valid_statuses}")
+
+        if from_time > to_time:
+            raise ValueError("from_time must be less than or equal to to_time")
+
+        pagination = Pagination(
+            page=page,
+            per_page=per_page,
+            total_items=0,
+            total_pages=0
+        )
+
+        count_query = f"""
+        SELECT COUNT(*) as total
+        FROM {self.__tablename__} a
+        LEFT JOIN slots sl ON a.slot_id = sl.id
+        WHERE a.status = ? 
+        AND sl.end_time >= ? 
+        AND sl.start_time <= ?
+        """
+
+        self.cursor.execute(count_query, (status, from_time, to_time))
+        total_items = self.cursor.fetchone()['total']
+
+        pagination.total_items = total_items
+        pagination.total_pages = max(1, (total_items + per_page - 1) // per_page)
+
+        query = f"""
+        SELECT 
+            a.*, 
+            s.name as service_name, 
+            sl.start_time, 
+            sl.end_time, 
+            u.username, 
+            u.contact
+        FROM {self.__tablename__} a
+        LEFT JOIN services s ON a.service_id = s.id
+        LEFT JOIN slots sl ON a.slot_id = sl.id
+        LEFT JOIN users u ON a.client_id = u.user_id
+        WHERE a.status = ? 
+        AND sl.end_time >= ? 
+        AND sl.start_time <= ?
+        ORDER BY sl.start_time ASC
+        LIMIT ? OFFSET ?
+        """
+
+        params = (
+            status,
+            from_time,
+            to_time,
+            per_page,
+            pagination.offset
+        )
+
+        self.cursor.execute(query, params)
+        rows = self.cursor.fetchall()
+
+        appointments = []
+        with AppointmentPhotosTable() as app_ph_db:
+            for row in rows:
+                appointment = AppointmentModel(
+                    appointment_id=row['id'],
+                    client=UserModel(
+                        user_id=row['client_id'],
+                        username=row['username'],
+                        contact=row['contact']
+                    ),
+                    slot=SlotModel(
+                        id=row['slot_id'],
+                        start_time=datetime.fromisoformat(row['start_time']),
+                        end_time=datetime.fromisoformat(row['end_time']),
+                        is_available=False
+                    ),
+                    service=ServiceModel(
+                        id=row['service_id'],
+                        name=row['service_name']
+                    ),
+                    comment=row['comment'],
+                    status=row['status'],
+                    created_at=self._parse_datetime(row['created_at']),
+                    updated_at=self._parse_datetime(row['updated_at']),
+                    photos=app_ph_db.get_appointment_photos(row['id'])
+                )
+                appointments.append(appointment)
+
+        return appointments, pagination
+
+    def get_booked_slot_dates(self, status: str, from_time: datetime, to_time: datetime) -> Set[date]:
+        """Возвращает множество start_time всех слотов, соответствующих условиям.
+
+        Args:
+            status: Статус записи (например, CONFIRMED)
+            from_time: Начало периода (включительно)
+            to_time: Конец периода (включительно)
+
+        Returns:
+            Множество datetime объектов start_time без дубликатов.
+
+        Raises:
+            ValueError: Если статус некорректен или временной интервал невалиден.
+        """
+        if status not in self.__valid_statuses:
+            raise ValueError(f"Invalid status. Allowed: {self.__valid_statuses}")
+
+        if from_time > to_time:
+            raise ValueError("from_time must be <= to_time")
+
+        query = f"""
+        SELECT DISTINCT sl.start_time
+        FROM {self.__tablename__} a
+        JOIN slots sl ON a.slot_id = sl.id
+        WHERE a.status = ?
+        AND sl.end_time >= ?
+        AND sl.start_time <= ?
+        """
+
+        self.cursor.execute(query, (status, from_time, to_time))
+        rows = self.cursor.fetchall()
+
+        return {datetime.fromisoformat(row['start_time']).date() for row in rows}
+
+    def count_appointments_by_status_and_time(self, status: str, from_time: datetime, to_time: datetime) -> int:
+        if status not in self.__valid_statuses:
+            raise ValueError(f"Invalid status. Allowed: {self.__valid_statuses}")
+
+        if from_time > to_time:
+            raise ValueError("from_time must be <= to_time")
+
+        query = f"""
+        SELECT COUNT(*) as count
+        FROM {self.__tablename__} a
+        JOIN slots sl ON a.slot_id = sl.id
+        WHERE a.status = ?
+        AND sl.end_time >= ? AND sl.start_time <= ?
+        """
+
+        params = (status, from_time, to_time)
+
+        self.cursor.execute(query, params)
+        result = self.cursor.fetchone()
+        return result['count'] if result else 0
 
     @property
     def valid_statuses(self):

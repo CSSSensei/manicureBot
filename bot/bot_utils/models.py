@@ -3,7 +3,7 @@ from datetime import date
 from typing import Tuple, Optional, Any
 from aiogram.filters.callback_data import CallbackData
 
-from config.const import CalendarMode, Action
+from config.const import CalendarMode, Action, AppListMode, AppointmentPageAction
 
 
 @dataclass
@@ -34,7 +34,10 @@ class AdminPageCallBack(CallbackData, prefix='cut'):
 
 class BookingPageCallBack(CallbackData, prefix='booking'):
     page: Optional[int] = None  # None - кнопка с текущей странице, не подразумевает действий
-    action: Optional[str] = None  # 'cancel' - отменить запись, 'back' - разад
+    action: Optional[AppointmentPageAction] = None  # 'set_cancelled' - отменить запись, 'back' - назад
+    app_id: Optional[int] = None
+    app_date: Optional[date] = None
+    mode: Optional[AppListMode] = None
 
 
 class BookingStatusCallBack(CallbackData, prefix='status'):
