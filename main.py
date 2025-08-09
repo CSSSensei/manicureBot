@@ -17,6 +17,7 @@
 # ⠀     ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠋⠉⠀⠀⣿⠇⠠⠿⠃⠿⠛⠻⣿⠡⣶⣶⠿⠟⠼⠟⠛⣿⡇⣾⣿⡶⠆⠻⢿⣶⠾⠋⢠⣿⠋⠉⠀⠠⠿⠷⠶⠀⢿⣷⠾⠟⠁⣼⡟⠰⠿⠛⢻⡿⠠⡶⢰⡿⠉⢿⠇⠀⢿⣷⣾⠟⠁
 #
 
+import logging
 import asyncio
 from aiogram import Dispatcher
 
@@ -24,9 +25,11 @@ from config import bot
 from bot.middlewares.get_user import GetUserMiddleware
 from bot.middlewares.shadow_ban import ShadowBanMiddleware
 from bot.middlewares.logging_query import UserLoggerMiddleware
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 from bot import handlers
 from DB import init_database
-import logging
+from utils.db_manager import backup_db
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +57,9 @@ async def main() -> None:
     dp.inline_query.middleware.register(UserLoggerMiddleware())
 
     logger.info(f'{(await bot.get_me()).first_name} starting\n * Running on http://t.me/{(await bot.get_me()).username}')
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(backup_db, 'cron', hour=3, args=(bot,))
+    scheduler.start()
     try:
         await dp.start_polling(bot)
     except Exception as e:

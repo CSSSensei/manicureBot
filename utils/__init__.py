@@ -1,1 +1,1 @@
-from . import format_list, format_string, db_filler
+from . import format_list, format_string, db_manager

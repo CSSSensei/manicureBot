@@ -1,7 +1,11 @@
 from datetime import datetime
 from typing import List, Tuple
+import subprocess
+from aiogram import Bot
+from aiogram.types import FSInputFile
 
 from DB.tables.slots import SlotsTable
+from config import const
 
 
 def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
@@ -32,3 +36,20 @@ def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
                 f"(Ошибка: `{error}`)\n"
             )
     return result_text
+
+
+async def backup_db(bot: Bot):
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        backup_path = const.BASE_DIR + f"/backups/z_users_{timestamp}.sql"
+
+        with open(backup_path, 'w') as f:
+            subprocess.run(["sqlite3", "z_users.db", ".dump"], stdout=f)
+
+        subprocess.run(["gzip", backup_path])
+
+        f = FSInputFile(f"{backup_path}.gz")
+        await bot.send_document(const.ADMIN_ID, document=f, caption="🔧 Бэкап БД", disable_notification=True)
+
+    except Exception as e:
+        await bot.send_message(const.ADMIN_ID, f"❌ Ошибка бэкапа: {e}")

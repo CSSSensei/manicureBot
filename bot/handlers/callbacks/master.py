@@ -21,7 +21,7 @@ from bot.keyboards.default import inline as ikb
 from config import const, bot
 from config.const import CalendarMode
 from phrases import PHRASES_RU
-from utils import format_list, format_string, db_filler
+from utils import format_list, format_string, db_manager
 
 router = Router()
 
