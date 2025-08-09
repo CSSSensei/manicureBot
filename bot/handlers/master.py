@@ -18,7 +18,7 @@ from config import bot
 
 
 async def send_master_menu(user_id: int, message_id: Optional[int] = None):
-    await send_or_edit_message(bot, user_id, 'menu', inline_mkb.menu_master_keyboard(), message_id)
+    await send_or_edit_message(bot, user_id, PHRASES_RU.answer.master.menu, inline_mkb.menu_master_keyboard(), message_id)
 
 router = Router()
 router.message.filter(MasterFilter())

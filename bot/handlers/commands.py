@@ -11,12 +11,13 @@ router = UserRouter()
 
 @router.command('start', 'запустить бота')  # /start
 async def _(message: Message):
-    await message.answer(PHRASES_RU.commands.start, reply_markup=get_keyboard(message.from_user.id))
+    await message.answer(PHRASES_RU.replace('commands.start', booking=PHRASES_RU.button.booking),
+                         reply_markup=get_keyboard(message.from_user.id))
 
 
 @router.command('help', 'как пользоваться ботом')  # /help
 async def _(message: Message):
-    await message.answer(PHRASES_RU.commands.help, reply_markup=get_keyboard(message.from_user.id))
+    await message.answer(PHRASES_RU.replace('commands.help', booking=PHRASES_RU.button.booking), reply_markup=get_keyboard(message.from_user.id))
 
 
 @router.command('about', 'о разработчиках')  # /about
