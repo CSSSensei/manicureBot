@@ -1,10 +1,14 @@
 import logging
+
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from typing import Optional, Union, List
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message, InputMediaPhoto
 
-from DB.models import PhotoModel
+from DB.models import PhotoModel, AppointmentModel
+from DB.tables.masters import MastersTable
+from config.const import CANCELLED, REJECTED, CONFIRMED
+from phrases import PHRASES_RU
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +44,10 @@ async def send_or_edit_message(
                 )
                 return message
             except TelegramBadRequest as e:
-                if "message is not modified" in str(e):
+                if 'message is not modified' in str(e):
                     return None
                 logger.error(
-                    f"Editing error (chat_id={chat_id}, message_id={message_id}): {str(e)}",
+                    f'Editing error (chat_id={chat_id}, message_id={message_id}): {str(e)}',
                     exc_info=True
                 )
                 raise
@@ -58,13 +62,13 @@ async def send_or_edit_message(
 
     except TelegramBadRequest as e:
         logger.error(
-            f"Telegram API ERROR (chat_id={chat_id}): {str(e)}",
+            f'Telegram API ERROR (chat_id={chat_id}): {str(e)}',
             exc_info=True
         )
         raise
     except Exception as e:
         logger.critical(
-            f"Unexpected error when sending a message (chat_id={chat_id}): {str(e)}",
+            f'Unexpected error when sending a message (chat_id={chat_id}): {str(e)}',
             exc_info=True
         )
         raise
@@ -75,3 +79,34 @@ def get_media_from_photos(photos: List[PhotoModel], caption: Optional[str] = Non
     for photo in photos:
         media.append(InputMediaPhoto(media=photo.telegram_file_id, caption=caption if len(media) == 0 else None))
     return media[:9]
+
+
+async def notify_master(bot: Bot, app: AppointmentModel):
+    if app.status == CANCELLED:
+        text = PHRASES_RU.replace('answer.notify.master.cancelled',
+                                  contact='@' + app.client.username if app.client.username
+                                  else 'Контакт: ' + app.client.contact,
+                                  date=app.formatted_date,
+                                  slot_time=app.slot_str)
+        with MastersTable() as db:
+            masters = db.get_all_masters()
+            if len(masters) > 0:
+                master = masters[0]
+                await bot.send_message(chat_id=master.id, text=text)
+            else:
+                logger.error('No master in db')
+
+
+async def notify_client(bot: Bot, app: AppointmentModel):
+    try:
+        if app.status == CONFIRMED:
+            text = PHRASES_RU.replace('answer.notify.client.confirmed', date=app.formatted_date, slot_time=app.slot_str)
+            await bot.send_message(chat_id=app.client.user_id, text=text)
+        elif app.status == CANCELLED:
+            text = PHRASES_RU.replace('answer.notify.client.cancelled', date=app.formatted_date, slot_time=app.slot_str)
+            await bot.send_message(chat_id=app.client.user_id, text=text)
+        elif app.status == REJECTED:
+            text = PHRASES_RU.replace('answer.notify.client.cancelled', date=app.formatted_date, slot_time=app.slot_str)
+            await bot.send_message(chat_id=app.client.user_id, text=text)
+    except Exception as e:
+        logger.error(f'Unexpected error when notifying client (chat_id={app.client.user_id}): {str(e)})')

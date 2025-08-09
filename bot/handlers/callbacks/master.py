@@ -10,6 +10,7 @@ from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages
+from bot.bot_utils import msg_sender
 from bot.bot_utils.filters import NotBookingCalendar, MasterFilter
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
     DeleteSlotCallBack
@@ -109,9 +110,13 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
                     slots_db.set_slot_availability(app.slot.id, True)
                 app_db.update_appointment_status(app.appointment_id, const.REJECTED)
                 await callback.answer(const.REJECTED)  # TODO переделать коллбэк
+                app.status = const.REJECTED
+                await msg_sender.notify_client(bot, app)
             case (_, status) if status in app_db.valid_statuses:
                 app_db.update_appointment_status(app.appointment_id, status)
                 await callback.answer(status)  # TODO переделать коллбэк
+                app.status = status
+                await msg_sender.notify_client(bot, app)
 
         await callback.message.delete()
 
