@@ -99,22 +99,27 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             return
         app = app_db.get_appointment_by_id(callback_data.appointment_id)
         if not app:
-            await callback.answer("Запись не найдена")  # TODO переделать коллбэк
+            await callback.answer(PHRASES_RU.error.app_not_found)
             return
 
         match (app.status, status_to_set):
             case (const.CANCELLED, _):
-                await callback.answer('Запись уже отменена пользователем')  # TODO переделать коллбэк
+                await callback.answer(PHRASES_RU.answer.status.already_cancelled)
             case (_, const.REJECTED):
                 with SlotsTable() as slots_db:
                     slots_db.set_slot_availability(app.slot.id, True)
                 app_db.update_appointment_status(app.appointment_id, const.REJECTED)
-                await callback.answer(const.REJECTED)  # TODO переделать коллбэк
+                await callback.answer(PHRASES_RU.answer.status.rejected)
                 app.status = const.REJECTED
+                await msg_sender.notify_client(bot, app)
+            case (_, const.CONFIRMED):
+                app_db.update_appointment_status(app.appointment_id, const.CONFIRMED)
+                await callback.answer(PHRASES_RU.answer.status.confirmed)
+                app.status = const.CONFIRMED
                 await msg_sender.notify_client(bot, app)
             case (_, status) if status in app_db.valid_statuses:
                 app_db.update_appointment_status(app.appointment_id, status)
-                await callback.answer(status)  # TODO переделать коллбэк
+                await callback.answer(status)
                 app.status = status
                 await msg_sender.notify_client(bot, app)
 
@@ -192,7 +197,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
     slots = data.get('parsed_slots', [])
 
     if not slots:
-        await callback.message.edit_text("⚠️ Не найдены слоты для добавления")  # TODO
+        await callback.message.edit_text(PHRASES_RU.error.slots_not_flound)
         return
     result_text = db_filler.add_slots_from_list(slots)
     text_chunks = format_string.split_text(result_text, 4096)

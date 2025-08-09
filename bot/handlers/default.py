@@ -57,7 +57,7 @@ async def _(message: Message, state: FSMContext):
 
         data = await AppointmentNavigation.get_appointment_data(state)
         if data.photos and len(data.photos) >= 9:
-            await message.reply("🚨 Нельзя прикрепить больше 9 фото!", reply=False)  # TODO убрать во phrases
+            await message.reply(PHRASES_RU.error.photo_limit, reply=False)
             return
         updated_photos = (data.photos or []) + [new_photo]
         data.photos = updated_photos
@@ -65,7 +65,7 @@ async def _(message: Message, state: FSMContext):
             state,
             photos=updated_photos
         )
-        await message.reply("✅ Фото прикреплено!", reply=False)  # TODO убрать во phrases
+        await message.reply(PHRASES_RU.answer.photo_attached, reply=False)
         await bot.edit_message_text(chat_id=message.from_user.id,
                                     message_id=data.message_id,
                                     text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
@@ -83,7 +83,7 @@ async def _(message: Message, state: FSMContext):
         if data.message_id:
             await bot.send_message(
                 chat_id=message.from_user.id,
-                text=f'<i>{message.text}</i>\n\nбудет учтено',  # TODO убрать во phrases
+                text=PHRASES_RU.answer.comment_attached,
                 reply_to_message_id=data.message_id
             )
         data.comment = message.text

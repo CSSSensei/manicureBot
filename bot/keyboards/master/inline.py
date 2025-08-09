@@ -35,15 +35,15 @@ def action_master_keyboard(appointment_id: int, msg_to_delete: Optional[str] = N
 def menu_master_keyboard() -> IMarkup:
     keyboard = [
         [
-            IButton(text="Карта записей", callback_data=PHRASES_RU.callback_data.master.appointment_map),
-            IButton(text="Клиенты", callback_data=PHRASES_RU.callback_data.master.clients)],  # TODO заменить кнопки на phrases
+            IButton(text=PHRASES_RU.button.master.appointment_map, callback_data=PHRASES_RU.callback_data.master.appointment_map),
+            IButton(text=PHRASES_RU.button.master.clients, callback_data=PHRASES_RU.callback_data.master.clients)],  # TODO сделать кнопку клиентов
         [
-            IButton(text="Удалить слоты", callback_data=PHRASES_RU.callback_data.master.delete_slots),
-            IButton(text="Добавить слоты", callback_data=PHRASES_RU.callback_data.master.add_slots)
+            IButton(text=PHRASES_RU.button.master.delete_slots, callback_data=PHRASES_RU.callback_data.master.delete_slots),
+            IButton(text=PHRASES_RU.button.master.add_slots, callback_data=PHRASES_RU.callback_data.master.add_slots)
         ],
         [
-            IButton(text="История действий", callback_data=PHRASES_RU.callback_data.master.history),
-            IButton(text="Редактор услуг", callback_data=PHRASES_RU.callback_data.master.service_editor)
+            IButton(text=PHRASES_RU.button.master.history, callback_data=PHRASES_RU.callback_data.master.history),
+            IButton(text=PHRASES_RU.button.master.service_editor, callback_data=PHRASES_RU.callback_data.master.service_editor)
         ]
     ]
     return IMarkup(inline_keyboard=keyboard)
@@ -77,7 +77,7 @@ def add_slots_menu() -> IMarkup:
                 callback_data=AddSlotsMonthCallBack(month=next_month, year=next_year).pack())
         ],
         [
-            IButton(text="Добавить вручную", callback_data=PHRASES_RU.callback_data.master.add_manual_slots)
+            IButton(text=PHRASES_RU.button.master.add_manual_slots, callback_data=PHRASES_RU.callback_data.master.add_manual_slots)
         ],
         [
             IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)
@@ -119,8 +119,8 @@ def master_confirm_edit_service(service_id: int) -> IMarkup:
 
 def master_service_menu() -> IMarkup:
     keyboard = [
-        [IButton(text='Редактировать услуги', callback_data=PHRASES_RU.callback_data.master.edit_service),
-         IButton(text='Добавить услугу', callback_data=PHRASES_RU.callback_data.master.add_service)],
+        [IButton(text=PHRASES_RU.button.master.edit_service, callback_data=PHRASES_RU.callback_data.master.edit_service),
+         IButton(text=PHRASES_RU.button.master.add_service, callback_data=PHRASES_RU.callback_data.master.add_service)],
         [IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)]
     ]
     return IMarkup(inline_keyboard=keyboard)
@@ -168,12 +168,12 @@ def master_service_editor() -> IMarkup:
 
 
 def edit_current_service(service: ServiceModel) -> IMarkup:
-    active_str = '🔴 Деактивировать' if service.is_active else '🟢 Активировать'
+    active_str = PHRASES_RU.button.master.deactivate if service.is_active else PHRASES_RU.button.master.activate
     action = const.Action.set_inactive if service.is_active else const.Action.set_active
     keyboard = [
         [IButton(text=active_str,
                  callback_data=MasterServiceCallBack(service_id=service.id, action=action).pack())],
-        [IButton(text='Редактировать',
+        [IButton(text=PHRASES_RU.button.master.edit,
                  callback_data=EditServiceCallBack(service_id=service.id).pack())],
 
         [IButton(text=PHRASES_RU.button.back,

@@ -20,6 +20,7 @@ from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
 from bot import pages
+from utils import format_string
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
 
     try:
         app_id = await process_appointment_creation(callback.from_user.id, data)
-        message = (PHRASES_RU.answer.confirmation_wait if app_id
+        message = (format_string.user_booking_text(data, '') + PHRASES_RU.answer.confirmation_wait if app_id
                    else PHRASES_RU.error.booking.occupied_slot)
 
         if app_id:
