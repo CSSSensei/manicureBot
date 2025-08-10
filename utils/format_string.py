@@ -82,7 +82,20 @@ def user_sent_booking(data: AppointmentModel, header: str) -> str:
 
 
 def master_sent_booking(data: AppointmentModel, header: str) -> str:
-    text = user_booking_text(data, header)
+    text = header
+    if data.client and data.client.username:
+        text += PHRASES_RU.replace('template.master.client_username', username=data.client.username)
+    else:
+        text += PHRASES_RU.replace('template.master.client_no_username', contact=data.client.contact)
+    text += PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
+                               datetime=data.slot_str) if data.slot else ''
+    if data.service and data.service.name:
+        text += PHRASES_RU.replace('template.user.service', service=data.service.name)
+    if data.photos and len(data.photos) > 0:
+        text += PHRASES_RU.replace('template.user.photos', len_photos=len(data.photos))
+    if data.comment:
+        text += PHRASES_RU.replace('template.user.text', text=data.comment)
+    text += '\n'
     return text
 
 

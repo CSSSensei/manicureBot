@@ -228,7 +228,7 @@ title:
   query: "<b>Запросы</b>"
   new_booking: "<b>Текущая запись</b>\n\n"
   admin_new_booking: "<b>Новая запись</b>"
-  booking: "<b>Запись</b>\n\n"
+  booking: "<b>Запись</b>\n"
   actions: "<b>История действий</b>"
   new_service: "<b>Добавление услуги</b>\n\n"
 
