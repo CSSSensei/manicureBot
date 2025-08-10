@@ -6,7 +6,10 @@ from typing import Optional, Union, List
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message, InputMediaPhoto
 
 from DB.models import PhotoModel, AppointmentModel
+from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
+from bot.keyboards import get_keyboard
+from config import bot
 from config.const import CANCELLED, REJECTED, CONFIRMED
 from phrases import PHRASES_RU
 
@@ -14,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 async def send_or_edit_message(
-    bot: Bot,
     chat_id: int,
     text: str,
     reply_markup: Optional[Union[InlineKeyboardMarkup, ReplyKeyboardMarkup]] = None,
@@ -110,3 +112,24 @@ async def notify_client(bot: Bot, app: AppointmentModel):
             await bot.send_message(chat_id=app.client.user_id, text=text)
     except Exception as e:
         logger.error(f'Unexpected error when notifying client (chat_id={app.client.user_id}): {str(e)})')
+
+
+async def send_reminder(appointment_id: int, reminder_type: str):
+    with AppointmentsTable() as db:
+        appointment = db.get_appointment_by_id(appointment_id)
+        if appointment.status != CONFIRMED:
+            return
+
+        time_left = PHRASES_RU.error.unknown
+        match reminder_type:
+            case '1h':
+                time_left = '1 ч до вашей записи!'  # TODO
+            case '24h':
+                time_left = 'завтра у Вас запланирована запись'
+        text = PHRASES_RU.replace('answer.notify.client.scheduled', time_left=time_left)
+
+        await bot.send_message(
+            chat_id=appointment.client.user_id,
+            text=text,
+            reply_markup=get_keyboard(appointment.client.user_id)
+        )

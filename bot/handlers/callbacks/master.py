@@ -9,7 +9,7 @@ from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot import pages
+from bot import pages, scheduler
 from bot.bot_utils import msg_sender
 from bot.bot_utils.filters import NotBookingCalendar, MasterFilter
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
@@ -117,11 +117,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
                 await callback.answer(PHRASES_RU.answer.status.confirmed)
                 app.status = const.CONFIRMED
                 await msg_sender.notify_client(bot, app)
-            case (_, status) if status in app_db.valid_statuses:
-                app_db.update_appointment_status(app.appointment_id, status)
-                await callback.answer(status)
-                app.status = status
-                await msg_sender.notify_client(bot, app)
+                scheduler.schedule_reminders(app.appointment_id, app.slot.start_time)
 
         await callback.message.delete()
 
@@ -150,7 +146,7 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
             await callback.message.edit_text(text=text,
                                              reply_markup=inline_mkb.master_confirm_adding_slot(month, year))
         case 'add':
-            text = db_filler.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
+            text = db_manager.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
             text_chunks = format_string.split_text(text, 4096)
             for i in range(len(text_chunks)):
                 if i == 0:
@@ -199,7 +195,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
     if not slots:
         await callback.message.edit_text(PHRASES_RU.error.slots_not_flound)
         return
-    result_text = db_filler.add_slots_from_list(slots)
+    result_text = db_manager.add_slots_from_list(slots)
     text_chunks = format_string.split_text(result_text, 4096)
     await state.clear()
     for i in range(len(text_chunks)):

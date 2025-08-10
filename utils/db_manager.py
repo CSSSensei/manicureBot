@@ -41,7 +41,7 @@ def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
 async def backup_db(bot: Bot):
     try:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        backup_path = const.BASE_DIR + f"/backups/z_users_{timestamp}.sql"
+        backup_path = const.BASE_DIR / f"backups/z_users_{timestamp}.sql"
 
         with open(backup_path, 'w') as f:
             subprocess.run(["sqlite3", "z_users.db", ".dump"], stdout=f)

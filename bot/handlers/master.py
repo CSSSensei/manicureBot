@@ -14,11 +14,10 @@ from bot.states import MasterStates
 from phrases import PHRASES_RU
 from bot.keyboards.master import inline as inline_mkb
 from utils import format_string
-from config import bot
 
 
 async def send_master_menu(user_id: int, message_id: Optional[int] = None):
-    await send_or_edit_message(bot, user_id, PHRASES_RU.answer.master.menu, inline_mkb.menu_master_keyboard(), message_id)
+    await send_or_edit_message(user_id, PHRASES_RU.answer.master.menu, inline_mkb.menu_master_keyboard(), message_id)
 
 router = Router()
 router.message.filter(MasterFilter())

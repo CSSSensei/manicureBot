@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv, find_dotenv
 from config.const import BASE_DIR
 
@@ -70,5 +71,6 @@ def setup_logging(cfg: LogConfig):
 
 config: Config = __load_config()
 bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'))
+scheduler = AsyncIOScheduler()
 
 setup_logging(config.log)

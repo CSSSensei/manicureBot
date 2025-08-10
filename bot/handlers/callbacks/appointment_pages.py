@@ -10,6 +10,7 @@ from bot.bot_utils.msg_sender import get_media_from_photos
 from bot.pages import get_active_bookings, get_master_apps, get_day_range
 from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
 from bot.keyboards.default import inline as ikb
+from bot import scheduler
 from config import bot
 from config import const
 from config.const import AppListMode, CANCELLED
@@ -100,6 +101,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 if app.status == const.CONFIRMED:
                     app.status = status
                     await msg_sender.notify_master(bot, app)
+                    scheduler.cancel_scheduled_reminders(appointment_id)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
                 await callback.message.edit_text(PHRASES_RU.answer.status.cancelled)
@@ -107,7 +109,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
             with MastersTable() as master_db:
                 master = master_db.get_master(callback.from_user.id)
                 if not master or not master.is_master:
-                    await callback.answer("У вас нет прав для этого действия")
+                    await callback.answer("У вас нет прав для этого действия")  # TODO
                     await callback.message.delete()
                     return
             if app.status == const.CANCELLED:
@@ -116,6 +118,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
             elif app.status in {const.CONFIRMED}:
                 app.status = CANCELLED
                 await msg_sender.notify_client(bot, app)
+                scheduler.cancel_scheduled_reminders(appointment_id)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
                 await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)

@@ -79,15 +79,13 @@ async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[
         app, pagination = app_db.get_client_appointments(user_id, page)
         if pagination.total_items > 0:
             if not app:
-                await send_or_edit_message(bot=bot,
-                                           chat_id=user_id,
+                await send_or_edit_message(chat_id=user_id,
                                            message_id=message_id,
                                            text=PHRASES_RU.error.booking.try_again)
                 return
             await _send_appointment_message(user_id, app, pagination, message_id)
         else:
-            await send_or_edit_message(bot=bot,
-                                       message_id=message_id,
+            await send_or_edit_message(message_id=message_id,
                                        chat_id=user_id,
                                        text=PHRASES_RU.replace('answer.no_active_bookings',
                                                                booking=PHRASES_RU.button.booking))
@@ -126,8 +124,7 @@ async def _send_appointment_message(user_id: int,
             caption = user_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
         case AppListMode.MASTER:
             caption = master_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
-    await send_or_edit_message(bot=bot,
-                               chat_id=user_id,
+    await send_or_edit_message(chat_id=user_id,
                                text=caption,
                                reply_markup=keyboards.default.inline.booking_page_keyboard(
                                    app,
