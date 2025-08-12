@@ -92,12 +92,7 @@ async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[
 
 
 def get_day_range(date: datetime.date) -> tuple[datetime.datetime, datetime.datetime]:
-    now = datetime.datetime.now()
-    today = now.date()
-    if date == today:
-        start_of_day = now
-    else:
-        start_of_day = datetime.datetime.combine(date, datetime.time.min)
+    start_of_day = datetime.datetime.combine(date, datetime.time.min)
     end_of_day = datetime.datetime.combine(date, datetime.time.max)
     return start_of_day, end_of_day
 
@@ -157,6 +152,7 @@ async def update_master_booking_ui(data: AppointmentModel):
                     text=caption,
                     reply_markup=master_ikb.action_master_keyboard(
                         appointment_id=data.appointment_id,
+                        client=data.client,
                         msg_to_delete=msg_to_delete),
                     reply_to_message_id=reply_to)
                 masters_db.update_current_state(master.id, msg.message_id, data.appointment_id, msg_to_delete)
@@ -171,6 +167,7 @@ async def update_master_booking_ui(data: AppointmentModel):
                                                 text=caption,
                                                 reply_markup=master_ikb.action_master_keyboard(
                                                     appointment_id=master.current_app_id,
+                                                    client=current_app.client,
                                                     msg_to_delete=master.msg_to_delete)
                                                 )
                 except TelegramBadRequest as e:

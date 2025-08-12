@@ -93,7 +93,7 @@ class AppointmentsTable(BaseTable):
             AppointmentModel или None, если записи не найдены
         """
         query = f"""
-        SELECT a.*, s.name as service_name, sl.start_time, sl.end_time, u.username, u.contact
+        SELECT a.*, s.name as service_name, sl.start_time, sl.end_time, u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
@@ -115,6 +115,8 @@ class AppointmentsTable(BaseTable):
                 appointment_id=row['id'],
                 client=UserModel(user_id=row['client_id'],
                                  username=row['username'],
+                                 first_name=row['first_name'],
+                                 last_name=row['last_name'],
                                  contact=row['contact']),
                 slot=SlotModel(id=row['slot_id'],
                                start_time=datetime.fromisoformat(row['start_time']),
@@ -278,8 +280,7 @@ class AppointmentsTable(BaseTable):
             s.name as service_name, 
             sl.start_time, 
             sl.end_time, 
-            u.username, 
-            u.contact
+            u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
@@ -299,6 +300,8 @@ class AppointmentsTable(BaseTable):
                 client=UserModel(
                     user_id=row['client_id'],
                     username=row['username'],
+                    first_name=row['first_name'],
+                    last_name=row['last_name'],
                     contact=row['contact']
                 ),
                 slot=SlotModel(
@@ -345,8 +348,7 @@ class AppointmentsTable(BaseTable):
             s.name as service_name, 
             sl.start_time, 
             sl.end_time, 
-            u.username, 
-            u.contact
+            u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
@@ -374,6 +376,8 @@ class AppointmentsTable(BaseTable):
                     client=UserModel(
                         user_id=row['client_id'],
                         username=row['username'],
+                        first_name=row['first_name'],
+                        last_name=row['last_name'],
                         contact=row['contact']
                     ),
                     slot=SlotModel(
@@ -501,7 +505,7 @@ class AppointmentsTable(BaseTable):
         FROM {self.__tablename__} a
         LEFT JOIN slots sl ON a.slot_id = sl.id
         WHERE a.status = ? 
-        AND sl.end_time >= ? 
+        AND sl.start_time >= ? 
         AND sl.start_time <= ?
         """
 
@@ -517,14 +521,13 @@ class AppointmentsTable(BaseTable):
             s.name as service_name, 
             sl.start_time, 
             sl.end_time, 
-            u.username, 
-            u.contact
+            u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
         LEFT JOIN users u ON a.client_id = u.user_id
         WHERE a.status = ? 
-        AND sl.end_time >= ? 
+        AND sl.start_time >= ? 
         AND sl.start_time <= ?
         ORDER BY sl.start_time ASC
         LIMIT ? OFFSET ?
@@ -549,6 +552,8 @@ class AppointmentsTable(BaseTable):
                     client=UserModel(
                         user_id=row['client_id'],
                         username=row['username'],
+                        first_name=row['first_name'],
+                        last_name=row['last_name'],
                         contact=row['contact']
                     ),
                     slot=SlotModel(

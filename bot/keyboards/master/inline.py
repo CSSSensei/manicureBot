@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from DB.models import Pagination, ServiceModel, SlotModel
+from DB.models import Pagination, ServiceModel, SlotModel, UserModel
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, \
@@ -15,19 +15,26 @@ from config.const import CalendarMode
 from phrases import PHRASES_RU
 
 
-def action_master_keyboard(appointment_id: int, msg_to_delete: Optional[str] = None) -> IMarkup:
-    keyboard = [[
-        IButton(
-            text=PHRASES_RU.button.admin.reject,
-            callback_data=MasterButtonCallBack(status=const.REJECTED,
-                                               appointment_id=appointment_id,
-                                               msg_to_delete=msg_to_delete).pack()),
-        IButton(
-            text=PHRASES_RU.button.admin.confirm,
-            callback_data=MasterButtonCallBack(status=const.CONFIRMED,
-                                               appointment_id=appointment_id,
-                                               msg_to_delete=msg_to_delete).pack()
-        )]
+def action_master_keyboard(appointment_id: int, client: UserModel, msg_to_delete: Optional[str] = None) -> IMarkup:
+    user_display_name = client.first_name or client.username or ''
+    keyboard = [
+        [
+            IButton(
+                text=PHRASES_RU.replace('button.dm', name=user_display_name),
+                url=f'tg://user?id={client.user_id}')
+        ],
+        [
+            IButton(
+                text=PHRASES_RU.button.admin.reject,
+                callback_data=MasterButtonCallBack(status=const.REJECTED,
+                                                   appointment_id=appointment_id,
+                                                   msg_to_delete=msg_to_delete).pack()),
+            IButton(
+                text=PHRASES_RU.button.admin.confirm,
+                callback_data=MasterButtonCallBack(status=const.CONFIRMED,
+                                                   appointment_id=appointment_id,
+                                                   msg_to_delete=msg_to_delete).pack())
+        ]
     ]
     return IMarkup(inline_keyboard=keyboard)
 

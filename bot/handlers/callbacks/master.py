@@ -36,7 +36,8 @@ async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCall
         mode = callback_data.mode
         month = 1 if month > 12 else 12 if month < 1 else month
 
-        prev_enabled = not (month == datetime.now().month and year == datetime.now().year)
+        prev_enabled = not (month == datetime.now().month and year == datetime.now().year) \
+            if mode != CalendarMode.APPOINTMENT_MAP else True
         text, reply_markup = ikb.create_calendar_keyboard(month, year, prev_enabled, mode)
         await callback.message.edit_text(text=text, reply_markup=reply_markup)
         return
@@ -278,7 +279,7 @@ async def _(callback: CallbackQuery):
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.appointment_map, MasterFilter())
 async def _(callback: CallbackQuery):
     now = datetime.now()
-    text, reply_markup = ikb.create_calendar_keyboard(now.month, now.year, False, CalendarMode.APPOINTMENT_MAP)
+    text, reply_markup = ikb.create_calendar_keyboard(now.month, now.year, True, CalendarMode.APPOINTMENT_MAP)
     await callback.message.edit_text(text=text, reply_markup=reply_markup)
 
 

@@ -117,14 +117,12 @@ answer:
     slot_info: | 
       <b>Слот от {date}</b>
       <i>{slot_str}</i>
-    choose_appointment_date: |
-      <b>{month}</b>
-      <i>запланированно встреч — {len_slots}</i>
-      
-      Выберите день просмотра записи:
-    no_appointments: |
-      <b>{month}</b>
-      <i>запланированных встреч нет</i> (╥_╥)
+    month: "<b>{month}</b>\n"
+    no_appointments: "<i>записи отсутствуют</i> (╥_╥)\n"
+    future_appointments: "<i>запланировано встреч — {len_slots}</i>\n"
+    past_appointment: "<i>отработано слотов {len_slots}</i>\n"
+    choose_appointment_date: "\nВыберите день для просмотра записи:"
+
 
 button:
   next_page: "»"
@@ -132,6 +130,7 @@ button:
   send_contact: "Отправить контакт"
   booking: "Записаться"
   active_booking: "Мои записи"
+  dm: "✉️ Написать {name}"
   cancel: "❌ Отмена"
   cancel2: "❌ Отменить запись"
   cancel3: "❌ ПОДТВЕРДИТЬ ОТМЕНУ"
