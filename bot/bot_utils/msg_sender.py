@@ -100,15 +100,27 @@ async def notify_master(bot: Bot, app: AppointmentModel):
 
 
 async def notify_client(bot: Bot, app: AppointmentModel):
+    with MastersTable() as db:
+        masters = db.get_all_masters()
+        if not masters:
+            logger.error('No master in db')
+            return
+        master = masters[0]
     try:
         if app.status == CONFIRMED:
             text = PHRASES_RU.replace('answer.notify.client.confirmed', date=app.formatted_date, slot_time=app.slot_str)
             await bot.send_message(chat_id=app.client.user_id, text=text)
         elif app.status == CANCELLED:
-            text = PHRASES_RU.replace('answer.notify.client.cancelled', date=app.formatted_date, slot_time=app.slot_str)
+            text = PHRASES_RU.replace('answer.notify.client.cancelled',
+                                      date=app.formatted_date,
+                                      slot_time=app.slot_str,
+                                      master_username=master.username)
             await bot.send_message(chat_id=app.client.user_id, text=text)
         elif app.status == REJECTED:
-            text = PHRASES_RU.replace('answer.notify.client.cancelled', date=app.formatted_date, slot_time=app.slot_str)
+            text = PHRASES_RU.replace('answer.notify.client.rejected',
+                                      date=app.formatted_date,
+                                      slot_time=app.slot_str,
+                                      master_username=master.username)
             await bot.send_message(chat_id=app.client.user_id, text=text)
     except Exception as e:
         logger.error(f'Unexpected error when notifying client (chat_id={app.client.user_id}): {str(e)})')

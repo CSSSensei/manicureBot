@@ -1,11 +1,14 @@
+import logging
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from DB.tables.masters import MastersTable
 from bot.keyboards import get_keyboard
 from bot.bot_utils.routers import UserRouter, BaseRouter
 from phrases import PHRASES_RU
 
 router = UserRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.command('start', 'запустить бота')  # /start
@@ -16,7 +19,17 @@ async def _(message: Message):
 
 @router.command('help', 'как пользоваться ботом')  # /help
 async def _(message: Message):
-    await message.answer(PHRASES_RU.replace('commands.help', booking=PHRASES_RU.button.booking), reply_markup=get_keyboard(message.from_user.id))
+    with MastersTable() as db:
+        masters = db.get_all_masters()
+        if not masters:
+            logger.error('No master in db')
+            master = ''
+        else:
+            master = masters[0].username
+        await message.answer(PHRASES_RU.replace('commands.help',
+                                                booking=PHRASES_RU.button.booking,
+                                                master_username=master),
+                             reply_markup=get_keyboard(message.from_user.id))
 
 
 @router.command('about', 'о разработчиках')  # /about

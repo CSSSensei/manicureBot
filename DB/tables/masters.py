@@ -55,8 +55,9 @@ class MastersTable(BaseTable):
 
     def get_all_masters(self) -> List[Master]:
         query = f'''
-        SELECT *
-        FROM {self.__tablename__}
+        SELECT m.*, u.username
+        FROM {self.__tablename__} m
+        LEFT JOIN users u ON m.id = u.user_id
         WHERE is_master = TRUE
         '''
 
@@ -69,6 +70,7 @@ class MastersTable(BaseTable):
                 master = Master(
                     id=row['id'],
                     name=row['name'],
+                    username=row['username'],
                     specialization=row['specialization'],
                     is_master=row['is_master'],
                     message_id=row['message_id'],
@@ -92,7 +94,9 @@ class MastersTable(BaseTable):
             Master: Master если найден, иначе None
         """
         query = f"""
-            SELECT * FROM {self.__tablename__}
+            SELECT m.*, u.username
+            FROM {self.__tablename__} m
+            LEFT JOIN users u ON m.id = u.user_id
             WHERE id = ? AND is_master = TRUE
         """
         self.cursor.execute(query, (master_id,))
@@ -102,6 +106,7 @@ class MastersTable(BaseTable):
             return Master(
                 id=row['id'],
                 name=row['name'],
+                username=row['username'],
                 specialization=row['specialization'],
                 is_master=row['is_master'],
                 message_id=row['message_id'],
