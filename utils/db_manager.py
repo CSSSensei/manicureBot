@@ -50,25 +50,26 @@ async def backup_db(bot: Bot):
         if not db_path.exists():
             raise FileNotFoundError(f"Database file not found: {db_path}")
 
-        subprocess.run(
-            ["sqlite3", str(db_path), ".dump"],
-            stdout=open(backup_path, 'w'),
-            check=True
+        integrity_check = subprocess.run(
+            ["sqlite3", str(db_path), "PRAGMA integrity_check;"],
+            capture_output=True, text=True
         )
+        if "ok" not in integrity_check.stdout.lower():
+            raise ValueError(f"Database integrity check failed: {integrity_check.stdout}")
+
+        with open(backup_path, 'w') as f:
+            subprocess.run(["sqlite3", str(db_path), ".dump"], stdout=f, check=True)
+
         subprocess.run(["gzip", str(backup_path)], check=True)
+        if backup_path.exists():
+            backup_path.unlink()
 
-        if os.path.exists(backup_path):
-            os.remove(backup_path)
-
-        f = FSInputFile(f"{backup_path}.gz")
         await bot.send_document(
             const.ADMIN_ID,
-            document=f,
+            document=FSInputFile(f"{backup_path}.gz"),
             caption="🔧 Бэкап БД",
             disable_notification=True
         )
 
-    except subprocess.CalledProcessError as e:
-        await bot.send_message(const.ADMIN_ID, f"❌ Ошибка выполнения команды: {e}")
     except Exception as e:
         await bot.send_message(const.ADMIN_ID, f"❌ Ошибка бэкапа: {str(e)}")
