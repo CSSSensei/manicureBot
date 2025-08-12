@@ -104,8 +104,9 @@ async def notify_client(bot: Bot, app: AppointmentModel):
         masters = db.get_all_masters()
         if not masters:
             logger.error('No master in db')
-            return
-        master = masters[0]
+            master = ''
+        else:
+            master = masters[0]
     try:
         if app.status == CONFIRMED:
             text = PHRASES_RU.replace('answer.notify.client.confirmed', date=app.formatted_date, slot_time=app.slot_str)
