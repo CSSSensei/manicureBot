@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import List, Tuple
 import subprocess
@@ -40,16 +41,34 @@ def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
 
 async def backup_db(bot: Bot):
     try:
+        backups_dir = const.BASE_DIR / "backups"
+        backups_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        backup_path = const.BASE_DIR / f"backups/z_users_{timestamp}.sql"
+        backup_path = backups_dir / f"z_users_{timestamp}.sql"
+        db_path = const.BASE_DIR / "DB/tables/z_users.db"
 
-        with open(backup_path, 'w') as f:
-            subprocess.run(["sqlite3", "z_users.db", ".dump"], stdout=f)
+        if not db_path.exists():
+            raise FileNotFoundError(f"Database file not found: {db_path}")
 
-        subprocess.run(["gzip", backup_path])
+        subprocess.run(
+            ["sqlite3", str(db_path), ".dump"],
+            stdout=open(backup_path, 'w'),
+            check=True
+        )
+        subprocess.run(["gzip", str(backup_path)], check=True)
+
+        if os.path.exists(backup_path):
+            os.remove(backup_path)
 
         f = FSInputFile(f"{backup_path}.gz")
-        await bot.send_document(const.ADMIN_ID, document=f, caption="🔧 Бэкап БД", disable_notification=True)
+        await bot.send_document(
+            const.ADMIN_ID,
+            document=f,
+            caption="🔧 Бэкап БД",
+            disable_notification=True
+        )
 
+    except subprocess.CalledProcessError as e:
+        await bot.send_message(const.ADMIN_ID, f"❌ Ошибка выполнения команды: {e}")
     except Exception as e:
-        await bot.send_message(const.ADMIN_ID, f"❌ Ошибка бэкапа: {e}")
+        await bot.send_message(const.ADMIN_ID, f"❌ Ошибка бэкапа: {str(e)}")
