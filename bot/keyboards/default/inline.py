@@ -24,6 +24,16 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
             IButton(text=PHRASES_RU.button.photos,
                     callback_data=PhotoAppCallBack(app_id=appointment.appointment_id).pack())
         ])
+
+    if mode == AppListMode.MASTER:
+        user_display_name = appointment.client.first_name or appointment.client.username or ''
+        keyboard.append([
+            IButton(
+                text=PHRASES_RU.replace('button.dm', name=user_display_name),
+                url=f"tg://user?id={appointment.client.user_id}"
+            )
+        ])
+
     if appointment.status not in {CANCELLED, REJECTED} and appointment.slot.start_time > datetime.now():
         keyboard.append([
             IButton(text=PHRASES_RU.button.cancel2,
@@ -34,14 +44,6 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
                         app_date=appointment.slot.start_time.date(),
                         mode=mode
                     ).pack())
-        ])
-    if mode == AppListMode.MASTER:
-        user_display_name = appointment.client.first_name or appointment.client.username or ''
-        keyboard.append([
-            IButton(
-                text=PHRASES_RU.replace('button.dm', name=user_display_name),
-                url=f"tg://user?id={appointment.client.user_id}"
-            )
         ])
 
     if pagination.total_pages > 1:

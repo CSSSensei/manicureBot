@@ -68,11 +68,9 @@ async def booking_page_distributor(callback: CallbackQuery, callback_data: Booki
                 return
             case (const.AppointmentPageAction.BACK_TO_MAP, AppListMode.MASTER):
                 app_date = callback_data.app_date
-                prev_enabled = not (app_date.month == datetime.datetime.now().month
-                                    and app_date.year == datetime.datetime.now().year)
                 text, reply_markup = ikb.create_calendar_keyboard(app_date.month,
                                                                   app_date.year,
-                                                                  prev_enabled,
+                                                                  True,
                                                                   const.CalendarMode.APPOINTMENT_MAP)
                 await callback.message.edit_text(text=text, reply_markup=reply_markup)
                 return

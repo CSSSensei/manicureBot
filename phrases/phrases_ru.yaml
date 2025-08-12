@@ -120,7 +120,7 @@ answer:
     month: "<b>{month}</b>\n"
     no_appointments: "<i>записи отсутствуют</i> (╥_╥)\n"
     future_appointments: "<i>запланировано встреч — {len_slots}</i>\n"
-    past_appointment: "<i>отработано слотов {len_slots}</i>\n"
+    past_appointment: "<i>отработано слотов — {len_slots}</i>\n"
     choose_appointment_date: "\nВыберите день для просмотра записи:"
 
 
