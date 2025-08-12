@@ -15,3 +15,8 @@ keyboard: KMarkup = KMarkup(
     resize_keyboard=True,
     one_time_keyboard=False,
     input_field_placeholder=__make_placeholder_appeal())
+
+contact_keyboard = KMarkup(
+    keyboard=[[KButton(text=PHRASES_RU.button.send_contact, request_contact=True)]],
+    resize_keyboard=True,
+    one_time_keyboard=True)
