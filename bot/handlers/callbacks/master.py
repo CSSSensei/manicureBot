@@ -129,7 +129,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
         master_db.update_current_state(callback.from_user.id)
 
         if next_app := app_db.get_nth_pending_appointment(0):
-            await pages.notify_master(next_app)
+            await pages.update_master_booking_ui(next_app)
 
 
 @router.callback_query(AddSlotsMonthCallBack.filter(), MasterFilter())

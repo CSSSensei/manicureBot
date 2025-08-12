@@ -29,7 +29,7 @@ async def booking_page_distributor(callback: CallbackQuery, callback_data: Booki
         with MastersTable() as master_db:
             master = master_db.get_master(callback.from_user.id)
             if not master or not master.is_master:
-                await callback.answer("У вас нет прав для этого действия")
+                await callback.answer(PHRASES_RU.error.no_rights)
                 await callback.message.delete()
                 return
     if page is None:  # пустой коллбэк
@@ -109,7 +109,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
             with MastersTable() as master_db:
                 master = master_db.get_master(callback.from_user.id)
                 if not master or not master.is_master:
-                    await callback.answer("У вас нет прав для этого действия")  # TODO
+                    await callback.answer(PHRASES_RU.error.no_rights)
                     await callback.message.delete()
                     return
             if app.status == const.CANCELLED:

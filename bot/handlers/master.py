@@ -7,10 +7,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from DB.tables.appointments import AppointmentsTable
+from DB.tables.masters import MastersTable
+from bot import pages
 from bot.bot_utils.filters import MasterFilter
 from bot.bot_utils.msg_sender import get_media_from_photos, send_or_edit_message
 from bot.keyboards import get_keyboard
 from bot.states import MasterStates
+from config import const, bot
 from phrases import PHRASES_RU
 from bot.keyboards.master import inline as inline_mkb
 from utils import format_string
@@ -164,3 +167,26 @@ async def _(message: Message):
 @router.message(F.text == PHRASES_RU.button.master.menu)
 async def _(message: Message):
     await send_master_menu(message.from_user.id)
+
+
+@router.message(F.text == PHRASES_RU.button.master.pending_apps)
+async def _(message: Message):
+    with (MastersTable() as master_db, AppointmentsTable() as app_db):
+        master = master_db.get_master(message.from_user.id)
+        if not master:
+            await message.answer(PHRASES_RU.error.no_rights, reply_markup=get_keyboard(message.from_user.id))
+            return
+        if master.current_app_id:
+            if master.message_id:
+                await bot.delete_message(chat_id=message.chat.id, message_id=master.message_id)
+            if master.msg_to_delete:
+                msgs = list(map(int, master.msg_to_delete.split(',')))
+                msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
+                await bot.delete_messages(chat_id=message.chat.id, message_ids=msgs_list)
+            master_db.update_current_state(message.from_user.id)
+        total_items = app_db.count_appointments(const.PENDING)
+        if total_items == 0:
+            await message.answer(PHRASES_RU.answer.master.no_pending_apps)
+            return
+        if next_app := app_db.get_nth_pending_appointment(0):
+            await pages.update_master_booking_ui(next_app)

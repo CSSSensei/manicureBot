@@ -9,9 +9,10 @@ def __make_placeholder_appeal() -> str:
 
 clients_today: KButton = KButton(text=PHRASES_RU.button.master.clients_today)
 menu: KButton = KButton(text=PHRASES_RU.button.master.menu)
+pending_apps: KButton = KButton(text=PHRASES_RU.button.master.pending_apps)
 
 keyboard: KMarkup = KMarkup(
-    keyboard=[[clients_today, menu]],
+    keyboard=[[clients_today, menu], [pending_apps]],
     resize_keyboard=True,
     one_time_keyboard=False,
     input_field_placeholder=__make_placeholder_appeal())

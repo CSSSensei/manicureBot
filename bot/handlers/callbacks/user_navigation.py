@@ -108,7 +108,7 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
                 username=callback.from_user.username,
                 contact=user_row.contact)
             data.appointment_id = app_id
-            await pages.notify_master(data)
+            await pages.update_master_booking_ui(data)
 
         await clear_and_respond(callback, state, message)
     except Exception as e:

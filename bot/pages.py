@@ -133,7 +133,7 @@ async def _send_appointment_message(user_id: int,
                                message_id=message_id)
 
 
-async def notify_master(data: AppointmentModel):
+async def update_master_booking_ui(data: AppointmentModel):
     with (MastersTable() as masters_db, AppointmentsTable() as app_db):
         total_items = app_db.count_appointments(PENDING)
         masters = masters_db.get_all_masters()
