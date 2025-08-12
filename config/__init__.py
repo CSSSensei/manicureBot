@@ -58,7 +58,7 @@ def setup_logging(cfg: LogConfig):
         '%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         log_colors={
             'DEBUG': 'cyan',
-            'INFO': 'blue',
+            'INFO': 'green',
             'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'bold_red',
