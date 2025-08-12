@@ -24,7 +24,7 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
             IButton(text=PHRASES_RU.button.photos,
                     callback_data=PhotoAppCallBack(app_id=appointment.appointment_id).pack())
         ])
-    if appointment.status not in {CANCELLED, REJECTED}:
+    if appointment.status not in {CANCELLED, REJECTED} and appointment.slot.start_time > datetime.now():
         keyboard.append([
             IButton(text=PHRASES_RU.button.cancel2,
                     callback_data=BookingPageCallBack(
