@@ -112,12 +112,12 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
                 app_db.update_appointment_status(app.appointment_id, const.REJECTED)
                 await callback.answer(PHRASES_RU.answer.status.rejected)
                 app.status = const.REJECTED
-                await msg_sender.notify_client(bot, app)
+                await msg_sender.notify_client(app)
             case (_, const.CONFIRMED):
                 app_db.update_appointment_status(app.appointment_id, const.CONFIRMED)
                 await callback.answer(PHRASES_RU.answer.status.confirmed)
                 app.status = const.CONFIRMED
-                await msg_sender.notify_client(bot, app)
+                await msg_sender.notify_client(app)
                 scheduler.schedule_reminders(app.appointment_id, app.slot.start_time)
 
         await callback.message.delete()

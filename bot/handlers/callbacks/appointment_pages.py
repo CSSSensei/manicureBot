@@ -1,6 +1,5 @@
 from aiogram import Router
 from aiogram.types import CallbackQuery
-import datetime
 
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
@@ -21,7 +20,6 @@ router = Router()
 
 @router.callback_query(BookingPageCallBack.filter())
 async def booking_page_distributor(callback: CallbackQuery, callback_data: BookingPageCallBack):
-    await callback.answer()
     page = callback_data.page
     action = callback_data.action
     mode = callback_data.mode
@@ -32,6 +30,7 @@ async def booking_page_distributor(callback: CallbackQuery, callback_data: Booki
                 await callback.answer(PHRASES_RU.error.no_rights)
                 await callback.message.delete()
                 return
+    await callback.answer()
     if page is None:  # пустой коллбэк
         return
     if action in {const.AppointmentPageAction.SET_CANCELLED, const.AppointmentPageAction.BACK, const.AppointmentPageAction.BACK_TO_MAP}:
@@ -83,10 +82,10 @@ async def booking_page_distributor(callback: CallbackQuery, callback_data: Booki
 
 @router.callback_query(BookingStatusCallBack.filter())
 async def booking_status_distributor(callback: CallbackQuery, callback_data: BookingStatusCallBack):
-    await callback.answer()
     appointment_id = callback_data.app_id
     status = callback_data.status
     if status is None or appointment_id is None:  # пустой коллбэк
+        await callback.answer()
         return
     with AppointmentsTable() as app_db, SlotsTable() as slots_db:
         app = app_db.get_appointment_by_id(appointment_id)
@@ -98,7 +97,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
             elif app.status in {const.PENDING, const.CONFIRMED}:
                 if app.status == const.CONFIRMED:
                     app.status = status
-                    await msg_sender.notify_master(bot, app)
+                    await msg_sender.notify_master(app)
                     scheduler.cancel_scheduled_reminders(appointment_id)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
@@ -115,11 +114,12 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
 
             elif app.status in {const.CONFIRMED}:
                 app.status = CANCELLED
-                await msg_sender.notify_client(bot, app)
+                await msg_sender.notify_client(app)
                 scheduler.cancel_scheduled_reminders(appointment_id)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
                 await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)
+    await callback.answer()
 
 
 @router.callback_query(PhotoAppCallBack.filter())
