@@ -20,11 +20,10 @@ class AdminFilter(BaseFilter):
 
 class MasterFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
-        with MastersTable() as master_db:
+        with MastersTable() as master_db, UsersTable() as db:
             user_master: Optional[Master] = master_db.get_master(message.from_user.id)
-            if user_master:
-                return user_master.is_master
-            return False
+            user: Optional[UserModel] = db.get_user(message.from_user.id)
+            return user.is_admin or user_master and user_master.is_master   # АДМИН ИМЕЕТ ДОСТУП К ИНТЕРФЕЙСУ МАСТЕРА
 
 
 class IsCancelActionFilter(Filter):
