@@ -1,15 +1,15 @@
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from aiogram import Router, F, types
+from aiogram import Router, F
 
 from DB.models import PhotoModel
 from DB.tables.users import UsersTable
 from bot import pages
 from bot.keyboards import get_keyboard
-from bot.keyboards.default import inline as ikb, base as ukb
+from bot.keyboards.default import inline as ikb
 from bot.navigation import AppointmentNavigation
-from bot.states import AppointmentStates, UserStates
+from bot.states import AppointmentStates
 
 from config import config, bot
 from phrases import PHRASES_RU
@@ -91,21 +91,6 @@ async def _(message: Message, state: FSMContext):
                                     message_id=data.message_id,
                                     text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
                                     reply_markup=ikb.comment_keyboard())
-
-
-@router.message(F.content_type == types.ContentType.CONTACT)
-async def _(message: Message, state: FSMContext):
-    with UsersTable() as db:
-        db.update_contact(message.from_user.id, message.contact.phone_number)
-
-    await state.clear()
-    await message.answer(PHRASES_RU.answer.contact_saved, reply_markup=get_keyboard(message.from_user.id))
-
-
-@router.message(StateFilter(UserStates.WAITING_FOR_CONTACT))
-async def _(message: Message):
-    await message.answer(PHRASES_RU.replace('answer.send_contact', button=PHRASES_RU.button.send_contact),
-                         reply_markup=ukb.contact_keyboard)
 
 
 @router.message()

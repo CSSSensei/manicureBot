@@ -10,10 +10,6 @@ class AppointmentStates(StatesGroup):
     CONFIRMATION = State()
 
 
-class UserStates(StatesGroup):
-    WAITING_FOR_CONTACT = State()
-
-
 class MasterStates(StatesGroup):
     WAITING_FOR_SLOT = State()
     WAITING_FOR_NEW_SERVICE = State()
