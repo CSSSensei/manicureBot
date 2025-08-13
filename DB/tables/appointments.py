@@ -401,7 +401,7 @@ class AppointmentsTable(BaseTable):
         return appointments
 
     def get_master_actions(self, page: int = 1, per_page: int = 10) -> tuple[list[AppointmentModel], Pagination]:
-        """Возвращает список подтвержденных и отклоненных записей (действия админа) с пагинацией"""
+        """Возвращает список всех записей (со всеми статусами) с пагинацией, отсортированный от новых к старым"""
         pagination = Pagination(
             page=page,
             per_page=per_page,
@@ -409,8 +409,10 @@ class AppointmentsTable(BaseTable):
             total_pages=0
         )
 
-        total_items = (self.count_appointments(status=CONFIRMED, only_future=False) +
-                       self.count_appointments(status=REJECTED, only_future=False))
+        count_query = f"SELECT COUNT(*) as total FROM {self.__tablename__}"
+        self.cursor.execute(count_query)
+        total_items = self.cursor.fetchone()['total']
+
         pagination.total_items = total_items
         pagination.total_pages = max(1, (total_items + per_page - 1) // per_page)
 
@@ -425,7 +427,6 @@ class AppointmentsTable(BaseTable):
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
         LEFT JOIN users u ON a.client_id = u.user_id
-        WHERE a.status IN ('confirmed', 'rejected')
         ORDER BY a.updated_at DESC
         LIMIT ? OFFSET ?
         """
