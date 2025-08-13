@@ -1,6 +1,6 @@
 from datetime import time, date, timedelta, datetime
 from typing import List, Optional
-from DB.models import UserModel, QueryModel, AppointmentModel, SlotModel
+from DB.models import UserModel, QueryModel, AppointmentModel, SlotModel, ClientWithStats
 from phrases import PHRASES_RU
 from DB.models import Pagination
 from utils import format_string
@@ -13,7 +13,7 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
 
     for user in users_info:
         line_data = {
-            'username': user.username or PHRASES_RU.icon.not_username,
+            'username': user.username or user.first_name or PHRASES_RU.icon.not_username,
             'user_id': str(user.user_id).ljust(12),
             'query_stat': f'{format_string.get_query_count_emoji(user.query_count)} {user.query_count}',
             'registration_date': user.registration_date.strftime('%d.%m.%Y'),
@@ -65,9 +65,36 @@ def format_queries_text(
             'user_id': query.user.user_id,
             'time': query.query_date.strftime('%d.%m.%Y %H:%M:%S') if query.query_date else PHRASES_RU.error.unknown,
             'query': query.query_text,
-            'username': query.user.username if show_username and query.user and query.user.username else ''
+            'username': query.user.username if show_username and query.user and (query.user.username or query.user.first_name) else ''
         }
         txt.append(line_template.format(**line_data))
+
+    return ''.join(txt)
+
+
+def format_client_list(clients_info: List[ClientWithStats], pagination: Pagination) -> str:
+    txt = [PHRASES_RU.title.clients,
+           PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
+
+    for client in clients_info:
+        line_data = {
+            'username': client.user.username or client.user.first_name or PHRASES_RU.icon.not_username,
+            'user_id': str(client.user.user_id).ljust(12),
+            'total_apps': client.stats.total,
+            'cancelled_apps': client.stats.cancelled,
+            'completed_apps': client.stats.completed,
+            'pending_apps': f' ⏳ {client.stats.pending}' if client.stats.pending != 0 else ''
+        }
+
+        user_line = PHRASES_RU.replace('template.client_str', **line_data)
+
+        if client.user.is_banned:
+            txt.append(f'<s>{user_line}</s>')
+        else:
+            txt.append(user_line)
+
+    if pagination.total_pages > 1:
+        txt.append(PHRASES_RU.icon.row_placeholder * (pagination.per_page - len(clients_info)))
 
     return ''.join(txt)
 

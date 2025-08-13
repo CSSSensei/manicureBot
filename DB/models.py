@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 
 from pydantic import BaseModel
 
@@ -182,3 +182,27 @@ class Master:
     message_id: Optional[int] = None
     current_app_id: Optional[int] = None
     msg_to_delete: Optional[str] = None
+
+
+@dataclass
+class ClientStats:
+    """Класс для хранения статистики по клиенту"""
+    total: int = 0
+    completed: int = 0
+    upcoming: int = 0
+    pending: int = 0
+    cancelled: int = 0
+    rejected: int = 0
+    first_appointment: Optional[datetime] = None
+    last_appointment: Optional[datetime] = None
+    by_status: Dict[str, int] = None
+
+    def __post_init__(self):
+        if self.by_status is None:
+            self.by_status = {}
+
+
+@dataclass
+class ClientWithStats:
+    user: UserModel
+    stats: ClientStats

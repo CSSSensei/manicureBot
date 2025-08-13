@@ -3,7 +3,7 @@ from datetime import date
 from typing import Tuple, Optional, Any
 from aiogram.filters.callback_data import CallbackData
 
-from config.const import CalendarMode, Action, AppListMode, AppointmentPageAction
+from config.const import CalendarMode, Action, AppListMode, AppointmentPageAction, PageListSection
 
 
 @dataclass
@@ -27,7 +27,7 @@ class CommandUnit:
 
 
 class AdminPageCallBack(CallbackData, prefix='cut'):
-    type_of_event: int  # -1 - no action, 1 - get_users, 2 - user_query, 3 - action master history
+    type_of_event: PageListSection
     user_id: int = 0
     page: int = 1
 

@@ -277,7 +277,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.clients, MasterFilter())
 async def _(callback: CallbackQuery):
-    await callback.message.edit_text(text='Клиенты')
+    await pages.get_clients(callback.from_user.id, callback.message.message_id)
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.appointment_map, MasterFilter())

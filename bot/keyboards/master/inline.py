@@ -11,7 +11,7 @@ from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, Ma
     DeleteSlotCallBack, MonthCallBack
 from bot.keyboards.admin import inline as admin_ikb
 from config import const
-from config.const import CalendarMode
+from config.const import CalendarMode, PageListSection
 from phrases import PHRASES_RU
 
 
@@ -125,19 +125,15 @@ def master_service_menu() -> IMarkup:
     return IMarkup(inline_keyboard=keyboard)
 
 
-def master_history_keyboard(pagination: Pagination) -> IMarkup:
-    reply_markup = admin_ikb.page_keyboard(type_of_event=3, pagination=pagination)
+def master_page_keyboard(type_of_event: PageListSection, pagination: Pagination) -> IMarkup:
+    reply_markup = admin_ikb.page_keyboard(type_of_event=type_of_event, pagination=pagination)
     back_button = IButton(
         text=PHRASES_RU.button.back,
         callback_data=PHRASES_RU.callback_data.master.cancel)
     if reply_markup:
         reply_markup.inline_keyboard.append([back_button])
     else:
-        reply_markup = IMarkup(inline_keyboard=[[
-            IButton(
-                text=PHRASES_RU.button.back,
-                callback_data=PHRASES_RU.callback_data.master.cancel)
-        ]])
+        reply_markup = IMarkup(inline_keyboard=[[back_button]])
     return reply_markup
 
 

@@ -12,9 +12,8 @@ from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
 from config import bot
-from config.const import USERS_PER_PAGE, ACTIONS_PER_PAGE, QUERIES_PER_PAGE, PENDING, AppListMode, CONFIRMED
-from utils.format_list import format_user_list, format_queries_text, format_app_actions
-from utils.format_string import user_sent_booking, master_booking_text, master_sent_booking
+from config.const import USERS_PER_PAGE, ACTIONS_PER_PAGE, QUERIES_PER_PAGE, PENDING, AppListMode, CONFIRMED, PageListSection
+from utils import format_list, format_string
 from bot import keyboards
 from bot.keyboards.admin import inline as admin_ikb
 from bot.keyboards.master import inline as master_ikb
@@ -26,8 +25,8 @@ async def get_users(user_id: int, page: int = 1, message_id: Union[int, None] = 
     with UsersTable() as users_db:
         users, pagination = users_db.get_all_users(page, USERS_PER_PAGE)
 
-        txt = format_user_list(users, pagination)
-        reply_markup = admin_ikb.page_keyboard(type_of_event=1, pagination=pagination)
+        txt = format_list.format_user_list(users, pagination)
+        reply_markup = admin_ikb.page_keyboard(type_of_event=PageListSection.USERS, pagination=pagination)
 
         if message_id:
             await bot.edit_message_text(chat_id=user_id, message_id=message_id, text=txt,
@@ -45,7 +44,7 @@ async def user_query(user_id: int, user_id_to_find: Union[int, None], page: int 
 
         user = users_db.get_user(user_id_to_find)
 
-        txt = format_queries_text(
+        txt = format_list.format_queries_text(
             queries=queries,
             username=user.username if user else None,
             user_id=user_id_to_find,
@@ -54,7 +53,7 @@ async def user_query(user_id: int, user_id_to_find: Union[int, None], page: int 
         )
 
         reply_markup = admin_ikb.page_keyboard(
-            type_of_event=2,
+            type_of_event=PageListSection.QUERY,
             pagination=pagination,
             user_id=user_id_to_find
         )
@@ -116,9 +115,9 @@ async def _send_appointment_message(user_id: int,
     caption = PHRASES_RU.error.unknown
     match mode:
         case AppListMode.USER:
-            caption = user_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
+            caption = format_string.user_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
         case AppListMode.MASTER:
-            caption = master_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
+            caption = format_string.master_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
     await send_or_edit_message(chat_id=user_id,
                                text=caption,
                                reply_markup=keyboards.default.inline.booking_page_keyboard(
@@ -137,7 +136,7 @@ async def update_master_booking_ui(data: AppointmentModel):
             master = masters[0]
             if not master.message_id:
                 msg_to_delete = None
-                caption = master_booking_text(data, total_items)
+                caption = format_string.master_booking_text(data, total_items)
                 reply_to = None
                 if data.photos and len(data.photos) > 0:
                     media: list[InputMediaPhoto] = []
@@ -159,7 +158,7 @@ async def update_master_booking_ui(data: AppointmentModel):
                 current_app = app_db.get_appointment_by_id(master.current_app_id)
                 if current_app.status != PENDING:
                     total_items += 1
-                caption = master_booking_text(current_app, total_items)
+                caption = format_string.master_booking_text(current_app, total_items)
                 try:
                     await bot.edit_message_text(chat_id=master.user.user_id,
                                                 message_id=master.message_id,
@@ -183,10 +182,25 @@ async def get_history(user_id: int, page: int = 1, message_id: Optional[int] = N
     with AppointmentsTable() as app_db:
         appointments, pagination = app_db.get_master_actions(page, ACTIONS_PER_PAGE)
 
-        txt = format_app_actions(appointments, pagination)
-        reply_markup = master_ikb.master_history_keyboard(pagination)
+        txt = format_list.format_app_actions(appointments, pagination)
+        reply_markup = master_ikb.master_page_keyboard(type_of_event=PageListSection.ACTION_HISTORY, pagination=pagination)
         if message_id:
             await bot.edit_message_text(chat_id=user_id, message_id=message_id, text=txt,
                                         reply_markup=reply_markup)
         else:
             await bot.send_message(chat_id=user_id, text=txt, reply_markup=reply_markup)
+
+
+async def get_clients(user_id: int, message_id: int, page: int = 1):
+    with AppointmentsTable() as db:
+        clients, pagination = db.get_clients_with_stats(page, USERS_PER_PAGE)
+
+        txt = format_list.format_client_list(clients, pagination)
+        reply_markup = master_ikb.master_page_keyboard(type_of_event=PageListSection.CLIENTS, pagination=pagination)
+
+        if message_id:
+            await bot.edit_message_text(chat_id=user_id, message_id=message_id, text=txt,
+                                        reply_markup=reply_markup)
+        else:
+            await bot.send_message(chat_id=user_id, text=txt, reply_markup=reply_markup)
+

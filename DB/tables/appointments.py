@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone, date
 from typing import Optional, Set, Tuple, List
 
-from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination
+from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination, ClientWithStats, ClientStats
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.base import BaseTable
 from config.const import PENDING, COMPLETED, CONFIRMED, CANCELLED, REJECTED
@@ -670,6 +670,110 @@ class AppointmentsTable(BaseTable):
         self.cursor.execute(query)
         result = self.cursor.fetchone()
         return result['completed_count'] if result else 0
+
+    def get_clients_with_stats(self, page: int = 1, per_page: int = 10) -> Tuple[List[ClientWithStats], Pagination]:
+        """Возвращает список клиентов со статистикой по их записям с пагинацией.
+
+        Args:
+            page: Номер страницы (начинается с 1)
+            per_page: Количество клиентов на странице
+
+        Returns:
+            Кортеж из:
+            - Список объектов ClientWithStats для текущей страницы
+            - Объект Pagination с информацией о пагинации
+        """
+
+        count_query = f"""
+        SELECT COUNT(DISTINCT client_id) as total
+        FROM {self.__tablename__}
+        """
+        self.cursor.execute(count_query)
+        total_items = self.cursor.fetchone()['total']
+
+        pagination = Pagination(
+            page=page,
+            per_page=per_page,
+            total_items=total_items,
+            total_pages=max(1, (total_items + per_page - 1) // per_page)
+        )
+
+        clients_query = f"""
+        SELECT DISTINCT u.*
+        FROM {self.__tablename__} a
+        JOIN users u ON a.client_id = u.user_id
+        ORDER BY u.user_id
+        LIMIT ? OFFSET ?
+        """
+        self.cursor.execute(clients_query, (per_page, pagination.offset))
+        client_rows = self.cursor.fetchall()
+
+        clients_with_stats = []
+
+        for client_row in client_rows:
+            client_id = client_row['user_id']
+
+            user = UserModel(
+                user_id=client_id,
+                username=client_row['username'],
+                first_name=client_row['first_name'],
+                last_name=client_row['last_name'],
+                contact=client_row['contact']
+            )
+
+            stats_query = f"""
+            SELECT 
+                status,
+                COUNT(*) as count,
+                SUM(CASE WHEN sl.end_time < datetime('now') AND status = 'confirmed' THEN 1 ELSE 0 END) as completed_count,
+                SUM(CASE WHEN sl.end_time >= datetime('now') AND status = 'confirmed' THEN 1 ELSE 0 END) as upcoming_count,
+                MIN(sl.start_time) as first_appointment,
+                MAX(sl.start_time) as last_appointment
+            FROM {self.__tablename__} a
+            LEFT JOIN slots sl ON a.slot_id = sl.id
+            WHERE a.client_id = ?
+            GROUP BY status
+            """
+
+            self.cursor.execute(stats_query, (client_id,))
+            status_rows = self.cursor.fetchall()
+
+            stats = ClientStats()
+
+            for row in status_rows:
+                status = row['status']
+                count = row['count']
+
+                stats.total += count
+                stats.by_status[status] = count
+
+                if status == 'completed':
+                    stats.completed += count
+                elif status == 'confirmed':
+                    stats.upcoming += row['upcoming_count']
+                    stats.completed += row['completed_count']
+                elif status == 'pending':
+                    stats.pending = count
+                elif status == 'cancelled':
+                    stats.cancelled = count
+                elif status == 'rejected':
+                    stats.rejected = count
+
+                if row['first_appointment']:
+                    first_appt = datetime.fromisoformat(row['first_appointment'])
+                    if stats.first_appointment is None or first_appt < stats.first_appointment:
+                        stats.first_appointment = first_appt
+
+                if row['last_appointment']:
+                    last_appt = datetime.fromisoformat(row['last_appointment'])
+                    if stats.last_appointment is None or last_appt > stats.last_appointment:
+                        stats.last_appointment = last_appt
+
+            clients_with_stats.append(ClientWithStats(user=user, stats=stats))
+
+        clients_with_stats.sort(key=lambda x: x.stats.total, reverse=True)
+
+        return clients_with_stats, pagination
 
     @property
     def valid_statuses(self):

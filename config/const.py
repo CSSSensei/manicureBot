@@ -30,6 +30,14 @@ REJECTED = 'rejected'
 BACK = 'back'
 
 
+class PageListSection(Enum):
+    USERS = 'users'
+    QUERY = 'query'
+    ACTION_HISTORY = 'action_history'
+    CLIENTS = 'clients'
+    NO_ACTION = 'no_action'
+
+
 class AppointmentPageAction(Enum):
     BACK_TO_MAP = 'back_to_app_map'
     SET_CANCELLED = 'set_cancelled'

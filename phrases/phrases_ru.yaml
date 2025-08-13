@@ -225,6 +225,7 @@ callback_data:
 
 title:
   users: "<b>Пользователи</b>"
+  clients: "<b>Клиенты</b>"
   commands: "<b>Доступные команды</b>\n\n"
   query: "<b>Запросы</b>"
   new_booking: "<b>Текущая запись</b>\n\n"
@@ -261,6 +262,7 @@ template:
   page_counter: "{current} / {total}"
   user_str: "<code>{user_id}</code><a href=\"tg://user?id={user_id}\">{username}</a> <i>{registration_date}</i> {query_stat}\n"
   user_query: "<blockquote>{time}</blockquote> <i>{query}</i>\n\n"
+  client_str: "<code>{user_id}</code><a href=\"tg://user?id={user_id}\">{username}</a> ℹ️ <i>{total_apps}</i> 🗑 {cancelled_apps} ✅ {completed_apps}{pending_apps}\n"
   all_queries: "<a href=\"tg://user?id={user_id}\">{username}</a> <blockquote>{time}</blockquote> <i>{query}</i>\n\n"
   user:
     slot: |
