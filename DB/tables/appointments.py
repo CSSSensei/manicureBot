@@ -641,15 +641,14 @@ class AppointmentsTable(BaseTable):
         Returns:
             Количество пользователей (int)
         """
-        query = """
-        SELECT COUNT(DISTINCT client_id) as user_count
-        FROM appointments
-        WHERE status = 'confirmed'
+        count_query = f"""
+        SELECT COUNT(DISTINCT client_id) as total
+        FROM {self.__tablename__}
         """
 
-        self.cursor.execute(query)
+        self.cursor.execute(count_query)
         result = self.cursor.fetchone()
-        return result['user_count'] if result else 0
+        return result['total'] if result else 0
 
     def count_completed_slots(self) -> int:
         """
@@ -684,12 +683,7 @@ class AppointmentsTable(BaseTable):
             - Объект Pagination с информацией о пагинации
         """
 
-        count_query = f"""
-        SELECT COUNT(DISTINCT client_id) as total
-        FROM {self.__tablename__}
-        """
-        self.cursor.execute(count_query)
-        total_items = self.cursor.fetchone()['total']
+        total_items = self.count_clients()
 
         pagination = Pagination(
             page=page,
