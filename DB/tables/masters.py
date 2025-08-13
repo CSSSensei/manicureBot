@@ -1,7 +1,7 @@
 import sqlite3
 from typing import List, Optional
 
-from DB.models import Master
+from DB.models import Master, UserModel
 from DB.tables.base import BaseTable
 
 
@@ -55,7 +55,7 @@ class MastersTable(BaseTable):
 
     def get_all_masters(self) -> List[Master]:
         query = f'''
-        SELECT m.*, u.username
+        SELECT m.*, u.*
         FROM {self.__tablename__} m
         LEFT JOIN users u ON m.id = u.user_id
         WHERE is_master = TRUE
@@ -68,9 +68,12 @@ class MastersTable(BaseTable):
             masters = []
             for row in rows:
                 master = Master(
-                    id=row['id'],
-                    name=row['name'],
-                    username=row['username'],
+                    user=UserModel(
+                        user_id=row['id'],
+                        username=row['username'],
+                        first_name=row['first_name'],
+                        last_name=row['last_name'],
+                        contact=row['contact']),
                     specialization=row['specialization'],
                     is_master=row['is_master'],
                     message_id=row['message_id'],
@@ -94,7 +97,7 @@ class MastersTable(BaseTable):
             Master: Master если найден, иначе None
         """
         query = f"""
-            SELECT m.*, u.username
+            SELECT m.*, u.*
             FROM {self.__tablename__} m
             LEFT JOIN users u ON m.id = u.user_id
             WHERE id = ? AND is_master = TRUE
@@ -104,9 +107,12 @@ class MastersTable(BaseTable):
 
         if row:
             return Master(
-                id=row['id'],
-                name=row['name'],
-                username=row['username'],
+                user=UserModel(
+                    user_id=row['id'],
+                    username=row['username'],
+                    first_name=row['first_name'],
+                    last_name=row['last_name'],
+                    contact=row['contact']),
                 specialization=row['specialization'],
                 is_master=row['is_master'],
                 message_id=row['message_id'],

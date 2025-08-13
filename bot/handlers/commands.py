@@ -23,18 +23,25 @@ async def _(message: Message):
         masters = db.get_all_masters()
         if not masters:
             logger.error('No master in db')
-            master = ''
+            master_username = 'сюда'
+            master_id = None
         else:
-            master = masters[0].username
+            master = masters[0]
+            master_username = master.user.username or master.user.first_name or 'сюда'
+            master_id = master.user.user_id
         await message.answer(PHRASES_RU.replace('commands.help',
                                                 booking=PHRASES_RU.button.booking,
-                                                master_username=master),
+                                                master_id=master_id,
+                                                master_username=master_username),
                              reply_markup=get_keyboard(message.from_user.id))
 
 
 @router.command('about', 'о разработчиках')  # /about
 async def _(message: Message):
-    await message.answer(PHRASES_RU.commands.about, disable_web_page_preview=True, reply_markup=get_keyboard(message.from_user.id))
+    await message.answer_photo(caption=PHRASES_RU.commands.about,
+                               photo='https://yan-toples.ru/Phasalo/phasalo.png',
+                               disable_web_page_preview=True,
+                               reply_markup=get_keyboard(message.from_user.id))
 
 
 @router.command(('commands', 'cmd'), 'список всех команд (это сообщение)')  # /commands

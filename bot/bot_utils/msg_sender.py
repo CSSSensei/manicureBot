@@ -1,6 +1,5 @@
 import logging
 
-from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from typing import Optional, Union, List
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message, InputMediaPhoto
@@ -26,7 +25,6 @@ async def send_or_edit_message(
     """
     Отправляет новое сообщение или редактирует существующее с детальным логированием.
 
-    :param bot: Объект бота (aiogram.Bot)
     :param chat_id: ID чата
     :param text: Текст сообщения
     :param reply_markup: Клавиатура (Inline или Reply)
@@ -83,45 +81,44 @@ def get_media_from_photos(photos: List[PhotoModel], caption: Optional[str] = Non
     return media[:9]
 
 
-async def notify_master(bot: Bot, app: AppointmentModel):
+async def notify_master(app: AppointmentModel):
     if app.status == CANCELLED:
         text = PHRASES_RU.replace('answer.notify.master.cancelled',
-                                  contact='@' + app.client.username if app.client.username
-                                  else 'Контакт: ' + app.client.contact,
+                                  username=app.client.username or app.client.first_name or PHRASES_RU.error.no_username,
+                                  user_id=app.client.user_id,
                                   date=app.formatted_date,
                                   slot_time=app.slot_str)
         with MastersTable() as db:
             masters = db.get_all_masters()
             if len(masters) > 0:
                 master = masters[0]
-                await bot.send_message(chat_id=master.id, text=text)
+                await bot.send_message(chat_id=master.user.user_id, text=text)
             else:
                 logger.error('No master in db')
 
 
-async def notify_client(bot: Bot, app: AppointmentModel):
+async def notify_client(app: AppointmentModel):
     with MastersTable() as db:
         masters = db.get_all_masters()
         if not masters:
             logger.error('No master in db')
-            master = ''
-        else:
-            master = masters[0]
+            return
+        master = masters[0]
     try:
+        data = {
+            'date': app.formatted_date,
+            'slot_time': app.slot_str,
+            'master_id': master.user.user_id,
+            'master_username': master.user.username or master.user.first_name or '(здесь)'
+        }
         if app.status == CONFIRMED:
-            text = PHRASES_RU.replace('answer.notify.client.confirmed', date=app.formatted_date, slot_time=app.slot_str)
+            text = PHRASES_RU.replace('answer.notify.client.confirmed', **data)
             await bot.send_message(chat_id=app.client.user_id, text=text)
         elif app.status == CANCELLED:
-            text = PHRASES_RU.replace('answer.notify.client.cancelled',
-                                      date=app.formatted_date,
-                                      slot_time=app.slot_str,
-                                      master_username=master.username)
+            text = PHRASES_RU.replace('answer.notify.client.cancelled', **data)
             await bot.send_message(chat_id=app.client.user_id, text=text)
         elif app.status == REJECTED:
-            text = PHRASES_RU.replace('answer.notify.client.rejected',
-                                      date=app.formatted_date,
-                                      slot_time=app.slot_str,
-                                      master_username=master.username)
+            text = PHRASES_RU.replace('answer.notify.client.rejected', **data)
             await bot.send_message(chat_id=app.client.user_id, text=text)
     except Exception as e:
         logger.error(f'Unexpected error when notifying client (chat_id={app.client.user_id}): {str(e)})')

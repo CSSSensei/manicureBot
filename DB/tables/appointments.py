@@ -420,8 +420,7 @@ class AppointmentsTable(BaseTable):
             s.name as service_name, 
             sl.start_time, 
             sl.end_time, 
-            u.username, 
-            u.contact
+            u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
@@ -442,6 +441,8 @@ class AppointmentsTable(BaseTable):
                     client=UserModel(
                         user_id=row['client_id'],
                         username=row['username'],
+                        first_name=row['first_name'],
+                        last_name=row['last_name'],
                         contact=row['contact']
                     ),
                     slot=SlotModel(

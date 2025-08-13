@@ -85,16 +85,14 @@ def format_app_actions(appointments: List[AppointmentModel], pagination: Paginat
             slot_time = str(app.slot)
             slot_date = app.formatted_date
         if app.client:
-            if app.client.username:
-                username = f'@{app.client.username}'
-            elif app.client.contact:
-                username = f'\nКонтакт пользователя: <i>{app.client.contact}</i>'
+            username = app.client.username or app.client.first_name or username
         line_data = {
             'time': app.updated_at.strftime('%d.%m.%Y %H:%M:%S') if app.updated_at else PHRASES_RU.error.unknown,
             'slot_date': slot_date,
             'slot_time': slot_time,
             'status': status,
             'username': username,
+            'user_id': app.client.user_id
         }
 
         app_line = PHRASES_RU.replace('template.master.appointment_str', **line_data) + '\n'

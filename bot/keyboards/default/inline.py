@@ -25,15 +25,6 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
                     callback_data=PhotoAppCallBack(app_id=appointment.appointment_id).pack())
         ])
 
-    if mode == AppListMode.MASTER:
-        user_display_name = appointment.client.first_name or appointment.client.username or ''
-        keyboard.append([
-            IButton(
-                text=PHRASES_RU.replace('button.dm', name=user_display_name),
-                url=f"tg://user?id={appointment.client.user_id}"
-            )
-        ])
-
     if appointment.status not in {CANCELLED, REJECTED} and appointment.slot.start_time > datetime.now():
         keyboard.append([
             IButton(text=PHRASES_RU.button.cancel2,
@@ -48,6 +39,7 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
 
     if pagination.total_pages > 1:
         no_action = BookingPageCallBack().pack()
+        empty_button = IButton(text=' ', callback_data=no_action)
         page_data = {
             'mode': mode,
             'app_id': appointment.appointment_id,
@@ -57,12 +49,12 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
         past_button = IButton(
             text=PHRASES_RU.button.prev_page,
             callback_data=BookingPageCallBack(page=pagination.page - 1, **page_data).pack()
-        ) if pagination.has_prev else IButton(text=' ', callback_data=no_action)
+        ) if pagination.has_prev else empty_button
 
         next_button = IButton(
             text=PHRASES_RU.button.next_page,
             callback_data=BookingPageCallBack(page=pagination.page + 1, **page_data).pack()
-        ) if pagination.has_next else IButton(text=' ', callback_data=no_action)
+        ) if pagination.has_next else empty_button
         keyboard.append([
             past_button,
             IButton(text=PHRASES_RU.replace('template.page_counter', current=pagination.page, total=pagination.total_pages),

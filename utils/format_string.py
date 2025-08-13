@@ -83,10 +83,10 @@ def user_sent_booking(data: AppointmentModel, header: str) -> str:
 
 def master_sent_booking(data: AppointmentModel, header: str) -> str:
     text = header
-    if data.client and data.client.username:
-        text += PHRASES_RU.replace('template.master.client_username', username=data.client.username)
-    else:
-        text += PHRASES_RU.replace('template.master.client_no_username', contact=data.client.contact)
+    if data.client:
+        text += PHRASES_RU.replace('template.master.client_username',
+                                   user_id=data.client.user_id,
+                                   username=data.client.username or data.client.first_name or PHRASES_RU.error.no_username)
     text += PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
                                datetime=data.slot_str) if data.slot else ''
     if data.service and data.service.name:
@@ -101,10 +101,10 @@ def master_sent_booking(data: AppointmentModel, header: str) -> str:
 
 def master_booking_text(data: AppointmentModel, total_items: int = 1) -> str:
     text = PHRASES_RU.title.admin_new_booking + PHRASES_RU.replace('footnote.total', total=total_items)
-    if data.client and data.client.username:
-        text += PHRASES_RU.replace('template.master.client_username', username=data.client.username)
-    else:
-        text += PHRASES_RU.replace('template.master.client_no_username', contact=data.client.contact)
+    if data.client:
+        text += PHRASES_RU.replace('template.master.client_username',
+                                   user_id=data.client.user_id,
+                                   username=data.client.username or data.client.first_name or PHRASES_RU.error.no_username)
     text += PHRASES_RU.replace('template.master.slot', date=data.formatted_date,
                                datetime=data.slot_str) if data.slot else ''
     if data.service and data.service.name:

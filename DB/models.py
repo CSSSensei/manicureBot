@@ -176,9 +176,7 @@ class AppointmentModel(BaseModel):
 @dataclass
 class Master:
     """Класс для представления общей инфо о записи"""
-    id: Optional[int] = None
-    name: Optional[str] = None
-    username: Optional[str] = None
+    user: Optional[UserModel] = None
     specialization: Optional[str] = None
     is_master: Optional[bool] = None
     message_id: Optional[int] = None

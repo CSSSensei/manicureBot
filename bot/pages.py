@@ -143,31 +143,29 @@ async def update_master_booking_ui(data: AppointmentModel):
                     media: list[InputMediaPhoto] = []
                     for photo in data.photos:
                         media.append(InputMediaPhoto(media=photo.telegram_file_id))
-                    msgs = await bot.send_media_group(chat_id=master.id, media=media[:9])
+                    msgs = await bot.send_media_group(chat_id=master.user.user_id, media=media[:9])
                     reply_to = msgs[0].message_id
                     msg_to_delete = f'{msgs[0].message_id},{msgs[-1].message_id}'
 
                 msg = await bot.send_message(
-                    chat_id=master.id,
+                    chat_id=master.user.user_id,
                     text=caption,
                     reply_markup=master_ikb.action_master_keyboard(
                         appointment_id=data.appointment_id,
-                        client=data.client,
                         msg_to_delete=msg_to_delete),
                     reply_to_message_id=reply_to)
-                masters_db.update_current_state(master.id, msg.message_id, data.appointment_id, msg_to_delete)
+                masters_db.update_current_state(master.user.user_id, msg.message_id, data.appointment_id, msg_to_delete)
             else:
                 current_app = app_db.get_appointment_by_id(master.current_app_id)
                 if current_app.status != PENDING:
                     total_items += 1
                 caption = master_booking_text(current_app, total_items)
                 try:
-                    await bot.edit_message_text(chat_id=master.id,
+                    await bot.edit_message_text(chat_id=master.user.user_id,
                                                 message_id=master.message_id,
                                                 text=caption,
                                                 reply_markup=master_ikb.action_master_keyboard(
                                                     appointment_id=master.current_app_id,
-                                                    client=current_app.client,
                                                     msg_to_delete=master.msg_to_delete)
                                                 )
                 except TelegramBadRequest as e:
