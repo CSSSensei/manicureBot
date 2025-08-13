@@ -274,9 +274,7 @@ def _create_navigation_row(
         IButton(
             text=' ' if not prev_enabled else PHRASES_RU.button.prev_page,
             callback_data=MonthCallBack(
-                day=-1, month=month, year=year,
-                action=(0 if not prev_enabled else -1),
-                mode=mode
+                month=month, year=year, action=(0 if not prev_enabled else -1), mode=mode
             ).pack()
         ),
         IButton(
@@ -317,7 +315,7 @@ def _create_calendar_days_rows(
         for day in week:
             if day == 0:
                 week_buttons.append(
-                    IButton(text=' ', callback_data=MonthCallBack(day=-1, mode=mode).pack())
+                    IButton(text=' ', callback_data=MonthCallBack(mode=mode).pack())
                 )
                 continue
 

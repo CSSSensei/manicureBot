@@ -42,7 +42,7 @@ async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCall
         await callback.message.edit_text(text=text, reply_markup=reply_markup)
         return
     if callback_data.day <= 0:
-        await callback.answer(PHRASES_RU.error.date)
+        await callback.answer(PHRASES_RU.error.date if callback_data == 0 else PHRASES_RU.error.no_slots_for_this_day)
         return
     mode = callback_data.mode
     selected_date = date(callback_data.year, callback_data.month, callback_data.day)

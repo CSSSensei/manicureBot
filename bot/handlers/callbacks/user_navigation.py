@@ -30,7 +30,7 @@ router = Router()
 @router.callback_query(MonthCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_DATE))
 async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCallBack, state: FSMContext):
     if callback_data.day <= 0:
-        await callback.answer(PHRASES_RU.error.date)
+        await callback.answer(PHRASES_RU.error.date if callback_data.day == 0 else PHRASES_RU.error.no_slots_for_this_day)
         return
     selected_date = datetime(callback_data.year, callback_data.month, callback_data.day)
     await AppointmentNavigation.update_appointment_data(state, slot_date=selected_date, message_id=callback.message.message_id)
