@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from DB.tables.base import BaseTable
 from DB.models import UserModel, Pagination
@@ -100,7 +100,7 @@ class UsersTable(BaseTable):
             self._log('DELETE_USER', user_id=user_id)
         return deleted
 
-    def get_all_users(self, page: int = 1, per_page: int = 10) -> tuple[List[UserModel], Pagination]:
+    def get_all_users(self, page: int = 1, per_page: int = 10) -> Tuple[List[UserModel], Pagination]:
         """Получение пользователей с постраничной навигацией"""
 
         pagination = Pagination(

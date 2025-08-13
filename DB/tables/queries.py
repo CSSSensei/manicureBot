@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from DB.tables.base import BaseTable
 from DB.models import UserModel, QueryModel, Pagination
@@ -65,7 +65,7 @@ class QueriesTable(BaseTable):
             )
         return None
 
-    def get_user_queries(self, user_id: int, page: int = 1, per_page: int = 10) -> tuple[List[QueryModel], Pagination]:
+    def get_user_queries(self, user_id: int, page: int = 1, per_page: int = 10) -> Tuple[List[QueryModel], Pagination]:
         """Получение запросов пользователя с постраничной навигацией"""
 
         pagination = Pagination(

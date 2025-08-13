@@ -65,7 +65,8 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
         ) if pagination.has_next else IButton(text=' ', callback_data=no_action)
         keyboard.append([
             past_button,
-            IButton(text=f'{pagination.page}{PHRASES_RU.icon.page_separator}{pagination.total_pages}', callback_data=no_action),
+            IButton(text=PHRASES_RU.replace('template.page_counter', current=pagination.page, total=pagination.total_pages),
+                    callback_data=no_action),
             next_button
         ])
 
