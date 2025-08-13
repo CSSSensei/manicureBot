@@ -20,7 +20,11 @@ from utils import format_string
 
 
 async def send_master_menu(user_id: int, message_id: Optional[int] = None):
-    await send_or_edit_message(user_id, PHRASES_RU.answer.master.menu, inline_mkb.menu_master_keyboard(), message_id)
+    with AppointmentsTable() as db:
+        text = PHRASES_RU.replace('answer.master.menu',
+                                  clients=db.count_clients(),
+                                  appointments=db.count_completed_slots())
+        await send_or_edit_message(user_id, text, inline_mkb.menu_master_keyboard(), message_id)
 
 router = Router()
 router.message.filter(MasterFilter())
@@ -173,7 +177,7 @@ async def _(message: Message):
 async def _(message: Message):
     with (MastersTable() as master_db, AppointmentsTable() as app_db):
         master = master_db.get_master(message.from_user.id)
-        if not master:
+        if not master or not master.is_master:
             await message.answer(PHRASES_RU.error.no_rights, reply_markup=get_keyboard(message.from_user.id))
             return
         if master.current_app_id:

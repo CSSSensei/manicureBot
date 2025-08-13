@@ -632,6 +632,44 @@ class AppointmentsTable(BaseTable):
         result = self.cursor.fetchone()
         return result['count'] if result else 0
 
+    def count_clients(self) -> int:
+        """
+        Возвращает количество уникальных пользователей,
+        у которых есть хотя бы одна запись со статусом 'confirmed'.
+
+        Returns:
+            Количество пользователей (int)
+        """
+        query = """
+        SELECT COUNT(DISTINCT client_id) as user_count
+        FROM appointments
+        WHERE status = 'confirmed'
+        """
+
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+        return result['user_count'] if result else 0
+
+    def count_completed_slots(self) -> int:
+        """
+        Возвращает количество отработанных слотов (confirmed записи с прошедшей датой).
+
+        Returns:
+            Количество завершённых слотов (int)
+        """
+        query = """
+        SELECT COUNT(*) as completed_count
+        FROM appointments a
+        JOIN slots s ON a.slot_id = s.id
+        WHERE 
+            a.status = 'confirmed' AND
+            s.end_time < datetime('now')
+        """
+
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+        return result['completed_count'] if result else 0
+
     @property
     def valid_statuses(self):
         return self.__valid_statuses
