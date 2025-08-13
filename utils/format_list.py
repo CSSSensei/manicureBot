@@ -13,11 +13,10 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
 
     for user in users_info:
         line_data = {
-            'username': f'@{user.username}' if user.username else PHRASES_RU.icon.not_username,
+            'username': user.username or PHRASES_RU.icon.not_username,
             'user_id': str(user.user_id).ljust(12),
             'query_stat': f'{format_string.get_query_count_emoji(user.query_count)} {user.query_count}',
             'registration_date': user.registration_date.strftime('%d.%m.%Y'),
-            'contact': user.contact if user.contact else ''
         }
 
         user_line = PHRASES_RU.replace('template.user_str', **line_data)
@@ -57,15 +56,16 @@ def format_queries_text(
     Returns:
         Отформатированная строка с историей запросов
     """
-    username_display = f'@{username}' if username else (str(user_id) if user_id else PHRASES_RU.error.unknown)
+    username_display = username or user_id or PHRASES_RU.error.unknown
     txt = [PHRASES_RU.title.query,
-           footnote_template.format(username=username_display)]
+           footnote_template.format(username=username_display, user_id=user_id)]
 
     for query in queries:
         line_data = {
+            'user_id': query.user.user_id,
             'time': query.query_date.strftime('%d.%m.%Y %H:%M:%S') if query.query_date else PHRASES_RU.error.unknown,
             'query': query.query_text,
-            'username': f'@{query.user.username}' if show_username and query.user and query.user.username else ''
+            'username': query.user.username if show_username and query.user and query.user.username else ''
         }
         txt.append(line_template.format(**line_data))
 
