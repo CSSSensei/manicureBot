@@ -85,7 +85,7 @@ async def handle_service_selection(callback: CallbackQuery, callback_data: Servi
     ActionButtonCallBack.filter(),
     StateFilter(AppointmentStates.CONFIRMATION),
     ~IsCancelActionFilter())
-async def handle_appointment_confirmation(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext, user_row: UserModel):
+async def handle_appointment_confirmation(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext):
     if callback_data.action == -1:
         await AppointmentNavigation.handle_navigation(
             callback=callback,
@@ -106,7 +106,8 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
             data.client = UserModel(
                 user_id=callback.from_user.id,
                 username=callback.from_user.username,
-                contact=user_row.contact)
+                first_name=callback.from_user.first_name,
+                last_name=callback.from_user.last_name)
             data.appointment_id = app_id
             await pages.update_master_booking_ui(data)
 
