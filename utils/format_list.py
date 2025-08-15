@@ -16,7 +16,7 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
             'username': user.username or user.first_name or PHRASES_RU.icon.not_username,
             'user_id': str(user.user_id).ljust(12),
             'query_stat': f'{format_string.get_query_count_emoji(user.query_count)} {user.query_count}',
-            'registration_date': user.registration_date.strftime('%d.%m.%Y'),
+            'registration_date': user.registration_date.strftime('%d.%m.%Y')
         }
 
         user_line = PHRASES_RU.replace('template.user_str', **line_data)
@@ -36,27 +36,25 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
 
 def format_queries_text(
         queries: List[QueryModel],
-        username: Optional[str] = None,
+        name: Optional[str] = None,
         user_id: Optional[int] = None,
         footnote_template: str = PHRASES_RU.footnote.user_query,
-        line_template: str = PHRASES_RU.template.user_query,
-        show_username: bool = False
+        line_template: str = PHRASES_RU.template.user_query
 ) -> str:
     """
     Форматирует список запросов в текстовое сообщение.
 
     Args:
         queries: Список объектов QueryModel
-        username: Имя пользователя (если есть)
-        user_id: ID пользователя (если username отсутствует)
+        name: Юзернейм или имя пользователя (если есть)
+        user_id: ID пользователя (если предыдущий аргумент None)
         footnote_template: Шаблон заголовка с {username} placeholder
         line_template: Шаблон строки запроса с {time} и {query} placeholders
-        show_username: Показывать ли имя пользователя в каждой строке
 
     Returns:
         Отформатированная строка с историей запросов
     """
-    username_display = username or user_id or PHRASES_RU.error.unknown
+    username_display = name or user_id or PHRASES_RU.error.unknown
     txt = [PHRASES_RU.title.query,
            footnote_template.format(username=username_display, user_id=user_id)]
 
@@ -65,7 +63,7 @@ def format_queries_text(
             'user_id': query.user.user_id,
             'time': query.query_date.strftime('%d.%m.%Y %H:%M:%S') if query.query_date else PHRASES_RU.error.unknown,
             'query': query.query_text,
-            'username': query.user.username if show_username and query.user and (query.user.username or query.user.first_name) else ''
+            'username': (query.user.username or query.user.first_name or '') if query.user else ''
         }
         txt.append(line_template.format(**line_data))
 

@@ -1,6 +1,6 @@
 import logging
 import datetime
-from typing import Union, Optional
+from typing import Optional
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InputMediaPhoto, CallbackQuery
 
@@ -21,7 +21,7 @@ from bot.keyboards.master import inline as master_ikb
 logger = logging.getLogger(__name__)
 
 
-async def get_users(user_id: int, page: int = 1, message_id: Union[int, None] = None):
+async def get_users(user_id: int, page: int = 1, message_id: Optional[int] = None):
     with UsersTable() as users_db:
         users, pagination = users_db.get_all_users(page, USERS_PER_PAGE)
 
@@ -35,7 +35,7 @@ async def get_users(user_id: int, page: int = 1, message_id: Union[int, None] = 
             await bot.send_message(chat_id=user_id, text=txt, reply_markup=reply_markup)
 
 
-async def user_query(user_id: int, user_id_to_find: Union[int, None], page: int = 1, message_id: Union[int, None] = None):
+async def user_query(user_id: int, user_id_to_find: Optional[int], page: int = 1, message_id: Optional[int] = None):
     with QueriesTable() as queries_db, UsersTable() as users_db:
         queries, pagination = queries_db.get_user_queries(user_id_to_find, page, QUERIES_PER_PAGE)
         if not user_id_to_find or not queries:
@@ -46,7 +46,7 @@ async def user_query(user_id: int, user_id_to_find: Union[int, None], page: int 
 
         txt = format_list.format_queries_text(
             queries=queries,
-            username=user.username if user else None,
+            name=user.username or user.first_name if user else None,
             user_id=user_id_to_find,
             footnote_template=PHRASES_RU.footnote.user_query,
             line_template=PHRASES_RU.template.user_query
@@ -203,4 +203,3 @@ async def get_clients(user_id: int, message_id: int, page: int = 1):
                                         reply_markup=reply_markup)
         else:
             await bot.send_message(chat_id=user_id, text=txt, reply_markup=reply_markup)
-
