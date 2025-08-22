@@ -84,7 +84,7 @@ def get_media_from_photos(photos: List[PhotoModel], caption: Optional[str] = Non
 async def notify_master(app: AppointmentModel):
     if app.status == CANCELLED:
         text = PHRASES_RU.replace('answer.notify.master.cancelled',
-                                  username=app.client.username or app.client.first_name or PHRASES_RU.error.no_username,
+                                  username=f'@{app.client.username}' if app.client.username else app.client.first_name or PHRASES_RU.error.no_username,
                                   user_id=app.client.user_id,
                                   date=app.formatted_date,
                                   slot_time=app.slot_str)

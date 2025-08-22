@@ -76,7 +76,7 @@ def format_client_list(clients_info: List[ClientWithStats], pagination: Paginati
 
     for client in clients_info:
         line_data = {
-            'username': client.user.username or client.user.first_name or PHRASES_RU.icon.not_username,
+            'username': f'@{client.user.username}' if client.user.username else client.user.first_name or PHRASES_RU.icon.not_username,
             'user_id': str(client.user.user_id).ljust(12),
             'total_apps': client.stats.total,
             'cancelled_apps': client.stats.cancelled,
@@ -110,7 +110,7 @@ def format_app_actions(appointments: List[AppointmentModel], pagination: Paginat
             slot_time = str(app.slot)
             slot_date = app.formatted_date
         if app.client:
-            username = app.client.username or app.client.first_name or username
+            username = f'@{app.client.username}' if app.client.username else app.client.first_name or username
         line_data = {
             'time': app.updated_at.strftime('%d.%m.%Y %H:%M:%S') if app.updated_at else PHRASES_RU.error.unknown,
             'slot_date': slot_date,
