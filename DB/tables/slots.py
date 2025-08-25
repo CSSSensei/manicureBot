@@ -19,6 +19,10 @@ class SlotsTable(BaseTable):
             is_available BOOLEAN NOT NULL DEFAULT 1,
             is_deleted BOOLEAN NOT NULL DEFAULT 0
         );
+        
+        CREATE INDEX IF NOT EXISTS idx_slots_available ON {self.__tablename__}(is_available, is_deleted, start_time);
+        CREATE INDEX IF NOT EXISTS idx_slots_start_time ON {self.__tablename__}(start_time);
+        CREATE INDEX IF NOT EXISTS idx_slots_id_status ON {self.__tablename__}(id, is_available, is_deleted);
 
         CREATE TRIGGER IF NOT EXISTS update_past_slots
         AFTER INSERT ON {self.__tablename__}
@@ -125,9 +129,10 @@ class SlotsTable(BaseTable):
 
     def get_available_slots(self, from_time: Optional[datetime] = None, to_time: Optional[datetime] = None) -> List[SlotModel]:
         """Возвращает список доступных слотов."""
-        self._update_past_slots_status()
         if from_time and to_time and to_time < from_time:
             raise ValueError("Конечное время не может быть раньше начального")
+        if from_time and from_time < datetime.now() + timedelta(hours=3):
+            self._update_past_slots_status()
 
         query = f"""
             SELECT * FROM {self.__tablename__} 
