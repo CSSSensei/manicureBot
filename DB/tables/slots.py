@@ -22,6 +22,7 @@ class SlotsTable(BaseTable):
         
         CREATE INDEX IF NOT EXISTS idx_slots_available ON {self.__tablename__}(is_available, is_deleted, start_time);
         CREATE INDEX IF NOT EXISTS idx_slots_start_time ON {self.__tablename__}(start_time);
+        CREATE INDEX IF NOT EXISTS idx_slots_end_time ON {self.__tablename__}(end_time);
         CREATE INDEX IF NOT EXISTS idx_slots_id_status ON {self.__tablename__}(id, is_available, is_deleted);
 
         CREATE TRIGGER IF NOT EXISTS update_past_slots
