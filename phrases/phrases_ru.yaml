@@ -130,7 +130,36 @@ answer:
 
 button:
   next_page: "»"
-  past_page: "«"
+  prev_page: "«"
+  booking: "Записаться"
+  active_booking: "Мои записи"
+  cancel: "❌ Отмена"
+  cancel2: "❌ Отменить запись"
+  cancel3: "❌ ПОДТВЕРДИТЬ ОТМЕНУ"
+  next: "➡️ Далее"
+  back: "🔙 Назад"
+  delete: "🗑 Удалить"
+  confirm: "✅ Подтвердить"
+  photos: "Прикрепленные фото"
+  master:
+    deactivate: "🔴 Деактивировать"
+    activate: "🟢 Активировать"
+    edit: "Редактировать"
+    clients_today: "Записи на сегодня"
+    menu: "Меню"
+    pending_apps: "Ожидающие записи"
+    appointment_map: "Карта записей"
+    clients: "Клиенты"
+    delete_slots: "Удалить слоты"
+    add_slots: "Добавить слоты"
+    history: "История действий"
+    service_editor: "Редактор услуг"
+    add_manual_slots: "Добавить вручную"
+    edit_service: "Редактировать услуги"
+    add_service: "Добавить услугу"
+  admin:
+    confirm: "✅ Подтвердить"
+    reject: "❌ Отклонить"
 
 
 placeholder_appeal: "Лучший маникюр"
