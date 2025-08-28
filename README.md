@@ -106,11 +106,11 @@ pytest
 ManicureBot is constantly evolving. New FSM flows, modules, and UX enhancements are always brewing in `dev`.
 
 <p align="center">
-  <img src="https://yan-toples.ru/Phasalo/phasalopedia_logo_negative.png" width="1500" alt="Phasalo">
+  <img width="1248" height="592" alt="Phasalo" src="https://github.com/user-attachments/assets/6e508ad9-b9f9-4af6-8322-9756c589d39f" />
 </p>
 
 <p align="center">
-<b>Phasalopedia</b><br>
+<b>Phasalo</b><br>
 <i>Делаем красиво!</i><br><br>
 2025
 </p>
