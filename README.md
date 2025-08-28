@@ -1,116 +1,95 @@
-<h1 align="center">💅 nails.simple telegram bot </h1>
+<h1 align="center">Phasalo Bot Template</h1>
 <p align="center">
-Запись на ноготочки только тут. Красиво, как всегда
-</p><p align="center">
-<img src="https://img.shields.io/badge/made%20by-CSSSensei-FF00FF" >
-<img src="https://img.shields.io/badge/Phasalopedia-FF69B4">
-<img src="https://img.shields.io/badge/version-v1.0.1-C71585">
+Полпути к идеальному боту. Красиво, как всегда.
+</p>
+<p align="center">
+<img src="https://img.shields.io/badge/made%20by-CSSSensei,%20MaxMavr-439900">
+<a href="https://github.com/Phasalo"><img src="https://img.shields.io/badge/Phasalopedia-84D300"></a>
+<img src="https://img.shields.io/badge/version-if%20n%20==%202-D1F24E">
 </p>
 
-> ### SMI Core
-> powered by [**aiogram**](https://docs.aiogram.dev/) | Clean UX | Async swag\
-> FSM-driven logic | Modular callbacks | Fully scalable  
-> Type-safe handlers, sleek keyboards, zero spaghetti 🧘\
-> Plug & play architecture with room for growth\
-> Swagger not included — it’s built-in 😎
+Так много лет нас просили показать, как же мы пишем таких охуительных ботов.
+Встречайте — все наши знания в одном репозитории!
 
----
+Это не просто шаблон, а выжимка сотен часов продакшена, боли и любви к красивому коду.
 
-## ⚙️ Tech Stack
+<h1></h1>
 
-- 🐍 Python 3.11+
-- 🤖 [aiogram 3.x](https://docs.aiogram.dev/) — async-first Telegram framework  
-- 🛠️ SQLite — lightweight DB, backed by SQLAlchemy-style abstractions  
-- 📚 FSM — finely tuned state management  
-- 🔗 YAML — for phrases and i18n vibes  
-- 🧪 Pytest — tested like your frontend should be
+Две пошаговые инструкции для <small>самых маленьких</small>.
 
----
+## <img src="https://img.shields.io/badge/Рекомендуется-555555"><br> Работа через форк
 
-## ✨ Features
+### 1. Создайте форк репозитория
+Нажмите кнопку [`Fork`](https://github.com/Phasalo/PhasaloBotTemplate/fork) в правом верхнем углу и выберите свой аккаунт.
 
-- ⚡ **Asynchronous & fast** — all interactions are non-blocking
-- 📍 **Finite State Machine (FSM)** — context-aware user flows
-- 🔘 **Callback modularity** — handlers cleanly split by role & domain
-- 🎛️ **Keyboard system** — inline, reply, contextual, structured
-- 🧩 **Scalable project layout** — plug in your modules, stay zen
-- 🗂️ **YAML phrasebook** — simple i18n/phrasing in `phrases/`
-- 🧪 **Testable** — separated `tests/`, with ready-to-run Pytest
-
----
-
-## 📁 Project Structure
-
-```
-manicureBot/
-│
-├── bot/                       # Core bot logic
-│   ├── handlers/              # All handlers & callbacks
-│   │   ├── callbacks/         # Split by feature: admin, master, user
-│   │   └── ...
-│   ├── keyboards/             # Structured Telegram keyboards
-│   │   ├── admin/
-│   │   ├── master/
-│   │   └── default/
-│   ├── middlewares/             # Custom middlewares for bot processing
-│   │   ├── get_user.py
-│   │   ├── shadow_ban.py
-│   │   └── logging_query.py
-│   └── ...
-│
-├── DB/                        # SQLite interface & models
-│   ├── tables/                # One file per table
-│   ├── models.py              # Data models (DTO-like)
-│   └── ...
-│
-├── config/                    # Bot configuration (env, consts, etc.)
-├── logs/                      # Logging setup (TBD)
-├── phrases/                   # YAML-based phrasebook
-├── temp/                      # Temp data / states / dumps
-├── tests/                     # Pytest modules
-├── utils/                     # Shared formatting utilities
-├── main.py                    # Entry point
-├── .env / .env.example        # Environment variables
-└── README.md                  # You're here 😎
-```
-
----
-
-## 🧪 How to Run
-
-### 1. 📦 Install dependencies
+### 2. Клонируйте свой форк
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/ВАШ_АККАУНТ/PhasaloBotTemplate.git my-project
+cd my-project
 ```
+> Замените `my-project` на имя директории, куда хотите всё сохранить.
 
-### 2. ⚙️ Set up .env
-Copy and edit your variables:
+### 3. Настройте связь с оригиналом
+Чтобы получать обновления
 ```bash
-cp .env.example .env
+git remote add upstream https://github.com/Phasalo/PhasaloBotTemplate.git
 ```
 
-### 3. 🚀 Run the bot
+### 4. Проверьте репозитории
 ```bash
-python main.py
+git remote -v
+```
+Должно показать
+```
+origin    # ваш форк (чтение/запись)
+upstream  # оригинал (только чтение)
 ```
 
-### 4. 🧪 Run tests
+### Как обновляться из оригинала
+Если хотите получить свежие изменения
 ```bash
-pytest
+git fetch upstream
+git merge upstream/main
+```
+или для перезаписи всех изменений
+```bash
+git reset --hard upstream/main
 ```
 
----
+### Пользуйтесь!
+Теперь вы можете:
+- Свободно менять код в своём форке
+- Создавать новые ветки
+- Предлагать изменения в оригинал через Pull Request
 
-## 🌀 Work in Progress
+## Независимый проект
 
-ManicureBot is constantly evolving. New FSM flows, modules, and UX enhancements are always brewing in `dev`.
+### 1. Клонируем репозиторий
+```bash
+git clone https://github.com/Phasalo/PhasaloBotTemplate.git my-project
+cd my-project
+```
+> Замените `my-project` на имя директории, куда хотите всё сохранить.
+
+### 2. Удаляем привязку к оригиналу
+```bash
+git remote remove origin
+```
+
+### 3. Проверяем
+```bash
+git remote -v
+```
+> Должно быть пусто — значит, всё получилось.
+
+### Пользуйтесь!
 
 <p align="center">
-  <img src="https://yan-toples.ru/Phasalo/phasalopedia_logo_negative.png" width="1500" alt="Phasalo">
+  <img width="1872" height="888" alt="Phasalo" src="https://github.com/user-attachments/assets/1e33d343-33cb-4682-a172-c654fbcd24a7" />
 </p>
 
 <p align="center">
-<b>Phasalopedia</b><br>
+<b>Phasalo</b><br>
 <i>Делаем красиво!</i><br><br>
 2025
 </p>

@@ -12,7 +12,7 @@ commands:
     
     <b>Для уточнения деталей пиши мастеру ⇒ <a href="tg://user?id={master_id}">{master_username}</a></b>
   about: |
-    ❤️ Продакшн <b>Phasalopedia</b>
+    ❤️ Продакшн <b><a href="https://t.me/phasalo">Phasalo</a></b>
     🥵 Дизайн <b><a href="https://t.me/kfprod">KFproduction</a></b>
     💀 Возникли трудности → <b><a href="tg://user?id=972753303">главная мразь ютуба</a></b>
 
@@ -130,36 +130,7 @@ answer:
 
 button:
   next_page: "»"
-  prev_page: "«"
-  booking: "Записаться"
-  active_booking: "Мои записи"
-  cancel: "❌ Отмена"
-  cancel2: "❌ Отменить запись"
-  cancel3: "❌ ПОДТВЕРДИТЬ ОТМЕНУ"
-  next: "➡️ Далее"
-  back: "🔙 Назад"
-  delete: "🗑 Удалить"
-  confirm: "✅ Подтвердить"
-  photos: "Прикрепленные фото"
-  master:
-    deactivate: "🔴 Деактивировать"
-    activate: "🟢 Активировать"
-    edit: "Редактировать"
-    clients_today: "Записи на сегодня"
-    menu: "Меню"
-    pending_apps: "Ожидающие записи"
-    appointment_map: "Карта записей"
-    clients: "Клиенты"
-    delete_slots: "Удалить слоты"
-    add_slots: "Добавить слоты"
-    history: "История действий"
-    service_editor: "Редактор услуг"
-    add_manual_slots: "Добавить вручную"
-    edit_service: "Редактировать услуги"
-    add_service: "Добавить услугу"
-  admin:
-    confirm: "✅ Подтвердить"
-    reject: "❌ Отклонить"
+  past_page: "«"
 
 
 placeholder_appeal: "Лучший маникюр"
