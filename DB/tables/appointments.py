@@ -663,7 +663,7 @@ class AppointmentsTable(BaseTable):
         JOIN slots s ON a.slot_id = s.id
         WHERE 
             a.status = 'confirmed' AND
-            s.end_time < datetime('now')
+            s.end_time < datetime('now', '+3 hours')
         """
 
         self.cursor.execute(query)
@@ -719,8 +719,8 @@ class AppointmentsTable(BaseTable):
             SELECT 
                 status,
                 COUNT(*) as count,
-                SUM(CASE WHEN sl.end_time < datetime('now') AND status = 'confirmed' THEN 1 ELSE 0 END) as completed_count,
-                SUM(CASE WHEN sl.end_time >= datetime('now') AND status = 'confirmed' THEN 1 ELSE 0 END) as upcoming_count,
+                SUM(CASE WHEN sl.end_time < datetime('now', '+3 hours') AND status = 'confirmed' THEN 1 ELSE 0 END) as completed_count,
+                SUM(CASE WHEN sl.end_time >= datetime('now', '+3 hours') AND status = 'confirmed' THEN 1 ELSE 0 END) as upcoming_count,
                 MIN(sl.start_time) as first_appointment,
                 MAX(sl.start_time) as last_appointment
             FROM {self.__tablename__} a
