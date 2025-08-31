@@ -1,8 +1,13 @@
+import logging
 from datetime import datetime, timedelta
+from apscheduler.jobstores.base import JobLookupError
 
+from DB.models import AppointmentModel
 from DB.tables.appointments import AppointmentsTable
 from bot.bot_utils.msg_sender import send_reminder
 from config import scheduler, const
+
+logger = logging.getLogger(__name__)
 
 
 def load_scheduled_notifications():
@@ -51,6 +56,21 @@ def schedule_reminders(appointment_id: int, slot_start: datetime):
         )
 
 
-def cancel_scheduled_reminders(appointment_id: int):
-    scheduler.remove_job(f"24h_{appointment_id}")
-    scheduler.remove_job(f"1h_{appointment_id}")
+def cancel_scheduled_reminders(appointment: AppointmentModel):
+    now = datetime.now()
+
+    if appointment.slot.start_time - now > timedelta(hours=24):
+        try:
+            scheduler.remove_job(f'24h_{appointment.appointment_id}')
+        except JobLookupError:
+            logger.warning(f"24-hour reminder for recording {appointment.appointment_id} not found")
+        except Exception as e:
+            logger.error(f"Error deleting a 24-hour reminder: {e}")
+
+    if appointment.slot.start_time - now > timedelta(hours=1):
+        try:
+            scheduler.remove_job(f'1h_{appointment.appointment_id}')
+        except JobLookupError:
+            logger.warning(f"1-hour reminder for recording {appointment.appointment_id} not found")
+        except Exception as e:
+            logger.error(f"Error deleting a 1-hour reminder: {e}")

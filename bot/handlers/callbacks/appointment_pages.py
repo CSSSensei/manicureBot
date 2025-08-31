@@ -97,8 +97,8 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
             elif app.status in {const.PENDING, const.CONFIRMED}:
                 if app.status == const.CONFIRMED:
                     app.status = status
+                    scheduler.cancel_scheduled_reminders(app)
                     await msg_sender.notify_master(app)
-                    scheduler.cancel_scheduled_reminders(appointment_id)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
                 await callback.message.edit_text(PHRASES_RU.answer.status.cancelled)
@@ -114,8 +114,8 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
 
             elif app.status in {const.CONFIRMED}:
                 app.status = CANCELLED
+                scheduler.cancel_scheduled_reminders(app)
                 await msg_sender.notify_client(app)
-                scheduler.cancel_scheduled_reminders(appointment_id)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
                 await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)
