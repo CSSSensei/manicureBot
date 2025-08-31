@@ -39,7 +39,7 @@ async def _(message: Message):
 @router.command('about', 'о разработчиках')  # /about
 async def _(message: Message):
     await message.answer_photo(caption=PHRASES_RU.commands.about,
-                               photo='https://yan-toples.ru/Phasalo/phasalo.png',
+                               photo='https://yan-toples.ru/Phasalo/color-black-phasalo-project-margin.png',
                                disable_web_page_preview=True,
                                reply_markup=get_keyboard(message.from_user.id))
 
