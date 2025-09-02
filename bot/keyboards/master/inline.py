@@ -193,7 +193,7 @@ def delete_slots_menu(cur_date: datetime.date) -> IMarkup:
                                                  slot_date=slot.start_time.date(),
                                                  action=const.Action.check_slot_to_delete).pack()
             )
-    builder.adjust(2)
+    builder.adjust(1)
     builder.row(
         IButton(
             text=PHRASES_RU.button.back,

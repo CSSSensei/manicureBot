@@ -379,7 +379,7 @@ def slots_keyboard(cur_date: datetime.date) -> IMarkup:
                 text=str(slot),
                 callback_data=SlotCallBack(slot_id=slot.id).pack()
             )
-    builder.adjust(2)
+    builder.adjust(1)
     return _base_keyboard(
         builder.export(),  # type: ignore
         cur_page=1,
