@@ -5,15 +5,20 @@ commands:
     Как пользоваться ботом /help
     Все доступные команды /commands
   help: |
-    Бот для записи на маникюр канала @nude_n_red
+    Нажми кнопку <i>«{booking}»</i> и следуй инструкциям в сообщениях.
     
-    Нажми кнопку <i>«{booking}»</i> и следуй инструкциям в сообщениях. Запись проходит по цепочке: выбор слота → услуга → загрузка фото → комментарий
+    Запись проходит по цепочке:
+    1. Выбор слота
+    2. Услуга 
+    3. Загрузка фото
+    4. Комментарий
     
-    <b>Для уточнения деталей пиши мастеру ⇒ <a href="tg://user?id={master_id}">{master_username}</a></b>
+    <b>Для уточнения деталей пиши мастеру
+    <a href="tg://user?id={master_id}">{master_username}</a></b>
   about: |
-    ❤️ Продакшн <b><a href="https://t.me/phasalo">Phasalo</a></b>
-    🥵 Дизайн <b><a href="https://t.me/kfprod">KFproduction</a></b>
-    💀 Возникли трудности → <b><a href="tg://user?id=972753303">главная мразь ютуба</a></b>
+    Продакшн <b><a href="https://t.me/phasalo">Phasalo</a></b>
+    Дизайн <b><a href="https://t.me/kfprod">KFproduction</a></b>
+    Возникли трудности → <b><a href="tg://user?id=972753303">ответственный за безобразие</a></b>
 
     2025
 
@@ -31,8 +36,8 @@ answer:
   choose_date: "Выберите день для записи. Доступные дни отмечены точкой"
   photo_attached: "✅ Фото прикреплено!"
   comment_attached: "✅ Комментарий прикреплён"
-  choose_slot: "Свободные слоты <b>{date}</b>:"
-  available_slots: "<b>{month}</b>\n<i>доступно слотов — {len_slots}</i>\n\n"
+  choose_slot: "<b>📅 Дата: </b><i>{date}</i>\n\nВыберите время"
+  available_slots: "<b>{month}</b>\n<i>доступно слотов: {len_slots}</i>\n\n"
   no_available_slots: "На <i>{month}</i> <b>нет</b> доступных слотов (._.)"
   choose_service: "Выберите услугу"
   send_photo: |
@@ -43,7 +48,7 @@ answer:
   booking_canceled: "Вы отменили запись"
   send_comment: |
     <b>Отсылка комментария</b>
-    <i>Если у Вас есть комментарии и пожелания для мастера, напишите их в отдельном сообщении</i>
+    <i>Если у Вас есть комментарии или пожелания для мастера, напишите их в отдельном сообщении</i>
     
     Для продолжения нажмите <i>«Далее»</i>
   confirm: "Проверьте информацию и подтвердите запись"
@@ -60,8 +65,8 @@ answer:
 
         Отменить запись можно в меню «Мои записи»
       confirmed: "✅ Запись от <i>{date} {slot_time}</i> подтверждена мастером"
-      rejected: "❌ Запись от <i>{date} {slot_time}</i> отклонена\n\nДля дополнительной информации обратитесь к мастеру → <a href=\"tg://user?id={master_id}\">{master_username}</a>"
-      cancelled: "❌ Запись от <i>{date} {slot_time}</i> отменена\n\nДля дополнительной информации обратитесь к мастеру → <a href=\"tg://user?id={master_id}\">{master_username}</a>"
+      rejected: "❌ Запись от <i>{date} {slot_time}</i> отклонена\n\n<b>Для дополнительной информации обратитесь к мастеру\n<a href=\"tg://user?id={master_id}\">{master_username}</a></b>"
+      cancelled: "❌ Запись от <i>{date} {slot_time}</i> отменена\n\n<b>Для дополнительной информации обратитесь к мастеру\n<a href=\"tg://user?id={master_id}\">{master_username}</a></b>"
     master:
       cancelled: |
         ❌ Пользователь <b><a href="tg://user?id={user_id}">{username}</a></b> отменил(-а) запись
@@ -91,10 +96,10 @@ answer:
     edit_service: "Выберите услугу для редактирования"
     add_service: |
       Отправьте текст в формате:
-      "<code>Название услуги"
-      "о: описание (опционально)
-      "с: стоимость (опционально)
-      "д: длительность в минутах (опционально)</code>
+      <code>Название услуги
+      о: описание (опционально)
+      с: стоимость (опционально)
+      д: длительность в минутах (опционально)</code>
     add_slots_menu: "Выберите месяц для автоматического добавления слотов или добавьте слоты вручную"
     add_manual_slot: |
       <b>Добавление слотов</b>
@@ -110,7 +115,7 @@ answer:
       - Если указано одно время (10:00) - слот на 3 часа
     choose_date_to_delete: | 
       <b>{month}</b>
-      <i>доступно слотов — {len_slots}</i>
+      <i>доступно слотов: {len_slots}</i>
       
       Выберите день для удаления слота:
     no_available_slots: |
@@ -122,8 +127,8 @@ answer:
       <i>{slot_str}</i>
     month: "<b>{month}</b>\n"
     no_appointments: "<i>записи отсутствуют</i> (╥_╥)\n"
-    future_appointments: "<i>запланировано встреч — {len_slots}</i>\n"
-    past_appointment: "<i>отработано слотов — {len_slots}</i>\n"
+    future_appointments: "<i>запланировано встреч: {len_slots}</i>\n"
+    past_appointment: "<i>отработано слотов: {len_slots}</i>\n"
     choose_appointment_date: "\nВыберите день для просмотра записи:"
 
 
@@ -133,9 +138,9 @@ button:
   booking: "Записаться"
   active_booking: "Мои записи"
   cancel: "❌ Отмена"
-  cancel2: "❌ Отменить запись"
+  cancel2: "Отменить запись"
   cancel3: "❌ ПОДТВЕРДИТЬ ОТМЕНУ"
-  next: "➡️ Далее"
+  next: "Далее ➡️"
   back: "🔙 Назад"
   delete: "🗑 Удалить"
   confirm: "✅ Подтвердить"
@@ -193,9 +198,9 @@ error:
   unknown: "❓"
   no_username: "no_username"
   booking:
-    try_again: "⚠️ Ошибка! Повторите снова"
-    occupied_slot: "Слот уже занят("
-  no_slots: "⚠️ Свободных слотов нет!"
+    try_again: "Упс… Повторите снова"
+    occupied_slot: "Слот уже занят (._.)"
+  no_slots: "Свободных слотов нет (._.)"
   no_slots_for_this_day: "⚠️ Нет свободных слотов на выбранный день!"
   no_apps_for_this_day: "⚠️ Нет подтверждённых записей на выбранный день!"
   no_photos: "⚠️ Нет прикрепленных фото к этой записи!"
@@ -229,7 +234,7 @@ title:
   query: "<b>Запросы</b>"
   new_booking: "<b>Текущая запись</b>\n\n"
   admin_new_booking: "<b>Новая запись</b>"
-  booking: "<b>Запись</b>\n"
+  booking: "<b>Запись</b>\n\n"
   actions: "<b>История действий</b>"
   new_service: "<b>Добавление услуги</b>\n\n"
 
@@ -266,7 +271,7 @@ template:
   user:
     slot: |
       <b>📅 Дата:</b> <i>{date}</i>
-      <b>⏰ Время:</b>  <i>{datetime}</i>
+      <b>⏰ Время:</b> <i>{datetime}</i>
 
     service: "<b>💅 Услуга</b>: <i>{service}</i>\n"
     photos: "<b>Приложено фото:</b> <i>{len_photos}</i>\n"
