@@ -77,7 +77,7 @@ def user_booking_text(data: AppointmentModel, header: Optional[str] = PHRASES_RU
 def user_sent_booking(data: AppointmentModel, header: str) -> str:
     text = user_booking_text(data, header)
     if data.status:
-        text += '\n' + get_status_app_string(data.status)
+        text += get_status_app_string(data.status)
     return text
 
 
@@ -272,5 +272,5 @@ def service_text(service: ServiceModel):
 
 if __name__ == '__main__':
     with SlotsTable() as slots_db:
-        slots = slots_db.get_available_slots(datetime(2024, 1, 1), datetime(2027, 1, 1))
-        print(slots_to_text(slots))
+        slots_from_db = slots_db.get_available_slots(datetime(2024, 1, 1), datetime(2027, 1, 1))
+        print(slots_to_text(slots_from_db))
