@@ -5,6 +5,7 @@ from typing import Optional, Awaitable, Callable
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from DB import models
 from DB.tables.slots import SlotsTable
 from DB.models import AppointmentModel
 from bot.states import AppointmentStates
@@ -146,7 +147,7 @@ class AppointmentNavigation:
     async def _show_slot_selection(callback: CallbackQuery, data: AppointmentModel):
         if data.slot_date:
             await callback.message.edit_text(
-                text=PHRASES_RU.replace('answer.choose_slot', date=data.slot_date.strftime('%d.%m.%Y')),
+                text=PHRASES_RU.title.new_booking + PHRASES_RU.replace('answer.choose_slot', date=models.format_date(data.slot_date)),
                 reply_markup=ikb.slots_keyboard(data.slot_date)
             )
         else:

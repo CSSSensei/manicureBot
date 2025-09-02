@@ -11,6 +11,12 @@ from phrases import PHRASES_RU
 logger = logging.getLogger(__name__)
 
 
+def format_date(time: datetime):
+    weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+    weekday = weekdays[time.weekday()]
+    return f'{weekday} {time.strftime("%d.%m")}'
+
+
 @dataclass
 class UserModel:
     """Класс для представления пользователя"""
@@ -89,6 +95,14 @@ class SlotModel:
         end = self.end_time.strftime('%H:%M') if self.end_time else '00:00'
         return f'{start}{PHRASES_RU.icon.time_separator}{end}'
 
+    @property
+    def formatted_date(self) -> str:
+        """Возвращает дату слота в формате '{день недели} %d.%m' или ошибку, если время не задано"""
+        if not self.start_time:
+            return 'Ошибка: дата не указана'
+
+        return format_date(self.start_time)
+
 
 @dataclass
 class PhotoModel:
@@ -123,12 +137,10 @@ class AppointmentModel(BaseModel):
     @property
     def formatted_date(self) -> str:
         """Возвращает дату слота в формате '{день недели} %d.%m' или ошибку, если слот не задан"""
-        if not self.slot or not self.slot.start_time:
+        if not self.slot:
             return 'Ошибка: дата не указана'
 
-        weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-        weekday = weekdays[self.slot.start_time.weekday()]
-        return f'{weekday} {self.slot.start_time.strftime("%d.%m")}'
+        return self.slot.formatted_date
 
     @property
     def slot_str(self) -> str:
