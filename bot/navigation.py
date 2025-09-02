@@ -5,7 +5,6 @@ from typing import Optional, Awaitable, Callable
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from DB import models
 from DB.tables.slots import SlotsTable
 from DB.models import AppointmentModel
 from bot.states import AppointmentStates
@@ -19,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 class AppointmentNavigation:
     STATES = {
+        'WAITING_FOR_SERVICE': AppointmentStates.WAITING_FOR_SERVICE,
         'WAITING_FOR_DATE': AppointmentStates.WAITING_FOR_DATE,
         'WAITING_FOR_SLOT': AppointmentStates.WAITING_FOR_SLOT,
-        'WAITING_FOR_SERVICE': AppointmentStates.WAITING_FOR_SERVICE,
         'WAITING_FOR_PHOTOS': AppointmentStates.WAITING_FOR_PHOTOS,
         'WAITING_FOR_COMMENT': AppointmentStates.WAITING_FOR_COMMENT,
         'CONFIRMATION': AppointmentStates.CONFIRMATION
@@ -95,8 +94,9 @@ class AppointmentNavigation:
     async def _clear_step_data(cls, state: FSMContext, step: str) -> bool:
         """Очищает данные, связанные с определенным шагом"""
         clear_rules = {
-            'WAITING_FOR_SLOT': {'slot': None},
             'WAITING_FOR_SERVICE': {'service': None},
+            'WAITING_FOR_DATE': {'slot_date': None},
+            'WAITING_FOR_SLOT': {'slot': None},
             'WAITING_FOR_PHOTOS': {'photos': None},
             'WAITING_FOR_COMMENT': {'comment': None}
         }
@@ -110,9 +110,9 @@ class AppointmentNavigation:
     @classmethod
     async def _notify_user(cls, callback: CallbackQuery, step: str):
         notify_rules = {
+            'WAITING_FOR_SERVICE': None,
             'WAITING_FOR_DATE': None,
             'WAITING_FOR_SLOT': None,
-            'WAITING_FOR_SERVICE': None,
             'WAITING_FOR_PHOTOS': PHRASES_RU.callback.answer.photo_delete,
             'WAITING_FOR_COMMENT': PHRASES_RU.callback.answer.comment_delete
         }
@@ -123,9 +123,9 @@ class AppointmentNavigation:
         """Вызывает обработчик для конкретного шага"""
         data = await cls.get_appointment_data(state)
         handlers = {
+            'WAITING_FOR_SERVICE': cls._show_service_selection,
             'WAITING_FOR_DATE': cls._show_date_selection,
             'WAITING_FOR_SLOT': cls._show_slot_selection,
-            'WAITING_FOR_SERVICE': cls._show_service_selection,
             'WAITING_FOR_PHOTOS': cls._show_photo_upload,
             'WAITING_FOR_COMMENT': cls._show_comment_input,
             'CONFIRMATION': cls._show_confirmation
@@ -139,6 +139,7 @@ class AppointmentNavigation:
             prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
             if slot_date:
                 text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled)
+                text = format_string.user_booking_text(data) + text
                 await callback.message.edit_text(text, reply_markup=reply_markup)
             else:
                 await callback.message.edit_text(PHRASES_RU.error.no_slots)
@@ -147,7 +148,7 @@ class AppointmentNavigation:
     async def _show_slot_selection(callback: CallbackQuery, data: AppointmentModel):
         if data.slot_date:
             await callback.message.edit_text(
-                text=PHRASES_RU.title.new_booking + PHRASES_RU.replace('answer.choose_slot', date=models.format_date(data.slot_date)),
+                text=format_string.user_booking_text(data) + PHRASES_RU.answer.choose_slot,
                 reply_markup=ikb.slots_keyboard(data.slot_date)
             )
         else:
@@ -157,7 +158,7 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_service_selection(callback: CallbackQuery, data: AppointmentModel):
         await callback.message.edit_text(
-            text=format_string.user_booking_text(data) + PHRASES_RU.answer.choose_service,
+            text=PHRASES_RU.answer.choose_service,
             reply_markup=ikb.service_keyboard()
         )
 

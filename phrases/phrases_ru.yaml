@@ -8,8 +8,8 @@ commands:
     Нажми кнопку <i>«{booking}»</i> и следуй инструкциям в сообщениях.
     
     Запись проходит по цепочке:
-    1. Выбор слота
-    2. Услуга 
+    1. Выбор услуги
+    2. Слот
     3. Загрузка фото
     4. Комментарий
     
@@ -36,10 +36,10 @@ answer:
   choose_date: "Выберите день для записи. Доступные дни отмечены точкой"
   photo_attached: "✅ Фото прикреплено!"
   comment_attached: "✅ Комментарий прикреплён"
-  choose_slot: "<b>📅 Дата: </b><i>{date}</i>\n\nВыберите время"
+  choose_slot: "Выберите время"
   available_slots: "<b>{month}</b>\n<i>доступно слотов: {len_slots}</i>\n\n"
   no_available_slots: "На <i>{month}</i> <b>нет</b> доступных слотов (._.)"
-  choose_service: "Выберите услугу"
+  choose_service: "<b>Выберите услугу</b>\n\n"
   send_photo: |
     <b>Отсылка фото</b>
     <i>Если это Ваша первая запись, пришлите фото текущего состояния ногтей. Также Вы можете прислать фото-референсы маникюра</i>
@@ -172,7 +172,10 @@ button:
     reject: "❌ Отклонить"
 
 
-placeholder_appeal: "Лучший маникюр"
+placeholder_appeal:
+  - "Лучший маникюр"
+  - "Просто напиши «Записаться»"
+  - "«Записаться» и ты в шаге от лучшего маникюра в своей жизни"
 
 success:
   demoted: "Уровень доступа пользователя <i>{user_id}</i> понижен"
@@ -276,10 +279,8 @@ template:
   client_str: "<code>{user_id}</code><a href=\"tg://user?id={user_id}\">{username}</a> ℹ️ <i>{total_apps}</i> 🗑 {cancelled_apps} ✅ {completed_apps}{pending_apps}\n"
   all_queries: "<a href=\"tg://user?id={user_id}\">{username}</a> <blockquote>{time}</blockquote> <i>{query}</i>\n\n"
   user:
-    slot: |
-      <b>📅 Дата:</b> <i>{date}</i>
-      <b>⏰ Время:</b> <i>{datetime}</i>
-
+    date: "<b>📅 Дата:</b> <i>{date}</i>\n"
+    slot: "<b>⏰ Время:</b> <i>{datetime}</i>\n"
     service: "<b>💅 Услуга</b>: <i>{service}</i>\n"
     photos: "<b>Приложено фото:</b> <i>{len_photos}</i>\n"
     text: "<b>📝 Комментарий:</b> <i>{text}</i>\n"

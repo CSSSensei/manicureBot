@@ -178,7 +178,16 @@ def create_calendar_keyboard(month: int, year: int, prev: bool, mode: CalendarMo
         today=today,
         mode=mode
     )
-    if mode == CalendarMode.DELETE or mode == CalendarMode.APPOINTMENT_MAP:
+    if mode == CalendarMode.BOOKING:
+        keyboard.inline_keyboard.append([
+            IButton(
+                text=PHRASES_RU.button.back,
+                callback_data=ActionButtonCallBack(action=-1, current_page=2).pack()),
+            IButton(
+                text=PHRASES_RU.button.cancel,
+                callback_data=ActionButtonCallBack(action=0).pack()
+            )])
+    elif mode == CalendarMode.DELETE or mode == CalendarMode.APPOINTMENT_MAP:
         keyboard.inline_keyboard.append([IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)])
 
     return header_text, keyboard
@@ -364,11 +373,7 @@ def service_keyboard() -> IMarkup:
                 callback_data=ServiceCallBack(service_id=service.id).pack()
             )
     builder.adjust(2)  # 2 кнопки в ряд
-    return _base_keyboard(
-        builder.export(),  # type: ignore
-        cur_page=2,
-        next_page=None  # Нет кнопки "Далее"
-    )
+    return builder.as_markup()
 
 
 def slots_keyboard(cur_date: datetime.date) -> IMarkup:
@@ -383,7 +388,7 @@ def slots_keyboard(cur_date: datetime.date) -> IMarkup:
     builder.adjust(1)
     return _base_keyboard(
         builder.export(),  # type: ignore
-        cur_page=1,
+        cur_page=2,
         next_page=None
     )
 

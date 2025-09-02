@@ -1,9 +1,9 @@
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import Optional, List, Tuple
 
-from DB.models import AppointmentModel, ServiceModel, SlotModel
+from DB.models import AppointmentModel, ServiceModel, SlotModel, format_date
 from DB.tables.slots import SlotsTable
 from config import const
 from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
@@ -66,10 +66,13 @@ def get_status_app_string(status: str) -> str:
 
 def user_booking_text(data: AppointmentModel, header: Optional[str] = PHRASES_RU.title.new_booking) -> str:
     text = header
-    text += PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
-                               datetime=data.slot_str) if data.slot else ''
     if data.service and data.service.name:
         text += PHRASES_RU.replace('template.user.service', service=data.service.name)
+    if data.slot_date or data.slot:
+        date = data.slot.formatted_date if data.slot else format_date(datetime.combine(data.slot_date, time.min))
+        text += PHRASES_RU.replace('template.user.date', date=date)
+    if data.slot:
+        text += PHRASES_RU.replace('template.user.slot', datetime=data.slot_str)
     if data.photos and len(data.photos) > 0:
         text += PHRASES_RU.replace('template.user.photos', len_photos=len(data.photos))
     if data.comment:
