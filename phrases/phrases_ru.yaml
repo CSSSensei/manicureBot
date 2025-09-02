@@ -121,10 +121,16 @@ answer:
     no_available_slots: |
       <b>{month}</b>
       <i>доступных слотов нет</i>
-    choose_slot_to_delete: "<b>{date}</b>\n<i>выберите слот для удаления:</i>"
+    choose_slot_to_delete: |
+      <b>Удаление слота</b>
+      Дата: <i>{date}</i>
+      
+      Выберите слот для удаления:
     slot_info: | 
-      <b>Слот от {date}</b>
-      <i>{slot_str}</i>
+      <b>Подтвердите удаление слота</b>
+      Дата: <i>{date}</i>
+      
+      {slot_str}
     month: "<b>{month}</b>\n"
     no_appointments: "<i>записи отсутствуют</i> (╥_╥)\n"
     future_appointments: "<i>запланировано встреч: {len_slots}</i>\n"
@@ -284,7 +290,7 @@ template:
       Действие: <b>{status}</b>
     slot: |
       <b>📅 Дата:</b> <i>{date}</i>
-      <b>⏰ Время:</b>  <i>{datetime}</i>
+      <b>⏰ Время:</b> <i>{datetime}</i>
 
     client_username: "<i>от <a href=\"tg://user?id={user_id}\">{username}</a></i>\n\n"
     service: "<b>💅 Услуга</b>: <i>{service}</i>\n"

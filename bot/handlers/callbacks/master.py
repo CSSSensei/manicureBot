@@ -1,10 +1,11 @@
-from datetime import datetime, date
+from datetime import datetime, date, time
 
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from DB import models
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
 from DB.tables.services import ServicesTable
@@ -53,7 +54,7 @@ async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCall
     match mode:
         case CalendarMode.DELETE:
             await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.choose_slot_to_delete',
-                                                                     date=selected_date.strftime('%d.%m.%Y')),
+                                                                     date=models.format_date(datetime.combine(selected_date, time.min))),
                                              reply_markup=inline_mkb.delete_slots_menu(selected_date))
         case CalendarMode.APPOINTMENT_MAP:
             await pages.get_master_apps(callback, selected_date, 1)
@@ -73,7 +74,7 @@ async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlo
             with SlotsTable() as db:
                 slot = db.get_slot(slot_id)
                 await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.slot_info',
-                                                                         date=slot.start_time.date().strftime('%d.%m.%Y'),
+                                                                         date=slot.formatted_date,
                                                                          slot_str=str(slot)),
                                                  reply_markup=inline_mkb.slot_deletion(slot))
         case const.Action.delete_slot:
