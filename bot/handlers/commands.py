@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 @router.command('start', 'запустить бота')  # /start
 async def _(message: Message):
     await message.answer(PHRASES_RU.replace('commands.start', booking=PHRASES_RU.button.booking),
-                         reply_markup=get_keyboard(message.from_user.id))
+                         reply_markup=get_keyboard(message.from_user.id),
+                         disable_web_page_preview=True)
 
 
 @router.command('help', 'как пользоваться ботом')  # /help

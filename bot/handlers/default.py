@@ -30,7 +30,7 @@ async def _(message: Message):
             await message.answer(PHRASES_RU.error.db, reply_markup=get_keyboard(message.from_user.id))
 
 
-@router.message(F.text == PHRASES_RU.button.booking)
+@router.message(F.text.capitalize() == PHRASES_RU.button.booking)
 async def booking_message(message: Message, state: FSMContext):
     text, reply_markup = ikb.first_page_calendar()
     if text and reply_markup:
