@@ -250,6 +250,7 @@ footnote:
 icon:
   not_username: "—"
   time_separator: "–"
+  available_sign: "•"
   row_placeholder: "<code>.</code>\n"
   query:
     thresholds:

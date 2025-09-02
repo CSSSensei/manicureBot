@@ -46,6 +46,10 @@ def get_query_count_emoji(count: int) -> str:
     return PHRASES_RU.icon.query.default
 
 
+def bold_numbers(number):
+    return ''.join(const.BOLD_DIGITS.get(char, char) for char in str(number))
+
+
 def get_status_app_string(status: str) -> str:
     if status == PENDING:
         return PHRASES_RU.answer.status.pending

@@ -22,6 +22,19 @@ MONTHS = {
     12: 'Декабрь',
 }
 
+BOLD_DIGITS = {
+    '0': '𝟬',
+    '1': '𝟭',
+    '2': '𝟮',
+    '3': '𝟯',
+    '4': '𝟰',
+    '5': '𝟱',
+    '6': '𝟲',
+    '7': '𝟳',
+    '8': '𝟴',
+    '9': '𝟵'
+}
+
 PENDING = 'pending'
 CONFIRMED = 'confirmed'
 COMPLETED = 'completed'

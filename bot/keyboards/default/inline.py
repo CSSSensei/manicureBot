@@ -14,6 +14,7 @@ from bot.bot_utils.models import BookingPageCallBack, ActionButtonCallBack, Mont
 from DB.models import Pagination, AppointmentModel
 from config.const import MONTHS, CANCELLED, REJECTED, CONFIRMED, CalendarMode, AppListMode, AppointmentPageAction
 from phrases import PHRASES_RU
+from utils import format_string
 
 
 def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination, mode: AppListMode) -> Optional[IMarkup]:
@@ -335,11 +336,11 @@ def _create_calendar_days_rows(
 
 def _get_day_button_text(day: int, is_today: bool, is_available: bool) -> str:
     if is_today and is_available:
-        return f'· [{day}]'
+        return f'{PHRASES_RU.icon.available_sign} [{format_string.bold_numbers(day)}]'
     elif is_today:
         return f'[{day}]'
     elif is_available:
-        return f'· {day}'
+        return f'{PHRASES_RU.icon.available_sign} {format_string.bold_numbers(day)}'
     return f'{day}'
 
 
