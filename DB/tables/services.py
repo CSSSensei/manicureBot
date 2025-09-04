@@ -106,6 +106,18 @@ class ServicesTable(BaseTable):
         self.conn.commit()
         self._log('UPDATE_SERVICE', service_id=service.id)
 
+    def service_name_exists(self, name: str, exclude_id: int = None) -> bool:
+        """Проверяет, существует ли услуга с таким названием."""
+        clean_name = name.strip().lower()
+        all_services = self.get_all_services()
+
+        for service in all_services:
+            if service.name.strip().lower() == clean_name:
+                if exclude_id is not None and service.id == exclude_id:
+                    continue
+                return True
+        return False
+
 
 if __name__ == '__main__':
     with ServicesTable() as serv_db:
