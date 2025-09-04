@@ -93,6 +93,11 @@ answer:
       👥 Клиентов: {clients}
       📅 Завершённых записей: {appointments}
     service_editor: "<b>Редактор услуг</b>\n\nИзменить существующие услуги или добавить новые"
+    service_edit: "<b>Редактор услуги</b>\n\n{service}"
+    service_addition: "<b>Подтвердите добавление услуги</b>\n\n{service}"
+    service_update: "<b>Подтвердите обновление услуги</b>\n\n{service}"
+    service_update_successfully: "<b>✅ Услуга обновлена и уже активна!</b>\n\n{service}"
+    service_added_successfully: "<b>✅ Услуга добавлена успешно</b>\n\n{service}"
     edit_service: "<b>Текущие услуги</b>\n\nВыберите услугу для редактирования"
     add_service: |
       Отправьте текст в формате:
@@ -139,6 +144,27 @@ answer:
     future_appointments: "<i>запланировано встреч: {len_slots}</i>\n"
     past_appointment: "<i>отработано слотов: {len_slots}</i>\n"
     choose_appointment_date: "\nВыберите день для просмотра записи <i>(точкой отмечены запланированные и прошедшие встречи)</i>"
+    service_format: |
+      Формат ввода:
+      <code>Название услуги
+      о: описание (не обязательно)
+      с: стоимость (не обязательно)
+      д: длительность в минутах (не обязательно)</code>
+
+      Пример:
+      <code>Маникюр
+      о: Классический маникюр
+      с: 1500
+      д: 60</code>
+    slot_format: |
+      <pre language="сентябрь">
+      1 - 14:30-16:30 17:30-19:30
+      2 - 10:00 15:00</pre>
+      
+      • Первая строка — месяц
+      • Число — времена через пробел
+      • Одно время = слот на 3 часа
+
 
 
 button:
@@ -223,6 +249,26 @@ error:
     service_not_text_type: "⚠️ Введите, пожалуйста, текст для добавления услуги или нажмите «Назад»"
   no_rights: "⚠️ У вас нет прав для этого действия"
 
+  master:
+    service_addition: |
+      ❌ <b>Ошибка при добавлении услуги</b>:
+      {error}
+      
+      {service_format}
+    service_update: |
+      ❌ <b>Ошибка при обновлении услуги</b>:
+      {error}
+      
+      {service_format}
+    slot_addition: |
+      ❌ <b>Ошибка при обработке запроса:</b>
+      <code>{error}</code>
+      
+      <b>Правильный формат:</b>
+      {slot_format}
+    slots_not_found: "❌ Ошибка при обработке запроса: <b>время слотов не было найдено</b>"
+      
+
 callback_data:
   master:
     history: "history"
@@ -301,6 +347,8 @@ template:
     client_username: "<i>от <a href=\"tg://user?id={user_id}\">{username}</a></i>\n\n"
     service: "<b>💅 Услуга</b>: <i>{service}</i>\n"
     text: "<b>📝 Комментарий:</b><blockquote>{text}</blockquote>\n"
+    slot_time_range: "  <i>{start}-{end}</i>\n"
+    slot_time_range_with_error: "  <i>{start}-{end}</i> (<code>{error}</code>)\n"
 
 callback:
   answer:

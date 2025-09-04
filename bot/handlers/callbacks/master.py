@@ -196,9 +196,9 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
             text_chunks = format_string.split_text(text, 4096)
             for i in range(len(text_chunks)):
                 if i == 0:
-                    await callback.message.edit_text(text_chunks[i], parse_mode="Markdown")
+                    await callback.message.edit_text(text_chunks[i])
                 else:
-                    await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
+                    await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i])
 
 
 @router.callback_query(MasterServiceCallBack.filter(), MasterFilter())
@@ -209,7 +209,7 @@ async def handle_service_edit(callback: CallbackQuery, callback_data: MasterServ
     with ServicesTable() as db:
         service = db.get_service(service_id)
         service_text = format_string.service_text(service)
-        text = '<i>Нажмите на соответствующую кнопку для изменения текущей услуги</i>\n\n'
+        text = PHRASES_RU.replace('answer.master.service_edit', service=service_text)
         if action:
             match action:
                 case const.Action.set_active:
@@ -219,9 +219,9 @@ async def handle_service_edit(callback: CallbackQuery, callback_data: MasterServ
                     db.toggle_service_active(service_id, False)
                     service.is_active = False
                 case const.Action.service_update:
-                    text = '✅ Услуга обновлена и уже активна!\n\n' + text
+                    text = PHRASES_RU.replace('answer.master.service_update_successfully', service=service_text)
 
-        await callback.message.edit_text(text=text + service_text, reply_markup=inline_mkb.edit_current_service(service))
+        await callback.message.edit_text(text=text, reply_markup=inline_mkb.edit_current_service(service))
 
 
 @router.callback_query(EditServiceCallBack.filter(), MasterFilter())
@@ -246,9 +246,9 @@ async def _(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     for i in range(len(text_chunks)):
         if i == 0:
-            await callback.message.edit_text(text_chunks[i], parse_mode="Markdown")
+            await callback.message.edit_text(text_chunks[i])
         else:
-            await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i], parse_mode="Markdown")
+            await bot.send_message(chat_id=callback.from_user.id, text=text_chunks[i])
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.confirm_add_slot, MasterFilter())
@@ -291,15 +291,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
         return
     with ServicesTable() as db:
         db.add_service(service)
-    response = f"✅ Услуга добавлена\n\n"
-    response += f"▪ Название: <i>{service.name}</i>\n"  # TODO
-    if service.description:
-        response += f"▪ Описание: <i>{service.description}</i>\n"
-    if service.price:
-        response += f"▪ Стоимость: <i>{service.price} руб.</i>\n"
-    if service.duration:
-        response += f"▪ Длительность: <i>{service.duration} мин.</i>"
-
+    response = PHRASES_RU.replace('answer.master.service_added_successfully', service=format_string.service_text(service))
     await callback.message.edit_text(response, reply_markup=inline_mkb.back_to_service_menu())
     await state.clear()
 

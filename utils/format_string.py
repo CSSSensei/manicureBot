@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, time
 from typing import Optional, List, Tuple
 
 from DB.models import AppointmentModel, ServiceModel, SlotModel, format_date
+from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from config import const
 from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
@@ -233,12 +234,18 @@ def slots_to_text(slots: List[SlotModel]) -> str:
     return "\n".join(result_lines)
 
 
-def parse_service_text(text: str) -> ServiceModel:
+def parse_service_text(text: str, service_id: Optional[int] = None) -> ServiceModel:
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     if not lines:
         raise ValueError("Пустой запрос")
 
-    service = ServiceModel(name=lines[0])
+    service_name = lines[0].strip()
+
+    with ServicesTable() as db:
+        if db.service_name_exists(service_name, service_id):
+            raise ValueError(f"Услуга с названием '{service_name}' уже существует")
+
+    service = ServiceModel(name=service_name)
     seen_keys = set()
 
     for line in lines[1:]:
@@ -267,13 +274,13 @@ def parse_service_text(text: str) -> ServiceModel:
 
 
 def service_text(service: ServiceModel):
-    text = f'<blockquote>{service.name}</blockquote>\n'
+    text = f'Название: <u>{service.name}</u>\n'
     if service.price:
-        text += f'{service.price} ₽\n'
+        text += f'Цена: <i>{service.price} ₽</i>\n'
     if service.duration:
         text += f'Приблизительная длительность: <i>{service.duration} мин</i>\n'
     if service.description:
-        text += f'Описание:\n<i>{service.description}</i>\n'
+        text += f'Описание: <i>{service.description}</i>\n'
     return text
 
 

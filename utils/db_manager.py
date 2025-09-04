@@ -1,11 +1,14 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import List, Tuple
 import subprocess
 from aiogram import Bot
 from aiogram.types import FSInputFile
 
+from DB import models
 from DB.tables.slots import SlotsTable
 from config import const
+from phrases import PHRASES_RU
 
 
 def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
@@ -18,23 +21,46 @@ def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
                 added_slots.append((result, start, end))
             else:
                 not_added_slots.append((result, start, end))
+
     result_text = ''
     if added_slots:
-        result_text += "✅ *Успешно добавлены слоты:*\n"
+        added_by_date = defaultdict(list)
         for slot_id, start, end in added_slots:
-            result_text += (
-                f"• *{start.strftime('%d.%m.%Y')}* "
-                f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')} "
-                f"(ID: `{slot_id}`)\n"
-            )
+            date_key = start.date()
+            added_by_date[date_key].append((start, end))
+
+        sorted_dates = sorted(added_by_date.keys())
+
+        result_text += "✅ <b>Успешно добавлены слоты:</b>\n\n"
+        for date in sorted_dates:
+            date_str = models.format_date(date)
+            result_text += f"{date_str}\n"
+
+            time_slots = sorted(added_by_date[date], key=lambda x: x[1])
+            for start, end in time_slots:
+                result_text += PHRASES_RU.replace('template.master.slot_time_range', start=start.strftime('%H:%M'), end=end.strftime('%H:%M'))
+
+            result_text += "\n"
+
     if not_added_slots:
-        result_text += "\n🚨 *Произошла ошибка при добавлении слотов:*\n"
+        not_added_by_date = defaultdict(list)
         for error, start, end in not_added_slots:
-            result_text += (
-                f"• *{start.strftime('%d.%m.%Y')}* "
-                f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')} "
-                f"(Ошибка: `{error}`)\n"
-            )
+            date_key = start.date()
+            not_added_by_date[date_key].append((error, start, end))
+
+        sorted_dates = sorted(not_added_by_date.keys())
+
+        result_text += "\n🚨 <b>Произошла ошибка при добавлении слотов:</b>\n\n"
+        for date in sorted_dates:
+            date_str = models.format_date(date)
+
+            result_text += f"{date_str}\n"
+            time_slots = sorted(not_added_by_date[date], key=lambda x: x[1])
+            for error, start, end in time_slots:
+                result_text += PHRASES_RU.replace('template.master.slot_time_range_with_error', start=start.strftime('%H:%M'), end=end.strftime('%H:%M'), error=error)
+
+            result_text += "\n"
+
     return result_text
 
 

@@ -1,4 +1,5 @@
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, time
 from typing import Optional
 
 from aiogram import Router, F
@@ -6,6 +7,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from DB import models
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
 from bot import pages
@@ -36,36 +38,32 @@ async def _(message: Message, state: FSMContext):
         try:
             slots = format_string.parse_slots_text(message.text)
             if not slots:
-                await message.answer('❌ <b>Ошибка при обработке запроса: время слотов не было найдено</b>')
+                await message.answer(PHRASES_RU.error.master.slots_not_found)
                 return
-            confirmation_text = "🔍 *Проверьте распознанные слоты:*\n\n"
-            for i, (start, end) in enumerate(slots, 1):
-                confirmation_text += (
-                    f"{i}. *{start.strftime('%d.%m.%Y')}* "
-                    f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')}\n"
-                )
+
+            slots_by_date = defaultdict(list)
+            for (start, end) in slots:
+                date_key = start.date()
+                slots_by_date[date_key].append((start, end))
+
+            sorted_dates = sorted(slots_by_date.keys())
+
+            confirmation_text = "🔍 <b>Проверьте распознанные слоты:</b>\n\n"
+
+            for date in sorted_dates:
+                date_str = models.format_date(datetime.combine(date, time.min))
+                confirmation_text += f"{date_str }\n"
+                time_slots = sorted(slots_by_date[date], key=lambda x: x[0])
+
+                for start, end in time_slots:
+                    confirmation_text += PHRASES_RU.replace('template.master.slot_time_range', start=start.strftime('%H:%M'), end=end.strftime('%H:%M'))
+                confirmation_text += "\n"
 
             await state.update_data(parsed_slots=slots)
-
-            await message.answer(
-                confirmation_text,
-                parse_mode="Markdown",
-                reply_markup=inline_mkb.master_confirm_adding_slot()
-            )
+            await message.answer(confirmation_text, reply_markup=inline_mkb.master_confirm_adding_slot())
 
         except Exception as e:
-            error_msg = (
-                "❌ *Ошибка при обработке запроса:*\n"
-                f"`{str(e)}`\n\n"
-                "*Правильный формат:*\n"
-                "```\nсентябрь\n"
-                "1 - 14:30-16:30 17:30-19:30\n"
-                "2 - 10:00 15:00\n```\n"
-                "• Первая строка - месяц\n"
-                "• Число - времена через пробел\n"
-                "• Одно время = слот на 3 часа"
-            )
-            await message.answer(error_msg, parse_mode="Markdown")
+            await message.answer(PHRASES_RU.replace('error.master.slot_addition', error=str(e), slot_format=PHRASES_RU.answer.master.slot_format))
     else:
         await message.answer(PHRASES_RU.error.state.slot_not_text_type)
 
@@ -77,34 +75,13 @@ async def _(message: Message, state: FSMContext):
 
             service = format_string.parse_service_text(message.text)
 
-            response = f"Подтвердите добавление услуги\n\n"          # TODO
-            response += f"▪ Название: <i>{service.name}</i>\n"
-            if service.description:
-                response += f"▪ Описание: <i>{service.description}</i>\n"
-            if service.price:
-                response += f"▪ Стоимость: <i>{service.price} руб.</i>\n"
-            if service.duration:
-                response += f"▪ Длительность: <i>{service.duration} мин.</i>"
+            response = PHRASES_RU.replace('answer.master.service_addition', service=format_string.service_text(service))
 
             await state.update_data(parsed_service=service)
             await message.answer(response, reply_markup=inline_mkb.master_confirm_adding_service())
 
         except Exception as e:
-            error_msg = (                                            # TODO
-                "❌ Ошибка при добавлении услуги:\n"
-                f"{str(e)}\n\n"
-                "Формат ввода:\n"
-                "<code>Название услуги\n"
-                "о: описание (не обязательно)\n"
-                "с: стоимость (не обязательно)\n"
-                "д: длительность в минутах (не обязательно)</code>\n\n"
-                "Пример:\n"
-                "<code>Маникюр\n"
-                "о: Классический маникюр\n"
-                "с: 1500\n"
-                "д: 60</code>"
-            )
-            await message.answer(error_msg)
+            await message.answer(PHRASES_RU.replace('error.master.service_addition', error=str(e), service_format=PHRASES_RU.answer.master.service_format))
     else:
         await message.answer(PHRASES_RU.error.state.service_not_text_type)
 
@@ -119,36 +96,15 @@ async def _(message: Message, state: FSMContext):
         return
     if message.text:
         try:
-            service = format_string.parse_service_text(message.text)
+            service = format_string.parse_service_text(message.text, service_id)
 
-            response = f"Подтвердите обновление услуги\n\n"          # TODO
-            response += f"▪ Название: <i>{service.name}</i>\n"
-            if service.description:
-                response += f"▪ Описание: <i>{service.description}</i>\n"
-            if service.price:
-                response += f"▪ Стоимость: <i>{service.price} руб.</i>\n"
-            if service.duration:
-                response += f"▪ Длительность: <i>{service.duration} мин.</i>"
+            response = PHRASES_RU.replace('answer.master.service_update', service=format_string.service_text(service))
             service.id = service_id
             await state.update_data(parsed_service=service)
             await message.answer(response, reply_markup=inline_mkb.master_confirm_edit_service(service_id))
 
         except Exception as e:
-            error_msg = (                                            # TODO
-                "❌ Ошибка при обновлении услуги:\n"   # TODO подзаголовок отличается
-                f"{str(e)}\n\n"
-                "Формат ввода:\n"
-                "<code>Название услуги\n"
-                "о: описание (не обязательно)\n"
-                "с: стоимость (не обязательно)\n"
-                "д: длительность в минутах (не обязательно)</code>\n\n"
-                "Пример:\n"
-                "<code>Маникюр\n"
-                "о: Классический маникюр\n"
-                "с: 1500\n"
-                "д: 60</code>"
-            )
-            await message.answer(error_msg)
+            await message.answer(PHRASES_RU.replace('error.master.service_update', error=str(e), service_format=PHRASES_RU.answer.master.service_format))
     else:
         await message.answer(PHRASES_RU.error.state.service_not_text_type)
 
