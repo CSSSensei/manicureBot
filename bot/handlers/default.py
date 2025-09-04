@@ -32,10 +32,8 @@ async def _(message: Message):
 
 @router.message(F.text.capitalize() == PHRASES_RU.button.booking)
 async def booking_message(message: Message, state: FSMContext):
-    await message.answer(
-        text=PHRASES_RU.answer.choose_service,
-        reply_markup=ikb.service_keyboard()
-    )
+    text, reply_markup = ikb.service_keyboard()
+    await message.answer(text=text, reply_markup=reply_markup)
     # TODO сделать проверку на наличие слотов и выводить только нужные услуги
     await state.set_state(AppointmentStates.WAITING_FOR_SERVICE)
 

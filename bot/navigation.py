@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery
 from DB.tables.slots import SlotsTable
 from DB.models import AppointmentModel
 from bot.states import AppointmentStates
+from config.const import CalendarMode
 from phrases import PHRASES_RU
 from bot.keyboards.default import inline as ikb
 from utils import format_string
@@ -133,13 +134,17 @@ class AppointmentNavigation:
         await handlers[step](callback, data)
 
     @staticmethod
+    async def _show_service_selection(callback: CallbackQuery, data: AppointmentModel):
+        text, reply_markup = ikb.service_keyboard()
+        await callback.message.edit_text(text=text, reply_markup=reply_markup)
+
+    @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: AppointmentModel):
         with SlotsTable() as slots_db:
             slot_date = data.slot_date if data.slot_date else slots_db.get_first_available_slot()
             prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
             if slot_date:
-                text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled)
-                text = format_string.user_booking_text(data) + text
+                text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled, CalendarMode.BOOKING, data)
                 await callback.message.edit_text(text, reply_markup=reply_markup)
             else:
                 await callback.message.edit_text(PHRASES_RU.error.no_slots)
@@ -154,13 +159,6 @@ class AppointmentNavigation:
         else:
             logger.error(f'Appointment creation error: no slot date in state data')
             await callback.message.edit_text(PHRASES_RU.error.booking.try_again, reply_markup=None)
-
-    @staticmethod
-    async def _show_service_selection(callback: CallbackQuery, data: AppointmentModel):
-        await callback.message.edit_text(
-            text=PHRASES_RU.answer.choose_service,
-            reply_markup=ikb.service_keyboard()
-        )
 
     @staticmethod
     async def _show_photo_upload(callback: CallbackQuery, data: AppointmentModel):

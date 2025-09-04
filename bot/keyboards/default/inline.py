@@ -134,7 +134,7 @@ def _base_keyboard(
     return IMarkup(inline_keyboard=buttons)
 
 
-def first_page_calendar(mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[Optional[str], Optional[IMarkup]]:
+def first_page_calendar(appointment: AppointmentModel, mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[Optional[str], Optional[IMarkup]]:
     with SlotsTable() as slots_db:
         first_slot = slots_db.get_first_available_slot()
         if not first_slot:
@@ -145,10 +145,14 @@ def first_page_calendar(mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[Opti
                             first_slot.year == current_date.year)
         prev_enabled = not is_current_month
 
-        return create_calendar_keyboard(first_slot.month, first_slot.year, prev_enabled, mode)
+        return create_calendar_keyboard(first_slot.month, first_slot.year, prev_enabled, mode, appointment)
 
 
-def create_calendar_keyboard(month: int, year: int, prev: bool, mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[str, IMarkup]:
+def create_calendar_keyboard(month: int,
+                             year: int,
+                             prev: bool,
+                             mode: CalendarMode = CalendarMode.BOOKING,
+                             appointment: Optional[AppointmentModel] = None) -> Tuple[str, IMarkup]:
     now = datetime.now()
     today = now.date()
     month_days = calendar.monthrange(year, month)[1]
@@ -168,7 +172,7 @@ def create_calendar_keyboard(month: int, year: int, prev: bool, mode: CalendarMo
         case CalendarMode.APPOINTMENT_MAP:
             start_of_month = datetime(year, month, 1)
             available_dates, future_slots, booked_slots = _get_appointment_dates(start_of_month, end_date)
-    header_text = _generate_header_text(month, future_slots, mode, booked_slots)
+    header_text = _generate_header_text(month, future_slots, mode, booked_slots, appointment)
 
     keyboard = _build_calendar_keyboard(
         month=month,
@@ -215,14 +219,16 @@ def _get_appointment_dates(start_date: datetime, end_date: datetime) -> Tuple[Se
         return booked_slots, future_slots_len, confirmed_slots_len
 
 
-def _generate_header_text(month: int, future_slots_len: int, mode: CalendarMode, booked_slots_len: int = 0) -> str:
+def _generate_header_text(month: int, future_slots_len: int, mode: CalendarMode, booked_slots_len: int = 0,
+                          app: Optional[AppointmentModel] = None) -> str:
     month_name = MONTHS[month]
     match mode:
         case CalendarMode.BOOKING:
+            appointment_header = format_string.user_booking_text(app)
             if future_slots_len > 0:
-                return (PHRASES_RU.replace('answer.available_slots',
-                                           month=month_name,
-                                           len_slots=future_slots_len) + PHRASES_RU.answer.choose_date)
+                return appointment_header + (PHRASES_RU.replace('answer.available_slots',
+                                                                month=month_name,
+                                                                len_slots=future_slots_len) + PHRASES_RU.answer.choose_date)
             return PHRASES_RU.replace('answer.no_available_slots', month=month_name.lower())
 
         case CalendarMode.DELETE:
@@ -363,17 +369,23 @@ def _get_day_callback_data(day: int, month: int, year: int, is_available: bool, 
     ).pack()
 
 
-def service_keyboard() -> IMarkup:
+def service_keyboard() -> Tuple[str, IMarkup]:
     """Клавиатура с услугами."""
     builder = InlineKeyboardBuilder()
+    services_txt = PHRASES_RU.answer.choose_service
     with ServicesTable() as service_db:
         for service in service_db.get_active_services():
+            if service.name:
+                services_txt += f'• <b>{service.name}</b>'
+            if service.description:
+                services_txt += f': <i>{service.description}</i>'
+            services_txt += '\n'
             builder.button(
                 text=service.name,
                 callback_data=ServiceCallBack(service_id=service.id).pack()
             )
     builder.adjust(2)  # 2 кнопки в ряд
-    return builder.as_markup()
+    return services_txt, builder.as_markup()
 
 
 def slots_keyboard(cur_date: datetime.date) -> IMarkup:

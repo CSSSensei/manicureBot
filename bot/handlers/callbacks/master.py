@@ -17,6 +17,7 @@ from bot.bot_utils.filters import NotBookingCalendar, MasterFilter
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
     DeleteSlotCallBack
 from bot.handlers.master import send_master_menu
+from bot.navigation import AppointmentNavigation
 from bot.states import MasterStates
 from bot.keyboards.master import inline as inline_mkb
 from bot.keyboards.default import inline as ikb
@@ -29,7 +30,7 @@ router = Router()
 
 
 @router.callback_query(MonthCallBack.filter(), NotBookingCalendar())
-async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCallBack):
+async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCallBack, state: FSMContext):
     if callback_data.action != 0:
         # Обработка переключения месяцев
         month = callback_data.month + callback_data.action
@@ -40,7 +41,7 @@ async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCall
 
         prev_enabled = not (month == datetime.now().month and year == datetime.now().year) \
             if mode != CalendarMode.APPOINTMENT_MAP else True
-        text, reply_markup = ikb.create_calendar_keyboard(month, year, prev_enabled, mode)
+        text, reply_markup = ikb.create_calendar_keyboard(month, year, prev_enabled, mode, await AppointmentNavigation.get_appointment_data(state))
         await callback.message.edit_text(text=text, reply_markup=reply_markup)
         return
     mode = callback_data.mode
@@ -334,8 +335,8 @@ async def add_menu(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.delete_slots, MasterFilter())
-async def delete_slots_calendar_handler(callback: CallbackQuery):
-    text, reply_markup = ikb.first_page_calendar(CalendarMode.DELETE)
+async def delete_slots_calendar_handler(callback: CallbackQuery, state: FSMContext):
+    text, reply_markup = ikb.first_page_calendar(await AppointmentNavigation.get_appointment_data(state), CalendarMode.DELETE)
     if text and reply_markup:
         await callback.message.edit_text(text=text, reply_markup=reply_markup)
     else:
