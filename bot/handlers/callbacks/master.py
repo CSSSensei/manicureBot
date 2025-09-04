@@ -324,7 +324,7 @@ async def _(callback: CallbackQuery):
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.add_manual_slots, MasterFilter())
 async def _(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MasterStates.WAITING_FOR_SLOT)
-    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_manual_slot,
+    await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.add_manual_slot', slot_format=PHRASES_RU.answer.master.slot_format),
                                      reply_markup=inline_mkb.back_to_adding())
 
 
