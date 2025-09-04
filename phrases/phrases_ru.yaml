@@ -131,6 +131,9 @@ answer:
       Дата: <i>{date}</i>
       
       {slot_str}
+    delete_all_slots: |
+      <b>Подтвердите удаление всех слотов</b>
+      Дата: <i>{date}</i>
     month: "<b>{month}</b>\n"
     no_appointments: "<i>записи отсутствуют</i> (╥_╥)\n"
     future_appointments: "<i>запланировано встреч: {len_slots}</i>\n"
@@ -167,6 +170,8 @@ button:
     add_manual_slots: "Добавить вручную"
     edit_service: "Редактировать услуги"
     add_service: "Добавить услугу"
+    delete_all_slots: "Удалить всё"
+    do_not_delete: "Не хочу удалять"
   admin:
     confirm: "✅ Подтвердить"
     reject: "❌ Отклонить"
@@ -301,3 +306,4 @@ callback:
   answer:
     photo_delete: "Фото очищены"
     comment_delete: "Комментарий очищен"
+    delete_slots: "Слоты на {date} удалены"

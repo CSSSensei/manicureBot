@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
@@ -186,13 +186,19 @@ def back_to_edit_service(service_id: int) -> IMarkup:
 def delete_slots_menu(cur_date: datetime.date) -> IMarkup:
     builder = InlineKeyboardBuilder()
     with SlotsTable() as slots_db:
-        for slot in slots_db.get_available_slots_by_day(cur_date):
+        available_slots = slots_db.get_available_slots_by_day(cur_date)
+        for slot in available_slots:
             builder.button(
                 text=str(slot),
                 callback_data=DeleteSlotCallBack(slot_id=slot.id,
                                                  slot_date=slot.start_time.date(),
-                                                 action=const.Action.check_slot_to_delete).pack()
-            )
+                                                 action=const.Action.check_slot_to_delete).pack())
+        if len(available_slots) > 0:
+            builder.button(
+                text=PHRASES_RU.button.master.delete_all_slots,
+                callback_data=DeleteSlotCallBack(slot_id=None,
+                                                 slot_date=slot.start_time.date(),
+                                                 action=const.Action.check_slot_to_delete).pack())
     builder.adjust(1)
     builder.row(
         IButton(
@@ -203,18 +209,18 @@ def delete_slots_menu(cur_date: datetime.date) -> IMarkup:
     return builder.as_markup()
 
 
-def slot_deletion(slot: SlotModel) -> IMarkup:
+def slot_deletion(slot: Optional[SlotModel], slot_date: date) -> IMarkup:
     keyboard = [
         [IButton(text=PHRASES_RU.button.delete,
-                 callback_data=DeleteSlotCallBack(slot_id=slot.id,
-                                                  slot_date=slot.start_time.date(),
+                 callback_data=DeleteSlotCallBack(slot_id=slot.id if slot else None,
+                                                  slot_date=slot_date,
                                                   action=const.Action.delete_slot).pack())],
         [IButton(
-            text=PHRASES_RU.button.back,
+            text=PHRASES_RU.button.master.do_not_delete,
             callback_data=MonthCallBack(
-                day=slot.start_time.day,
-                month=slot.start_time.month,
-                year=slot.start_time.year,
+                day=slot_date.day,
+                month=slot_date.month,
+                year=slot_date.year,
                 action=0,
                 mode=CalendarMode.DELETE
             ).pack())]
