@@ -167,7 +167,9 @@ def create_calendar_keyboard(month: int,
     available_dates, future_slots, booked_slots = set(), 0, 0
 
     match mode:
-        case CalendarMode.BOOKING | CalendarMode.DELETE:
+        case CalendarMode.BOOKING:
+            available_dates, future_slots = _get_service_available_dates(appointment.service.id, start_date, end_date)
+        case CalendarMode.DELETE:
             available_dates, future_slots = _get_available_dates(start_date, end_date)
         case CalendarMode.APPOINTMENT_MAP:
             start_of_month = datetime(year, month, 1)
@@ -200,6 +202,12 @@ def create_calendar_keyboard(month: int,
 def _get_available_dates(start_date: datetime, end_date: datetime) -> Tuple[Set[date], int]:
     with SlotsTable() as slots_db:
         slots = slots_db.get_available_slots(start_date, end_date)
+        return {s.start_time.date() for s in slots}, len(slots)
+
+
+def _get_service_available_dates(service_id: int, start_date: datetime, end_date: datetime) -> Tuple[Set[date], int]:
+    with SlotsTable() as slots_db:
+        slots = slots_db.get_available_slots(start_date, end_date, service_id)
         return {s.start_time.date() for s in slots}, len(slots)
 
 

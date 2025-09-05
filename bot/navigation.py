@@ -96,7 +96,6 @@ class AppointmentNavigation:
         """Очищает данные, связанные с определенным шагом"""
         clear_rules = {
             'WAITING_FOR_SERVICE': {'service': None},
-            'WAITING_FOR_DATE': {'slot_date': None},
             'WAITING_FOR_SLOT': {'slot': None},
             'WAITING_FOR_PHOTOS': {'photos': None},
             'WAITING_FOR_COMMENT': {'comment': None}
@@ -141,8 +140,9 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: AppointmentModel):
         with SlotsTable() as slots_db:
-            slot_date = data.slot_date if data.slot_date else slots_db.get_first_available_slot()
+            slot_date = data.slot_date if data.slot_date else slots_db.get_first_available_slot(data.service.id if data.service else None)
             prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
+            data.slot_date = None
             if slot_date:
                 text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled, CalendarMode.BOOKING, data)
                 await callback.message.edit_text(text, reply_markup=reply_markup)
