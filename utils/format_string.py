@@ -95,7 +95,7 @@ def master_sent_booking(data: AppointmentModel, header: str) -> str:
         text += PHRASES_RU.replace('template.master.client_username',
                                    user_id=data.client.user_id,
                                    username=f'@{data.client.username}' if data.client.username else data.client.first_name or PHRASES_RU.error.no_username)
-    text += PHRASES_RU.replace('template.user.slot', date=data.formatted_date,
+    text += PHRASES_RU.replace('template.master.slot', date=data.formatted_date,
                                datetime=data.slot_str) if data.slot else ''
     if data.service and data.service.name:
         text += PHRASES_RU.replace('template.user.service', service=data.service.name)
@@ -104,6 +104,13 @@ def master_sent_booking(data: AppointmentModel, header: str) -> str:
     if data.comment:
         text += PHRASES_RU.replace('template.user.text', text=data.comment)
     text += '\n'
+    return text
+
+
+def master_reviewed_appointment(data: AppointmentModel):
+    text = master_sent_booking(data, PHRASES_RU.title.booking)
+    if data.status:
+        text += get_status_app_string(data.status)
     return text
 
 

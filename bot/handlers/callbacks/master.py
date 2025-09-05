@@ -157,22 +157,15 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
                 with SlotsTable() as slots_db:
                     slots_db.set_slot_availability(app.slot.id, True)
                 app_db.update_appointment_status(app.appointment_id, const.REJECTED)
-                await callback.answer(PHRASES_RU.answer.status.rejected)
                 app.status = const.REJECTED
                 await msg_sender.notify_client(app)
+                await callback.message.edit_text(text=format_string.master_reviewed_appointment(app))
             case (_, const.CONFIRMED):
                 app_db.update_appointment_status(app.appointment_id, const.CONFIRMED)
-                await callback.answer(PHRASES_RU.answer.status.confirmed)
                 app.status = const.CONFIRMED
                 await msg_sender.notify_client(app)
                 scheduler.schedule_reminders(app.appointment_id, app.slot.start_time)
-
-        await callback.message.delete()
-
-        if callback_data.msg_to_delete:
-            msgs = list(map(int, callback_data.msg_to_delete.split(',')))
-            msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
-            await bot.delete_messages(chat_id=callback.from_user.id, message_ids=msgs_list)
+                await callback.message.edit_text(text=format_string.master_reviewed_appointment(app))
 
         master_db.update_current_state(callback.from_user.id)
 
