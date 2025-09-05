@@ -373,18 +373,26 @@ def service_keyboard() -> Tuple[str, IMarkup]:
     """Клавиатура с услугами."""
     builder = InlineKeyboardBuilder()
     services_txt = PHRASES_RU.answer.choose_service
-    with ServicesTable() as service_db:
+    with ServicesTable() as service_db, SlotsTable() as slots_db:
         for service in service_db.get_active_services():
-            if service.name:
-                services_txt += f'• <b>{service.name}</b>'
+            if not service.name:
+                continue
+            services_txt += f'• <b>{service.name}</b>'
             if service.description:
                 services_txt += f': <i>{service.description}</i>'
-            services_txt += '\n'
-            builder.button(
-                text=service.name,
-                callback_data=ServiceCallBack(service_id=service.id).pack()
-            )
+
+            slots_count = slots_db.count_available_slots_for_service(service.id)
+            if slots_count == 0:
+                services_txt += f' (нет свободных слотов)\n'
+            else:
+                services_txt += f' (слотов: {slots_count})\n'
+                builder.button(
+                    text=service.name,
+                    callback_data=ServiceCallBack(service_id=service.id).pack()
+                )
     builder.adjust(2)  # 2 кнопки в ряд
+    if len(builder.export()) == 0:
+        services_txt = PHRASES_RU.error.no_slots
     return services_txt, builder.as_markup()
 
 
