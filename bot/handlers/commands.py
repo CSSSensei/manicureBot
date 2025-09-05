@@ -53,5 +53,5 @@ async def _(message: Message):
 
 @router.command('cancel', 'выход из текущего состояния')   # /cancel
 async def _(message: Message, state: FSMContext):
-    await message.answer("Вы вышли из текущего состояния")
+    await message.answer(PHRASES_RU.answer.state_cancelled)
     await state.clear()

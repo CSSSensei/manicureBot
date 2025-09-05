@@ -113,7 +113,7 @@ async def notify_client(app: AppointmentModel):
         }
         if app.status == CONFIRMED:
             text = PHRASES_RU.replace('answer.notify.client.confirmed', **data)
-            await bot.send_message(chat_id=app.client.user_id, text=text)
+            await bot.send_message(chat_id=app.client.user_id, text=text, disable_web_page_preview=True)
         elif app.status == CANCELLED:
             text = PHRASES_RU.replace('answer.notify.client.cancelled', **data)
             await bot.send_message(chat_id=app.client.user_id, text=text)
@@ -133,9 +133,9 @@ async def send_reminder(appointment_id: int, reminder_type: str):
         time_left = PHRASES_RU.error.unknown
         match reminder_type:
             case '1h':
-                time_left = '1 ч до вашей записи!'  # TODO
+                time_left = PHRASES_RU.answer.notify.client.h1_notification
             case '24h':
-                time_left = 'завтра у Вас запланирована запись'
+                time_left = PHRASES_RU.answer.notify.client.h24_notification
         text = PHRASES_RU.replace('answer.notify.client.scheduled', time_left=time_left)
 
         await bot.send_message(

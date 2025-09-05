@@ -255,7 +255,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
     slots = data.get('parsed_slots', [])
 
     if not slots:
-        await callback.message.edit_text(PHRASES_RU.error.slots_not_flound)
+        await callback.message.edit_text(PHRASES_RU.error.slots_not_found)
         return
     result_text = db_manager.add_slots_from_list(slots)
     text_chunks = format_string.split_text(result_text, 4096)
