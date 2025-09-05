@@ -129,18 +129,29 @@ class SlotsTable(BaseTable):
             )
         return None
 
-    def get_available_slots(self, from_time: Optional[datetime] = None, to_time: Optional[datetime] = None) -> List[SlotModel]:
-        """Возвращает список доступных слотов."""
+    def get_available_slots(
+            self,
+            from_time: Optional[datetime] = None,
+            to_time: Optional[datetime] = None,
+            service_id: Optional[int] = None
+    ) -> List[SlotModel]:
+        """
+        Возвращает список доступных слотов.
+        Если передан service_id, фильтрует слоты по дням недели доступности услуги.
+        """
         if from_time and to_time and to_time < from_time:
-            raise ValueError("Конечное время не может быть раньше начального")
-        if from_time and from_time < datetime.now() + timedelta(hours=3):
+            raise ValueError('Конечное время не может быть раньше начального')
+
+        if from_time is None:
+            from_time = datetime.now() + timedelta(hours=3)  # MSK timezone
+
+        if from_time < datetime.now() + timedelta(hours=3):
             self._update_past_slots_status()
 
         query = f"""
             SELECT * FROM {self.__tablename__} 
             WHERE is_available = TRUE AND is_deleted = 0
-            """
-
+        """
         params = []
 
         if from_time:
@@ -151,6 +162,17 @@ class SlotsTable(BaseTable):
             query += " AND start_time <= ?"
             params.append(to_time)
 
+        if service_id is not None:
+            with ServiceScheduleTable() as schedule_db:
+                available_weekdays = schedule_db.get_available_weekdays(service_id)
+
+            if available_weekdays:
+                sqlite_weekdays = [str(w % 7) for w in available_weekdays]
+                query += f" AND strftime('%w', start_time) IN ({','.join('?' * len(sqlite_weekdays))})"
+                params.extend(sqlite_weekdays)
+            else:
+                return []
+
         query += " ORDER BY start_time ASC"
 
         self.cursor.execute(query, tuple(params))
@@ -158,35 +180,50 @@ class SlotsTable(BaseTable):
         return [
             SlotModel(
                 id=row['id'],
-                start_time=datetime.fromisoformat(row['start_time'])
-                if row['start_time'] is not None else None,
-                end_time=datetime.fromisoformat(row['end_time'])
-                if row['end_time'] is not None else None,
+                start_time=datetime.fromisoformat(row['start_time']),
+                end_time=datetime.fromisoformat(row['end_time']),
                 is_available=bool(row['is_available'])
             )
             for row in self.cursor
         ]
 
-    def get_available_slots_by_day(self, day: date) -> List[SlotModel]:
+    def get_available_slots_by_day(
+            self,
+            day: date,
+            service_id: Optional[int] = None
+    ) -> List[SlotModel]:
         """Возвращает список доступных слотов на указанный день."""
         start = datetime.combine(day, time.min)
         end = datetime.combine(day, time.max)
-        return self.get_available_slots(from_time=start, to_time=end)
+        return self.get_available_slots(from_time=start, to_time=end, service_id=service_id)
 
-    def get_first_available_slot(self) -> Optional[datetime]:
-        """Проверяет наличие свободных слотов и возвращает дату первого доступного.
-
-        Returns:
-            Optional[datetime]: Дата начала первого свободного слота или None, если свободных слотов нет.
-        """
+    def get_first_available_slot(
+            self,
+            service_id: Optional[int] = None
+    ) -> Optional[datetime]:
+        """Проверяет наличие свободных слотов и возвращает дату первого доступного."""
         self._update_past_slots_status()
+
         query = f"""
             SELECT start_time FROM {self.__tablename__} 
             WHERE is_available = TRUE and is_deleted = 0
-            ORDER BY start_time ASC
-            LIMIT 1
         """
-        self.cursor.execute(query)
+        params = []
+
+        if service_id is not None:
+            with ServiceScheduleTable() as schedule_db:
+                available_weekdays = schedule_db.get_available_weekdays(service_id)
+
+            if available_weekdays:
+                sqlite_weekdays = [str(w % 7) for w in available_weekdays]
+                query += f" AND strftime('%w', start_time) IN ({','.join('?' * len(sqlite_weekdays))})"
+                params.extend(sqlite_weekdays)
+            else:
+                return None
+
+        query += " ORDER BY start_time ASC LIMIT 1"
+
+        self.cursor.execute(query, params)
         row = self.cursor.fetchone()
 
         if row:
@@ -286,11 +323,3 @@ class SlotsTable(BaseTable):
         self.cursor.execute(query, sqlite_weekdays)
         result = self.cursor.fetchone()
         return result['slot_count'] if result else 0
-
-    def test(self):
-        self.cursor.execute("SELECT start_time, strftime('%w', start_time) as weekday FROM slots WHERE id = 1;")
-        result = self.cursor.fetchall()
-        print("Результат запроса:")
-        for row in result:
-            print(f"start_time: {row[0]}, weekday: {row[1]}")
-        return tuple(result)
