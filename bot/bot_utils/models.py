@@ -88,6 +88,12 @@ class MasterServiceCallBack(CallbackData, prefix="master_service"):
     action: Optional[str] = None  # 'set_active', 'set_inactive', 'updated'
 
 
+class ScheduleServiceCallBack(CallbackData, prefix="schedule_service"):
+    service_id: int
+    weekday: int
+    action: str  # 'set_active', 'set_inactive'
+
+
 class EditServiceCallBack(CallbackData, prefix="edit_master_service"):
     service_id: int
 

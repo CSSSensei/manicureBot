@@ -5,13 +5,14 @@ from aiogram.types import InlineKeyboardMarkup as IMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from DB.models import Pagination, ServiceModel, SlotModel
+from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, \
-    DeleteSlotCallBack, MonthCallBack
+    DeleteSlotCallBack, MonthCallBack, ScheduleServiceCallBack
 from bot.keyboards.admin import inline as admin_ikb
 from config import const
-from config.const import CalendarMode, PageListSection
+from config.const import CalendarMode, PageListSection, Action
 from phrases import PHRASES_RU
 
 
@@ -164,17 +165,48 @@ def master_service_editor() -> IMarkup:
 
 def edit_current_service(service: ServiceModel) -> IMarkup:
     active_str = PHRASES_RU.button.master.deactivate if service.is_active else PHRASES_RU.button.master.activate
-    action = const.Action.set_inactive if service.is_active else const.Action.set_active
-    keyboard = [
-        [IButton(text=active_str,
-                 callback_data=MasterServiceCallBack(service_id=service.id, action=action).pack())],
-        [IButton(text=PHRASES_RU.button.master.edit,
-                 callback_data=EditServiceCallBack(service_id=service.id).pack())],
+    service_action = const.Action.set_inactive if service.is_active else const.Action.set_active
 
-        [IButton(text=PHRASES_RU.button.back,
-                 callback_data=PHRASES_RU.callback_data.master.edit_service)]
-    ]
-    return IMarkup(inline_keyboard=keyboard)
+    builder = InlineKeyboardBuilder()
+
+    with ServiceScheduleTable() as db:
+        weekdays = db.get_service_schedule(service.id)
+        enabled = PHRASES_RU.icon.enabled
+
+        for weekday in weekdays:
+            weekday_action = Action.set_inactive if weekday.is_available else Action.set_active
+            builder.button(
+                text=f'{enabled if weekday.is_available else ""} {weekday.weekday.short_name}',
+                callback_data=ScheduleServiceCallBack(
+                    service_id=service.id,
+                    action=weekday_action,
+                    weekday=weekday.weekday.id
+                ).pack()
+            )
+
+    builder.adjust(4)
+
+    basic_builder = InlineKeyboardBuilder()
+
+    basic_builder.button(
+        text=active_str,
+        callback_data=MasterServiceCallBack(service_id=service.id, action=service_action).pack()
+    )
+
+    basic_builder.button(
+        text=PHRASES_RU.button.master.edit,
+        callback_data=EditServiceCallBack(service_id=service.id).pack()
+    )
+
+    basic_builder.button(
+        text=PHRASES_RU.button.back,
+        callback_data=PHRASES_RU.callback_data.master.edit_service
+    )
+
+    basic_builder.adjust(1)
+    builder.attach(basic_builder)
+
+    return builder.as_markup()
 
 
 def back_to_edit_service(service_id: int) -> IMarkup:

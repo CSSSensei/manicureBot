@@ -305,6 +305,9 @@ icon:
   time_separator: "–"
   available_sign: "•"
   row_placeholder: "<code>.</code>\n"
+  enabled: "✔️"
+  active: "🟢"
+  inactive: "🔴"
   query:
     thresholds:
       "🤯": 100

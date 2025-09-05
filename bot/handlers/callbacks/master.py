@@ -9,13 +9,14 @@ from DB import models
 from DB.models import format_date
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
+from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from bot import pages, scheduler
 from bot.bot_utils import msg_sender
 from bot.bot_utils.filters import NotBookingCalendar, MasterFilter
 from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
-    DeleteSlotCallBack
+    DeleteSlotCallBack, ScheduleServiceCallBack
 from bot.handlers.master import send_master_menu
 from bot.navigation import AppointmentNavigation
 from bot.states import MasterStates
@@ -232,6 +233,21 @@ async def _(callback: CallbackQuery, callback_data: EditServiceCallBack, state: 
     await state.set_state(MasterStates.WAITING_FOR_EDIT_SERVICE)
     await callback.message.edit_text(text=PHRASES_RU.answer.master.add_service,
                                      reply_markup=inline_mkb.back_to_edit_service(service_id))
+
+
+@router.callback_query(ScheduleServiceCallBack.filter(), MasterFilter())
+async def _(callback: CallbackQuery, callback_data: ScheduleServiceCallBack, state: FSMContext):
+    service_id = callback_data.service_id
+    weekday = callback_data.weekday
+    action = callback_data.action
+    with ServiceScheduleTable() as db:
+        match action:
+            case const.Action.set_active:
+                db.set_service_availability(service_id, weekday, True)
+            case const.Action.set_inactive:
+                db.set_service_availability(service_id, weekday, False)
+
+    await handle_service_edit(callback, MasterServiceCallBack(service_id=service_id), state)
 
 
 @router.callback_query(StateFilter(MasterStates.WAITING_FOR_SLOT), F.data == PHRASES_RU.callback_data.master.confirm_add_slot, MasterFilter())
