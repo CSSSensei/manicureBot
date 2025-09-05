@@ -216,3 +216,18 @@ class ClientStats:
 class ClientWithStats:
     user: UserModel
     stats: ClientStats
+
+
+@dataclass
+class Weekday:
+    id: int
+    name: str
+    name_ru: str
+    short_name: str
+
+
+@dataclass
+class ServiceSchedule:
+    service_id: int
+    weekday: Weekday
+    is_available: bool
