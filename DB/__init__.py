@@ -8,10 +8,12 @@ from DB.tables.appointments import AppointmentsTable
 from DB.tables.base import BaseTable
 from DB.tables.photos import PhotosTable
 from DB.tables.queries import QueriesTable
+from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
 from DB.tables.masters import MastersTable
+from DB.tables.weekdays import WeekdaysTable
 
 
 # logger = logging.getLogger(__name__)
@@ -56,7 +58,9 @@ def init_database():
           PhotosTable() as photos_db,
           AppointmentsTable() as appointments_db,
           AppointmentPhotosTable() as appointments_photos_db,
-          MastersTable() as masters_db):
+          MastersTable() as masters_db,
+          WeekdaysTable() as weekdays_db,
+          ServiceScheduleTable() as service_schedule_db):
         users_db.create_table()
         queries_db.create_table()
         slots_db.create_table()
@@ -65,3 +69,5 @@ def init_database():
         appointments_db.create_table()
         appointments_photos_db.create_table()
         masters_db.create_table()
+        weekdays_db.create_table()
+        service_schedule_db.create_table()
