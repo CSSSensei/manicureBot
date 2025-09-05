@@ -153,6 +153,12 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
         match (app.status, status_to_set):
             case (const.CANCELLED, _):
                 await callback.answer(PHRASES_RU.answer.status.already_cancelled)
+                await callback.message.delete()
+
+                if callback_data.msg_to_delete:
+                    msgs = list(map(int, callback_data.msg_to_delete.split(',')))
+                    msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
+                    await bot.delete_messages(chat_id=callback.from_user.id, message_ids=msgs_list)
             case (_, const.REJECTED):
                 with SlotsTable() as slots_db:
                     slots_db.set_slot_availability(app.slot.id, True)
