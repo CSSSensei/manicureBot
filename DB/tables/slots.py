@@ -3,6 +3,7 @@ from typing import Optional, List, Union, Tuple
 
 from DB.models import SlotModel
 from DB.tables.base import BaseTable
+from DB.tables.service_schedule import ServiceScheduleTable
 
 
 class SlotsTable(BaseTable):
@@ -254,3 +255,42 @@ class SlotsTable(BaseTable):
             error_msg = f"Ошибка при удалении слота: {str(e)}"
             self._log('DELETE_SLOT_ERROR', error=error_msg)
             return False, error_msg
+
+    def count_available_slots_for_service(self, service_id: int) -> int:
+        """
+        Возвращает количество доступных слотов для указанной услуги.
+
+        Args:
+            service_id: ID услуги
+
+        Returns:
+            Количество доступных слотов
+        """
+        with ServiceScheduleTable() as schedule_db:
+            available_weekdays = schedule_db.get_available_weekdays(service_id)
+
+        if not available_weekdays:
+            return 0
+
+        sqlite_weekdays = [str(w % 7) for w in available_weekdays]
+
+        query = f"""
+        SELECT COUNT(*) as slot_count
+        FROM {self.__tablename__} s
+        WHERE 
+            s.is_available = TRUE AND is_deleted = 0 AND
+            s.start_time > datetime('now', '+3 hours') AND
+            strftime('%w', s.start_time) IN ({','.join('?' * len(sqlite_weekdays))})
+        """
+
+        self.cursor.execute(query, sqlite_weekdays)
+        result = self.cursor.fetchone()
+        return result['slot_count'] if result else 0
+
+    def test(self):
+        self.cursor.execute("SELECT start_time, strftime('%w', start_time) as weekday FROM slots WHERE id = 1;")
+        result = self.cursor.fetchall()
+        print("Результат запроса:")
+        for row in result:
+            print(f"start_time: {row[0]}, weekday: {row[1]}")
+        return tuple(result)

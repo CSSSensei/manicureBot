@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from DB.models import ServiceModel
 from DB.tables.base import BaseTable
+from DB.tables.service_schedule import ServiceScheduleTable
 
 
 class ServicesTable(BaseTable):
@@ -30,7 +31,10 @@ class ServicesTable(BaseTable):
         self.cursor.execute(query, (service.name, service.description, service.duration, service.price))
         self._log('ADD_SERVICE', name=service.name, price=service.price)
         self.conn.commit()
-        return self.cursor.lastrowid
+        last_row_id = self.cursor.lastrowid
+        with ServiceScheduleTable() as db:
+            db.initialize_default_schedule(last_row_id)
+        return last_row_id
 
     def get_active_services(self) -> List[ServiceModel]:
         """Возвращает список активных услуг."""
