@@ -135,7 +135,7 @@ async def send_reminder(appointment_id: int, reminder_type: str):
             case '1h':
                 time_left = PHRASES_RU.answer.notify.client.h1_notification
             case '24h':
-                time_left = PHRASES_RU.answer.notify.client.h24_notification
+                time_left = PHRASES_RU.replace('answer.notify.client.h24_notification', service=appointment.service.name.lower())
         text = PHRASES_RU.replace('answer.notify.client.scheduled', time_left=time_left)
 
         await bot.send_message(
