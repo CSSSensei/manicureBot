@@ -73,9 +73,10 @@ async def _(message: Message, state: FSMContext):
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_COMMENT))
 async def _(message: Message, state: FSMContext):
     if message.text:
+        comment = format_string.clear_string(message.text)
         data = await AppointmentNavigation.update_appointment_data(
             state,
-            comment=message.text
+            comment=comment
         )
 
         if data.message_id:
@@ -84,7 +85,7 @@ async def _(message: Message, state: FSMContext):
                 text=PHRASES_RU.answer.comment_attached,
                 reply_to_message_id=data.message_id
             )
-        data.comment = message.text
+        data.comment = comment
         await bot.edit_message_text(chat_id=message.from_user.id,
                                     message_id=data.message_id,
                                     text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
