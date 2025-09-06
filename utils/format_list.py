@@ -1,6 +1,7 @@
 from datetime import time, date, timedelta, datetime
 from typing import List, Optional
 from DB.models import UserModel, QueryModel, AppointmentModel, SlotModel, ClientWithStats
+from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
 from DB.models import Pagination
 from utils import format_string
@@ -10,13 +11,14 @@ from utils.format_string import get_status_app_string
 def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str:
     txt = [PHRASES_RU.title.users,
            PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
-
+    with MastersTable() as db:
+        masters = {master_user.user.user_id for master_user in db.get_all_masters()}
     for user in users_info:
         line_data = {
             'username': f'@{user.username}' if user.username else user.first_name or PHRASES_RU.icon.not_username,
             'user_id': str(user.user_id).ljust(12),
             'query_stat': f'{format_string.get_query_count_emoji(user.query_count)} {user.query_count}',
-            'registration_date': user.registration_date.strftime('%d.%m.%Y')
+            'registration_date': user.registration_date.strftime('%d.%m.%Y'),
         }
 
         user_line = PHRASES_RU.replace('template.user_str', **line_data)
@@ -25,6 +27,8 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
             txt.append(f'<s>{user_line}</s>')
         elif user.is_admin:
             txt.append(f'<b>{user_line}</b>')
+        elif user.user_id in masters:
+            txt.append(f'<u>{user_line}</u>')
         else:
             txt.append(user_line)
 
@@ -77,7 +81,7 @@ def format_client_list(clients_info: List[ClientWithStats], pagination: Paginati
     for client in clients_info:
         line_data = {
             'username': f'@{client.user.username}' if client.user.username else client.user.first_name or PHRASES_RU.icon.not_username,
-            'user_id': str(client.user.user_id).ljust(12),
+            'user_id': str(client.user.user_id).ljust(11),
             'total_apps': client.stats.total,
             'cancelled_apps': client.stats.cancelled,
             'completed_apps': client.stats.completed,

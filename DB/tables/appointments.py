@@ -712,6 +712,8 @@ class AppointmentsTable(BaseTable):
                 username=client_row['username'],
                 first_name=client_row['first_name'],
                 last_name=client_row['last_name'],
+                is_admin=client_row['is_admin'],
+                is_banned=client_row['is_banned'],
                 contact=client_row['contact']
             )
 
