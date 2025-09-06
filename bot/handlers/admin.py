@@ -25,34 +25,14 @@ async def command_getcmds(message: Message):
     commands_text = PHRASES_RU.title.commands
     admin_commands = '\n'.join(str(command) for command in BaseRouter.available_commands if command.is_admin)
     if admin_commands:
-        commands_text += PHRASES_RU.subtitle.admin_commands + admin_commands
-    user_commands = '\n'.join(str(command) for command in BaseRouter.available_commands if not command.is_admin)
+        commands_text += PHRASES_RU.subtitle.admin_commands + admin_commands + '\n\n'
+    master_commands = '\n'.join(str(command) for command in BaseRouter.available_commands if command.is_master)
+    if master_commands:
+        commands_text += PHRASES_RU.subtitle.master_commands + master_commands
+    user_commands = '\n'.join(str(command) for command in BaseRouter.available_commands if command.is_user)
     if user_commands:
         commands_text += PHRASES_RU.subtitle.user_commands + user_commands
     await message.answer(commands_text)
-
-
-@router.command('ban', 'заблокировать пользователя по ID', 'user_id')  # /ban
-@command_arguments.user_id
-async def _(message: Message, user_id):
-    if message.from_user.id == int(user_id):
-        await message.answer(PHRASES_RU.error.ban_yourself)
-        return
-    with UsersTable() as user_db:
-        if user_db.set_ban_status(user_id, message.from_user.id, True):
-            await message.answer(PHRASES_RU.replace('success.banned', user_id=user_id))
-        else:
-            await message.answer(PHRASES_RU.error.db)
-
-
-@router.command('unban', 'разблокировать пользователя по ID', 'user_id')  # /unban
-@command_arguments.user_id
-async def _(message: Message, user_id):
-    with UsersTable() as user_db:
-        if user_db.set_ban_status(user_id, message.from_user.id, False):
-            await message.answer(PHRASES_RU.replace('success.unbanned', user_id=user_id))
-        else:
-            await message.answer(PHRASES_RU.error.db)
 
 
 @router.command('promote', 'повысить уровень доступа', 'user_id')  # /promote
@@ -130,5 +110,5 @@ async def _(message: Message, user_id):
 
 
 @router.command('test', 'отладка и тестирование функций')  # /test
-async def _(message: Message):
+async def _():
     pass

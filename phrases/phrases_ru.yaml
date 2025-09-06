@@ -233,7 +233,7 @@ success:
 
 error:
   clear_temp: "⚠️ Ошибка со стороны удалятеля"
-  empty_argument: "⚠️ Ты не передал аргумент команды"
+  empty_argument: "⚠️ Вы забыли передать аргумент команды"
   not_digit_argument: "⚠️ Аргумент команды не число"
   is_not_link_argument: "⚠️ Нужно передать ссылку"
   db: "⚠️ Ошибка со стороны базы данных"
@@ -313,6 +313,7 @@ title:
 
 subtitle:
   admin_commands: "<i>Админские</i>\n"
+  master_commands: "<i>Мастера</i>\n"
   user_commands: "\n\n<i>Пользовательские</i>\n"
 
 footnote:
@@ -343,7 +344,7 @@ template:
   page_counter: "{current} / {total}"
   user_str: "<code>{user_id}</code><a href=\"tg://user?id={user_id}\">{username}</a> <i>{registration_date}</i> {query_stat}\n"
   user_query: "<blockquote>{time}</blockquote> <i>{query}</i>\n\n"
-  client_str: "<code>{user_id}</code><a href=\"tg://user?id={user_id}\">{username}</a> ℹ️ <i>{total_apps}</i> 🗑 {cancelled_apps} ✅ {completed_apps}{pending_apps}\n"
+  client_str: "<code>{user_id}</code><a href=\"tg://user?id={user_id}\">{username}</a> ℹ️<i>{total_apps}</i> 🗑{cancelled_apps} ✅{completed_apps}{pending_apps}\n"
   all_queries: "<a href=\"tg://user?id={user_id}\">{username}</a> <blockquote>{time}</blockquote> <i>{query}</i>\n\n"
   user:
     date: "<b>📅 Дата:</b> <i>{date}</i>\n"

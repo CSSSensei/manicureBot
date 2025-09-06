@@ -45,9 +45,9 @@ async def _(message: Message):
                                reply_markup=get_keyboard(message.from_user.id))
 
 
-@router.command(('commands', 'cmd'), 'список всех команд (это сообщение)')  # /commands
+@router.command(('commands', 'cmd'), 'список всех команд (это сообщение)')  # /commands, /cmd
 async def _(message: Message):
-    commands_text = '\n'.join(str(command) for command in BaseRouter.available_commands if not command.is_admin)
+    commands_text = '\n'.join(str(command) for command in BaseRouter.available_commands if command.is_user)
     await message.answer(PHRASES_RU.title.commands + commands_text, reply_markup=get_keyboard(message.from_user.id))
 
 

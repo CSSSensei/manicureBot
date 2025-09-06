@@ -13,6 +13,8 @@ class CommandUnit:
     aliases: Tuple[str, ...] = ()  # Дополнительные варианты вызова
     description: str = ''
     is_admin: bool = False
+    is_master: bool = False
+    is_user: bool = True
     placeholders: Optional[Tuple[Any, ...]] = None
 
     def __str__(self):
