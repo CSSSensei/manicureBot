@@ -101,7 +101,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                     await msg_sender.notify_master(app)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
-                await callback.message.edit_text(PHRASES_RU.answer.status.cancelled)
+                await callback.message.edit_text(PHRASES_RU.answer.notify.client.app_cancelled_by_user)
         elif status == const.REJECTED:
             with MastersTable() as master_db:
                 master = master_db.get_master(callback.from_user.id)
