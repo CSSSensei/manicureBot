@@ -7,11 +7,12 @@ from aiogram.types import FSInputFile
 
 from DB import models
 from DB.tables.slots import SlotsTable
+from bot.scheduler import SlotNotifierBot
 from config import const
 from phrases import PHRASES_RU
 
 
-def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
+async def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
     added_slots = []
     not_added_slots = []
     with SlotsTable() as db:
@@ -22,6 +23,7 @@ def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
             else:
                 not_added_slots.append((result, start, end))
 
+    await SlotNotifierBot().update_channel_slots()
     result_text = ''
     if added_slots:
         added_by_date = defaultdict(list)

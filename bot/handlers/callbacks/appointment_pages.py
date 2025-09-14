@@ -10,6 +10,7 @@ from bot.pages import get_active_bookings, get_master_apps, get_day_range
 from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
 from bot.keyboards.default import inline as ikb
 from bot import scheduler
+from bot.scheduler import SlotNotifierBot
 from config import bot
 from config import const
 from config.const import AppListMode, CANCELLED
@@ -101,6 +102,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                     await msg_sender.notify_master(app)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
+                await SlotNotifierBot().update_channel_slots()
                 await callback.message.edit_text(PHRASES_RU.answer.notify.client.app_cancelled_by_user)
         elif status == const.REJECTED:
             with MastersTable() as master_db:
@@ -118,6 +120,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 await msg_sender.notify_client(app)
                 app_db.update_appointment_status(appointment_id, status)
                 slots_db.set_slot_availability(app.slot.id, True)
+                await SlotNotifierBot().update_channel_slots()
                 await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)
     await callback.answer()
 

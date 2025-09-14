@@ -17,6 +17,7 @@ from bot.bot_utils.filters import IsCancelActionFilter
 from bot.bot_utils.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
 
 from bot.navigation import AppointmentNavigation
+from bot.scheduler import SlotNotifierBot
 from bot.states import AppointmentStates
 from phrases import PHRASES_RU
 from bot import pages
@@ -150,6 +151,7 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
     with SlotsTable() as slots_db, AppointmentsTable() as app_db:
         if not slots_db.set_slot_availability(data.slot.id, False):
             return None
+        await SlotNotifierBot().update_channel_slots()
 
         app_id = app_db.create_appointment(
             client_id=user_id,

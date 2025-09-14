@@ -19,6 +19,7 @@ from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, Ma
     DeleteSlotCallBack, ScheduleServiceCallBack
 from bot.handlers.master import send_master_menu
 from bot.navigation import AppointmentNavigation
+from bot.scheduler import SlotNotifierBot
 from bot.states import MasterStates
 from bot.keyboards.master import inline as inline_mkb
 from bot.keyboards.default import inline as ikb
@@ -113,7 +114,7 @@ async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlo
                     slots = db.get_available_slots_by_day(slot_date)
                     for slot in slots:
                         db.delete_slot(slot.id)
-
+                    await SlotNotifierBot().update_channel_slots()
                     await callback.answer(PHRASES_RU.replace(
                         'callback.answer.delete_slots',
                         date=formatted_date)
@@ -121,6 +122,7 @@ async def handle_slot_deletion(callback: CallbackQuery, callback_data: DeleteSlo
                     await show_calendar()
                     return
                 success, message = db.delete_slot(slot_id)
+                await SlotNotifierBot().update_channel_slots()
                 await callback.answer(message)
 
             # Проверить, остались ли еще слоты на этот день
@@ -162,6 +164,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             case (_, const.REJECTED):
                 with SlotsTable() as slots_db:
                     slots_db.set_slot_availability(app.slot.id, True)
+                    await SlotNotifierBot().update_channel_slots()
                 app_db.update_appointment_status(app.appointment_id, const.REJECTED)
                 app.status = const.REJECTED
                 await msg_sender.notify_client(app)
@@ -193,7 +196,7 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
             await callback.message.edit_text(text=text,
                                              reply_markup=inline_mkb.master_confirm_adding_slot(month, year))
         case 'add':
-            text = db_manager.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
+            text = await db_manager.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
             text_chunks = format_string.split_text(text, 4096)
             for i in range(len(text_chunks)):
                 if i == 0:
@@ -257,7 +260,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
     if not slots:
         await callback.message.edit_text(PHRASES_RU.error.slots_not_found)
         return
-    result_text = db_manager.add_slots_from_list(slots)
+    result_text = await db_manager.add_slots_from_list(slots)
     text_chunks = format_string.split_text(result_text, 4096)
     await state.clear()
     for i in range(len(text_chunks)):
