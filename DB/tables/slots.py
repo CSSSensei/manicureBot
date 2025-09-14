@@ -143,9 +143,9 @@ class SlotsTable(BaseTable):
             raise ValueError('Конечное время не может быть раньше начального')
 
         if from_time is None:
-            from_time = datetime.now() + timedelta(hours=3)  # MSK timezone
+            from_time = datetime.now()
 
-        if from_time < datetime.now() + timedelta(hours=3):
+        if from_time < datetime.now():
             self._update_past_slots_status()
 
         query = f"""
