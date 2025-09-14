@@ -20,8 +20,8 @@ class ChannelPostingService:
 
     async def generate_slots_message(self) -> str:
         """Генерирует текст сообщения со свободными слотами."""
-        # Получаем слоты на ближайшие 3 месяца
-        end_date = datetime.now() + timedelta(weeks=6)
+        # Получаем слоты на ближайшие 2 месяца
+        end_date = datetime.now() + timedelta(weeks=8)
         slots = self.slots_db.get_available_slots(
             to_time=end_date
         )
