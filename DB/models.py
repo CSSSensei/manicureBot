@@ -231,3 +231,13 @@ class ServiceSchedule:
     service_id: int
     weekday: Weekday
     is_available: bool
+
+
+@dataclass
+class ChannelMessage:
+    id: int
+    channel_id: int
+    message_id: int
+    message_type: str
+    last_update: datetime
+    is_active: bool

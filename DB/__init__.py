@@ -6,6 +6,7 @@ from typing import List, Type, TypeVar, Set
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.base import BaseTable
+from DB.tables.channel_messages import ChannelMessagesTable
 from DB.tables.photos import PhotosTable
 from DB.tables.queries import QueriesTable
 from DB.tables.service_schedule import ServiceScheduleTable
@@ -60,7 +61,8 @@ def init_database():
           AppointmentPhotosTable() as appointments_photos_db,
           MastersTable() as masters_db,
           WeekdaysTable() as weekdays_db,
-          ServiceScheduleTable() as service_schedule_db):
+          ServiceScheduleTable() as service_schedule_db,
+          ChannelMessagesTable() as channel_messages_db):
         users_db.create_table()
         queries_db.create_table()
         slots_db.create_table()
@@ -71,3 +73,4 @@ def init_database():
         masters_db.create_table()
         weekdays_db.create_table()
         service_schedule_db.create_table()
+        channel_messages_db.create_table()
