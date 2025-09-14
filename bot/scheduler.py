@@ -5,7 +5,8 @@ from apscheduler.jobstores.base import JobLookupError
 from DB.models import AppointmentModel
 from DB.tables.appointments import AppointmentsTable
 from bot.bot_utils.msg_sender import send_reminder
-from config import scheduler, const
+from bot.channel_posting import ChannelPostingService
+from config import scheduler, const, bot, config
 
 logger = logging.getLogger(__name__)
 
@@ -74,3 +75,27 @@ def cancel_scheduled_reminders(appointment: AppointmentModel):
             logger.warning(f"1-hour reminder for recording {appointment.appointment_id} not found")
         except Exception as e:
             logger.error(f"Error deleting a 1-hour reminder: {e}")
+
+
+class SlotNotifierBot:
+    def __init__(self):
+        self.bot = bot
+        self.scheduler = scheduler
+        self.channel_service = ChannelPostingService(config.tg_bot.channel_id)
+
+    async def on_startup(self):
+        """Запуск при старте бота."""
+        # Первоначальная публикация
+        await self.channel_service.post_or_update_slots_message()
+
+        # Планируем регулярное обновление (каждый час)
+        self.scheduler.add_job(
+            self.update_channel_slots,
+            'interval',
+            hours=1,
+            id='channel_slots_update'
+        )
+
+    async def update_channel_slots(self):
+        """Обновляет сообщение со слотами в канале."""
+        await self.channel_service.post_or_update_slots_message()
