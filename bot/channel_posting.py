@@ -2,6 +2,8 @@ import logging
 from collections import defaultdict
 from datetime import timedelta, datetime
 
+from aiogram.exceptions import TelegramBadRequest
+
 from DB.tables.channel_messages import ChannelMessagesTable
 from DB.tables.slots import SlotsTable
 from config import bot, const
@@ -90,6 +92,12 @@ class ChannelPostingService:
                     message_type='slots'
                 )
                 return True
+
+        except TelegramBadRequest as e:
+            if "message is not modified" in str(e):
+                pass
+            else:
+                raise
 
         except Exception as e:
             logger.error(f'CHANNEL_POST_ERROR: {str(e)}')
