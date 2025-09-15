@@ -2,6 +2,7 @@ from pathlib import Path
 from enum import Enum
 
 BASE_DIR = Path(__file__).parent.parent
+DB_DIR = BASE_DIR / 'DB/tables/z_users.db'
 ADMIN_ID = 972753303
 USERS_PER_PAGE = 15
 ACTIONS_PER_PAGE = 5

@@ -1,7 +1,9 @@
 import logging
-import os
 import sqlite3
-from typing import Any
+from sqlite3 import Connection
+from typing import Any, Optional
+
+from config.const import DB_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -9,8 +11,8 @@ logger = logging.getLogger(__name__)
 class BaseTable:
     __tablename__: str
 
-    def __init__(self, db_name: str = f'{os.path.dirname(__file__)}/z_users.db'):
-        self.conn = sqlite3.connect(db_name)
+    def __init__(self, db_name: str = DB_DIR, conn: Optional[Connection] = None):
+        self.conn = conn or sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
 
