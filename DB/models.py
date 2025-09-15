@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional, List, Any, Dict
+from datetime import datetime, time
+from typing import Optional, List, Any, Dict, Tuple
 
 from pydantic import BaseModel
 
@@ -241,3 +241,10 @@ class ChannelMessage:
     message_type: str
     last_update: datetime
     is_active: bool
+
+
+@dataclass
+class DaySchedule:
+    weekday: int
+    time_slots: List[Tuple[time, time]]  # Список времени начала слотов
+    is_working: bool
