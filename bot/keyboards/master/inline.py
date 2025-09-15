@@ -80,6 +80,9 @@ def add_slots_menu() -> IMarkup:
             IButton(text=PHRASES_RU.button.master.add_manual_slots, callback_data=PHRASES_RU.callback_data.master.add_manual_slots)
         ],
         [
+            IButton(text=PHRASES_RU.button.master.edit_slot_generation_format, callback_data=PHRASES_RU.callback_data.master.edit_slot_generation_format)
+        ],
+        [
             IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)
         ]
     ]

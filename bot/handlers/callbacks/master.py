@@ -26,7 +26,8 @@ from bot.keyboards.default import inline as ikb
 from config import const, bot
 from config.const import CalendarMode
 from phrases import PHRASES_RU
-from utils import format_list, format_string, db_manager
+from utils import format_string, db_manager
+from utils.slot_generator import SlotGenerator
 
 router = Router()
 
@@ -188,7 +189,7 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
     month = callback_data.month
     year = callback_data.year
 
-    slots = format_list.generate_slots_for_month(month, year)
+    slots = SlotGenerator().generate_slots_for_month(month, year)
     slots_text = format_string.slots_to_text(slots)
     match action:
         case 'check':
@@ -346,9 +347,17 @@ async def _(callback: CallbackQuery, state: FSMContext):
                                      reply_markup=inline_mkb.back_to_adding())
 
 
+@router.callback_query(F.data == PHRASES_RU.callback_data.master.edit_slot_generation_format, MasterFilter())
+async def _(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(MasterStates.WAITING_FOR_SCHEDULE)
+    await callback.message.edit_text(text=PHRASES_RU.answer.master.send_slot_schedule,
+                                     reply_markup=inline_mkb.back_to_adding())
+
+
 @router.callback_query(F.data == PHRASES_RU.callback_data.master.add_slots, MasterFilter())
 async def add_menu(callback: CallbackQuery):
-    await callback.message.edit_text(text=PHRASES_RU.answer.master.add_slots_menu,
+    schedule = format_string.show_current_schedule()
+    await callback.message.edit_text(text=PHRASES_RU.replace('answer.master.add_slots_menu', schedule=schedule),
                                      reply_markup=inline_mkb.add_slots_menu())
 
 

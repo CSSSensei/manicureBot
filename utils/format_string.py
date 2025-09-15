@@ -1,9 +1,10 @@
 import re
 from collections import defaultdict
 from datetime import datetime, timedelta, time
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 
 from DB.models import AppointmentModel, ServiceModel, SlotModel, format_date
+from DB.tables.day_schedule import DayScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from config import const
@@ -289,6 +290,99 @@ def service_text(service: ServiceModel):
     if service.description:
         text += f'Описание: <i>{service.description}</i>\n'
     return text
+
+
+def parse_schedule_message(text: str) -> Dict[int, List[Tuple[time, time]]]:
+    """
+    Парсит сообщение мастера в формате:
+    "пн - 10:00
+    вт - 11:00 18:00
+    ср - выходной
+    чт - 10:00-14:00"
+
+    Возвращает словарь:
+    {
+        0: [(time(10,0), time(13,0))],
+        1: [(time(11,0), time(14,0)), (time(18,0), time(21,0))],
+        2: [],  # выходной
+        3: [(time(10,0), time(14,0))],
+        ...
+    }
+    """
+    day_mapping = {
+        'пн': 0, 'понедельник': 0,
+        'вт': 1, 'вторник': 1,
+        'ср': 2, 'среда': 2,
+        'чт': 3, 'четверг': 3,
+        'пт': 4, 'пятница': 4,
+        'сб': 5, 'суббота': 5,
+        'вс': 6, 'воскресенье': 6
+    }
+
+    result: Dict[int, List[Tuple[time, time]]] = {i: [] for i in range(7)}
+
+    lines = text.strip().replace('—', '-').split("\n")
+    for line in lines:
+        line = line.strip()
+        if not line or '-' not in line:
+            continue
+
+        day_part, slots_part = line.split('-', 1)
+        day_key = day_part.strip().lower()
+
+        if day_key not in day_mapping:
+            continue
+
+        weekday = day_mapping[day_key]
+        slots_text = slots_part.strip().lower()
+
+        if "выходной" in slots_text or "отдых" in slots_text:
+            result[weekday] = []
+            continue
+
+        slots: List[Tuple[time, time]] = []
+        for token in slots_text.split():
+            if "-" in token:
+                # интервал времени
+                start_str, end_str = token.split("-", 1)
+                try:
+                    start = time.fromisoformat(start_str)
+                    end = time.fromisoformat(end_str)
+                    slots.append((start, end))
+                except ValueError:
+                    continue
+            else:
+                # одиночное время = слот на 3 часа
+                try:
+                    start = time.fromisoformat(token)
+                    dt = datetime.combine(datetime.today(), start) + timedelta(hours=3)
+                    end = dt.time()
+                    slots.append((start, end))
+                except ValueError:
+                    continue
+
+        result[weekday] = slots
+
+    return result
+
+
+def show_current_schedule() -> str:
+    """Показывает текущее расписание"""
+    with DayScheduleTable() as db:
+        schedules = db.get_all_schedules()
+
+    weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    response = "<b>📅 Текущее расписание:</b>\n"
+
+    for i, day_name in enumerate(weekdays):
+        schedule = schedules.get(i)
+        if schedule and schedule.is_working:
+            times = " ".join(start.strftime('%H:%M') for start, _ in schedule.time_slots)
+            response += f"{day_name} — {times}\n"
+        else:
+            response += f"{day_name} — выходной\n"
+
+    return response
 
 
 if __name__ == '__main__':

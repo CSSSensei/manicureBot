@@ -9,6 +9,7 @@ from aiogram.types import Message
 
 from DB import models
 from DB.tables.appointments import AppointmentsTable
+from DB.tables.day_schedule import DayScheduleTable
 from DB.tables.masters import MastersTable
 from DB.tables.users import UsersTable
 from bot import pages
@@ -102,6 +103,30 @@ async def _(message: Message, state: FSMContext):
             await message.answer(PHRASES_RU.replace('error.master.slot_addition', error=str(e), slot_format=PHRASES_RU.answer.master.slot_format))
     else:
         await message.answer(PHRASES_RU.error.state.slot_not_text_type)
+
+
+@router.message(StateFilter(MasterStates.WAITING_FOR_SCHEDULE))
+async def _(message: Message, state: FSMContext):
+    if message.text:
+        try:
+            schedule_data = format_string.parse_schedule_message(message.text)
+            with DayScheduleTable() as db:
+                for weekday, time_slots in schedule_data.items():
+                    # Конвертируем time обратно в строки для хранения
+                    time_strings = [(str(start), str(end)) for start, end in time_slots]
+                    is_working = bool(time_slots)
+                    db.set_day_schedule(weekday, time_strings, is_working)
+
+            schedule_message = "✅ Расписание обновлено!\n\n"
+
+            schedule_message += format_string.show_current_schedule()
+            await message.answer(text=schedule_message)
+            await state.clear()
+
+        except Exception as e:
+            await message.answer(f"❌ Ошибка: {e}\n\nПример формата:\nпн - 10:00 14:00 18:00\nвт - 11:00 19:00\nср - выходной")
+    else:
+        await message.answer(PHRASES_RU.error.state.schedule_not_text_type)
 
 
 @router.message(StateFilter(MasterStates.WAITING_FOR_NEW_SERVICE))

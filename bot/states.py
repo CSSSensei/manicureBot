@@ -14,3 +14,4 @@ class MasterStates(StatesGroup):
     WAITING_FOR_SLOT = State()
     WAITING_FOR_NEW_SERVICE = State()
     WAITING_FOR_EDIT_SERVICE = State()
+    WAITING_FOR_SCHEDULE = State()
