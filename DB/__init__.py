@@ -1,14 +1,16 @@
-import inspect
-import logging
-import sys
-from typing import List, Type, TypeVar, Set
+# import inspect
+# import logging
+# import sys
+# from typing import List, Type, TypeVar, Set
 
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.base import BaseTable
 from DB.tables.channel_messages import ChannelMessagesTable
+from DB.tables.day_schedule import DayScheduleTable
 from DB.tables.photos import PhotosTable
 from DB.tables.queries import QueriesTable
+from DB.tables.schedule_settings import ScheduleSettingsTable
 from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
@@ -62,7 +64,9 @@ def init_database():
           MastersTable() as masters_db,
           WeekdaysTable() as weekdays_db,
           ServiceScheduleTable() as service_schedule_db,
-          ChannelMessagesTable() as channel_messages_db):
+          ChannelMessagesTable() as channel_messages_db,
+          DayScheduleTable() as day_schedule_db,
+          ScheduleSettingsTable() as schedule_settings_db):
         users_db.create_table()
         queries_db.create_table()
         slots_db.create_table()
@@ -74,3 +78,5 @@ def init_database():
         weekdays_db.create_table()
         service_schedule_db.create_table()
         channel_messages_db.create_table()
+        day_schedule_db.create_table()
+        schedule_settings_db.create_table()
