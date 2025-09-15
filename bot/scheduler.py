@@ -144,16 +144,14 @@ async def setup_scheduler(async_scheduler: AsyncIOScheduler):
     # Генерация на месяц после следующего (cur_month + 2) - 25 числа в 10:00
     async_scheduler.add_job(
         auto_generate_month_after_next,
-        # CronTrigger(day=25, hour=10, minute=13),
-        CronTrigger(day=15, hour=22, minute=47),
+        CronTrigger(day=25, hour=6, minute=13),
         id='month_after_next_generation'
     )
 
     # Ежедневная проверка (на случай если 25 число было пропущено)
     async_scheduler.add_job(
         daily_check_generation,
-        # CronTrigger(hour=8, minute=29),
-        CronTrigger(day=15, hour=22, minute=48),
+        CronTrigger(hour=8, minute=29),
         id='daily_generation_check'
     )
 
