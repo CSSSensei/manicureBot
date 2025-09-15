@@ -40,6 +40,9 @@ class AppointmentsTable(BaseTable):
             CREATE INDEX IF NOT EXISTS idx_appointments_client ON {self.__tablename__}(client_id);
             CREATE INDEX IF NOT EXISTS idx_appointments_slot ON {self.__tablename__}(slot_id);
             CREATE INDEX IF NOT EXISTS idx_appointments_status ON {self.__tablename__}(status);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_slot 
+            ON {self.__tablename__}(slot_id) 
+            WHERE status IN ('pending', 'confirmed');
 
             CREATE TRIGGER IF NOT EXISTS update_appointments_timestamp
             AFTER UPDATE ON {self.__tablename__}
