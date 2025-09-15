@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import datetime
 import logging
 from typing import Optional
@@ -19,6 +20,7 @@ from bot.bot_utils.models import MonthCallBack, ServiceCallBack, ActionButtonCal
 from bot.navigation import AppointmentNavigation
 from bot.scheduler import SlotNotifierBot
 from bot.states import AppointmentStates
+from config.const import DB_DIR
 from phrases import PHRASES_RU
 from bot import pages
 from utils import format_string
@@ -148,10 +150,15 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
     if not data.is_ready_for_confirmation():
         return None
 
-    with SlotsTable() as slots_db, AppointmentsTable() as app_db:
+    conn = sqlite3.connect(DB_DIR)
+    try:
+        conn.execute("BEGIN IMMEDIATE")  # начинаем транзакцию
+
+        slots_db = SlotsTable(conn=conn)
+        app_db = AppointmentsTable(conn=conn)
         if not slots_db.set_slot_availability(data.slot.id, False):
+            conn.rollback()
             return None
-        await SlotNotifierBot().update_channel_slots()
 
         app_id = app_db.create_appointment(
             client_id=user_id,
@@ -160,8 +167,17 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
             comment=data.comment
         )
 
+        conn.commit()  # атомарно фиксируем обе операции
+
         await _process_appointment_photos(app_id, data.photos)
+        await SlotNotifierBot().update_channel_slots()
         return app_id
+
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 async def _process_appointment_photos(app_id: int, photos: list[PhotoModel]):
