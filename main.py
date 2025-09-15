@@ -25,7 +25,7 @@ from config import bot, scheduler
 from bot.middlewares.get_user import GetUserMiddleware
 from bot.middlewares.shadow_ban import ShadowBanMiddleware
 from bot.middlewares.logging_query import UserLoggerMiddleware
-from bot.scheduler import load_scheduled_notifications, SlotNotifierBot
+from bot.scheduler import setup_scheduler
 
 from bot import handlers
 from DB import init_database
@@ -58,9 +58,8 @@ async def main() -> None:
 
     logger.info(f'{(await bot.get_me()).first_name} starting\n * Running on http://t.me/{(await bot.get_me()).username}')
 
+    await setup_scheduler(scheduler)
     scheduler.add_job(backup_db, 'cron', hour=5, minute=0, args=(bot,))
-    load_scheduled_notifications()
-    await SlotNotifierBot().on_startup()
     scheduler.start()
     try:
         await dp.start_polling(bot)
