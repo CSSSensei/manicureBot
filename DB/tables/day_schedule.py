@@ -51,6 +51,7 @@ class DayScheduleTable(BaseTable):
         (weekday, time_slots, is_working)
         VALUES (?, ?, ?)
         """
+        self._log('EDIT_DAY_SCHEDULE', weekday=weekday, time_slots=time_slots, is_working=is_working)
         self.cursor.execute(query, (weekday, slots_json, is_working))
         self.conn.commit()
 
