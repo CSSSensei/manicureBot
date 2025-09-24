@@ -1,10 +1,15 @@
-<h1 align="center">💅 nails.simple telegram bot </h1>
+<h1 align="center">💅 <a href="https://t.me/Nude_n_red_bot">nails.simple</a> Telegram bot </h1>
 <p align="center">
-Запись на ноготочки только тут. Красиво, как всегда
+<b>Nail appointments available here only. Beautiful as always</b>
+
 </p><p align="center">
 <img src="https://img.shields.io/badge/made%20by-CSSSensei-FF00FF" >
 <img src="https://img.shields.io/badge/Phasalopedia-FF69B4">
-<img src="https://img.shields.io/badge/version-v1.0.1-C71585">
+<img src="https://img.shields.io/badge/version-v1.5.1-C71585">
+</p>
+
+<p><p align="center">
+[Русский](README-ru.md) | English
 </p>
 
 > ### SMI Core
@@ -56,6 +61,7 @@ manicureBot/
 │   │   ├── get_user.py
 │   │   ├── shadow_ban.py
 │   │   └── logging_query.py
+│   ├── bot_utils/             # Bot utilities
 │   └── ...
 │
 ├── DB/                        # SQLite interface & models
