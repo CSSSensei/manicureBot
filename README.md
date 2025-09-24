@@ -8,9 +8,10 @@
 <img src="https://img.shields.io/badge/version-v1.5.1-C71585">
 </p>
 
-<p><p align="center">
-[Русский](/README-ru.md) | English
+<p align="center">
+  <a href="README-ru.md">Русский</a> | <b>English</b>
 </p>
+
 
 > ### SMI Core
 > powered by [**aiogram**](https://docs.aiogram.dev/) | Clean UX | Async swag\

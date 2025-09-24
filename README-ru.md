@@ -8,8 +8,8 @@
 <img src="https://img.shields.io/badge/version-v1.5.1-C71585">
 </p>
 
-<p><p align="center">
-Русский | [English](README.md)
+<p align="center">
+    Русский | <a href="README.md">English</a>
 </p>
 
 > ### SMI Core
