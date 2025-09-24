@@ -1,6 +1,7 @@
 import inspect
 from typing import List, Union, Tuple
-from aiogram import Router
+from aiogram import Router, F
+from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.types import Message
 
@@ -16,6 +17,7 @@ class BaseRouter(Router):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.message.filter(F.chat.type == ChatType.PRIVATE)
         if self.is_admin:
             self.message.filter(AdminFilter())
         elif self.is_master:

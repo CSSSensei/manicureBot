@@ -1,3 +1,4 @@
+from aiogram.enums import ChatType
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -17,6 +18,7 @@ from utils import format_string
 from bot.handlers.admin import command_getcmds
 
 router = Router()
+router.message.filter(F.chat.type == ChatType.PRIVATE)
 
 
 @router.message(F.text == config.tg_bot.password)
@@ -34,7 +36,6 @@ async def _(message: Message):
 async def booking_message(message: Message, state: FSMContext):
     text, reply_markup = ikb.service_keyboard()
     await message.answer(text=text, reply_markup=reply_markup)
-    # TODO сделать проверку на наличие слотов и выводить только нужные услуги
     await state.set_state(AppointmentStates.WAITING_FOR_SERVICE)
 
 
