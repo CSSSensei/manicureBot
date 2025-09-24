@@ -36,7 +36,7 @@ def menu_master_keyboard() -> IMarkup:
     keyboard = [
         [
             IButton(text=PHRASES_RU.button.master.appointment_map, callback_data=PHRASES_RU.callback_data.master.appointment_map),
-            IButton(text=PHRASES_RU.button.master.clients, callback_data=PHRASES_RU.callback_data.master.clients)],  # TODO сделать кнопку клиентов
+            IButton(text=PHRASES_RU.button.master.clients, callback_data=PHRASES_RU.callback_data.master.clients)],
         [
             IButton(text=PHRASES_RU.button.master.delete_slots, callback_data=PHRASES_RU.callback_data.master.delete_slots),
             IButton(text=PHRASES_RU.button.master.add_slots, callback_data=PHRASES_RU.callback_data.master.add_slots)
@@ -80,7 +80,8 @@ def add_slots_menu() -> IMarkup:
             IButton(text=PHRASES_RU.button.master.add_manual_slots, callback_data=PHRASES_RU.callback_data.master.add_manual_slots)
         ],
         [
-            IButton(text=PHRASES_RU.button.master.edit_slot_generation_format, callback_data=PHRASES_RU.callback_data.master.edit_slot_generation_format)
+            IButton(text=PHRASES_RU.button.master.edit_slot_generation_format,
+                    callback_data=PHRASES_RU.callback_data.master.edit_slot_generation_format)
         ],
         [
             IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)
