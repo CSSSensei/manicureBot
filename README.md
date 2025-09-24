@@ -9,7 +9,7 @@
 </p>
 
 <p><p align="center">
-[Русский](README-ru.md) | English
+[Русский](/README-ru.md) | English
 </p>
 
 > ### SMI Core
