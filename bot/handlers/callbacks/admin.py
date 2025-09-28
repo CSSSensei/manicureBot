@@ -15,12 +15,12 @@ async def cut_message_distributor(callback: CallbackQuery, callback_data: AdminP
     user_id = callback_data.user_id
     match type_of_event:
         case PageListSection.USERS:
-            await pages.get_users(callback.from_user.id, page, callback.message.message_id)
+            await pages.get_users(callback.from_user.id, callback.message.message_id, page)
         case PageListSection.QUERY:
-            await pages.user_query(callback.from_user.id, user_id, page, callback.message.message_id)
+            await pages.user_query(callback.from_user.id, user_id, callback.message.message_id, page)
         case PageListSection.ACTION_HISTORY:
-            await pages.get_history(callback.from_user.id, page, callback.message.message_id)
+            await pages.get_history(callback.from_user.id, callback.message.message_id, page)
         case PageListSection.CLIENTS:
-            await pages.get_clients(callback.from_user.id, callback.message.id, page)
+            await pages.get_clients(callback.from_user.id, callback.message.message_id, page)
         case PageListSection.NO_ACTION:
             await callback.answer()
