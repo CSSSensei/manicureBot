@@ -14,6 +14,7 @@ class BaseTable:
     def __init__(self, db_name: str = DB_DIR, conn: Optional[Connection] = None):
         self.conn = conn or sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
 
     def __enter__(self):
