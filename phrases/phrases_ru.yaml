@@ -1,6 +1,6 @@
 commands:
   start: |
-    Привет! Здесь ты можешь записаться на маникюр в <a href='https://t.me/nude_n_red'>nails.simple</a>!
+    Привет! Здесь ты можешь записаться на маникюр в <a href='https://t.me/nude_n_red'>Nude'n'Red Nails</a>!
     Чтобы начать, просто нажми кнопку <i>«{booking}»</i> 👇
     
     Если что-то непонятно — пиши /help, я всё расскажу
@@ -78,7 +78,7 @@ answer:
         <b>🔔 {time_left}</b>
 
         Если планы изменились, пожалуйста, дай нам знать. Отменить запись можно в меню «Мои записи»
-      h24_notification: "Завтра тебя ждёт <i>{service}</i> в nails.simple!"
+      h24_notification: "Завтра тебя ждёт <i>{service}</i> в Nude'n'Red Nails!"
       h1_notification: "Уже совсем скоро! Через час ждём тебя у нас. Советую выйти пораньше, чтобы никуда не спешить"
       confirmed: |
         ✅ Запись подтверждена мастером! Ждём тебя {date} в {slot_time} в нашем салоне
@@ -237,7 +237,7 @@ button:
 
 
 placeholder_appeal:
-  - "nails.simple"
+  - "Nude'n'Red Nails"
   - "Записаться"
 
 success:
