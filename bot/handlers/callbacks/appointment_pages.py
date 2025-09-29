@@ -12,7 +12,7 @@ from bot import scheduler
 from bot.scheduler import SlotNotifierBot
 from config import bot
 from config import const
-from config.const import AppListMode
+from config.const import AppListMode, AppointmentPageAction
 from phrases import PHRASES_RU
 
 router = Router()
@@ -23,7 +23,7 @@ async def booking_page_distributor(callback: CallbackQuery, callback_data: Booki
     page = callback_data.page
     action = callback_data.action
     mode = callback_data.mode
-    if callback_data.mode == AppListMode.MASTER:
+    if callback_data.mode == AppListMode.MASTER and action != AppointmentPageAction.BACK_TO_MAP:
         with MastersTable() as master_db:
             master = master_db.get_master(callback.from_user.id)
             if not master or not master.is_master:
