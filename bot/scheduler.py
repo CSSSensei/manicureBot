@@ -121,10 +121,10 @@ async def daily_check_generation():
         generator = SlotGenerator()
 
         # Проверяем статус генерации
-        next_month = today.month + 1
+        next_month = today.month + 2
         next_year = today.year
         if next_month > 12:
-            next_month = 1
+            next_month -= 12
             next_year += 1
 
         setting_key = f"generated_{next_year}_{next_month}"
@@ -132,7 +132,7 @@ async def daily_check_generation():
 
         if not already_generated:
             logger.warning("Пропущена генерация на следующий месяц! Генерируем...")
-            generated_count = generator.monthly_auto_generation()
+            generated_count = generator.generate_for_month_after_next()
             if generated_count > 0:
                 await SlotNotifierBot().update_channel_slots()
 
