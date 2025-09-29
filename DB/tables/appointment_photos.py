@@ -26,6 +26,8 @@ class AppointmentPhotosTable(BaseTable):
 
     def add_photo_to_appointment(self, appointment_id: int, photo_id: int) -> bool:
         """Добавляет связь между записью и фото.
+        ⚠️ ВНИМАНИЕ: Этот метод НЕ выполняет коммит транзакции.
+        Для сохранения изменений необходимо явно вызвать self.conn.commit()
         Возвращает True, если связь была добавлена, False если уже существовала."""
         if not self._check_record_exists('appointments', 'id', appointment_id):
             raise ValueError(f"Appointment with id {appointment_id} not found")
@@ -37,7 +39,6 @@ class AppointmentPhotosTable(BaseTable):
         VALUES (?, ?)
         """
         self.cursor.execute(query, (appointment_id, photo_id))
-        self.conn.commit()
         added = self.cursor.rowcount > 0
         self._log('ADD_PHOTO_TO_APPOINTMENT',
                   appointment_id=appointment_id,

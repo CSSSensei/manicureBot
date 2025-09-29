@@ -1,10 +1,12 @@
+import sqlite3
 from datetime import datetime, timedelta, timezone, date
 from typing import Optional, Set, Tuple, List
 
 from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination, ClientWithStats, ClientStats
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.base import BaseTable
-from config.const import PENDING, COMPLETED, CONFIRMED, CANCELLED, REJECTED
+from DB.tables.slots import SlotsTable
+from config.const import PENDING, COMPLETED, CONFIRMED, CANCELLED, REJECTED, DB_DIR
 
 
 class AppointmentsTable(BaseTable):
@@ -77,8 +79,7 @@ class AppointmentsTable(BaseTable):
         INSERT INTO {self.__tablename__} (client_id, slot_id, service_id, comment, status)
         VALUES (?, ?, ?, ?, ?)
         """
-        self.cursor.execute(query, (client_id, slot_id, service_id, comment, status))
-        self.conn.commit()
+        self.cursor.execute(query, (client_id, slot_id, service_id, comment, status))  # Атомарная операция, поэтому коммит не делается
         appointment_id = self.cursor.lastrowid
         self._log('CREATE_APPOINTMENT',
                   client_id=client_id,
@@ -256,7 +257,7 @@ class AppointmentsTable(BaseTable):
 
         return app, pagination
 
-    def update_appointment_status(self, appointment_id: int, status: str) -> None:
+    def _update_appointment_status(self, appointment_id: int, status: str) -> None:
         """Обновляет статус записи."""
         if status not in self.__valid_statuses:
             raise ValueError(f"Invalid status. Allowed values: {self.__valid_statuses}")
@@ -271,10 +272,14 @@ class AppointmentsTable(BaseTable):
         WHERE id = ?
         """
         self.cursor.execute(query, (status, appointment_id))
-        self.conn.commit()
         self._log('UPDATE_APPOINTMENT_STATUS',
                   appointment_id=appointment_id,
                   status=status)
+
+    def update_appointment_status(self, appointment_id: int, status: str) -> None:
+        """Обновляет статус записи."""
+        self._update_appointment_status(appointment_id, status)
+        self.conn.commit()
 
     def get_appointment_by_id(self, appointment_id: int) -> Optional[AppointmentModel]:
         query = f"""
@@ -773,6 +778,39 @@ class AppointmentsTable(BaseTable):
         clients_with_stats.sort(key=lambda x: x.stats.total, reverse=True)
 
         return clients_with_stats, pagination
+
+    @staticmethod
+    def cancel_appointment(app: AppointmentModel, status: str) -> bool:
+        """
+        Отменяет встречу и освобождает слот атомарно.
+
+        Args:
+            app (AppointmentModel): объект встречи
+            status (str): статус, с которым будет отменена встреча
+
+        Returns:
+            bool: True если успешно отменено, False если встреча не найдена или уже отменена
+        """
+
+        conn = sqlite3.connect(DB_DIR)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+
+            app_db = AppointmentsTable(conn=conn)
+            slots_db = SlotsTable(conn=conn)
+            app_db._update_appointment_status(app.appointment_id, status)
+            slots_db.set_slot_availability_no_commit(app.slot.id, True)
+
+            # Фиксируем транзакцию
+            conn.commit()
+            return True
+
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     @property
     def valid_statuses(self):

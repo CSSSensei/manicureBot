@@ -156,7 +156,7 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
 
         slots_db = SlotsTable(conn=conn)
         app_db = AppointmentsTable(conn=conn)
-        if not slots_db.set_slot_availability(data.slot.id, False):
+        if not slots_db.set_slot_availability_no_commit(data.slot.id, False):
             conn.rollback()
             return None
 
@@ -167,9 +167,10 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
             comment=data.comment
         )
 
+        _process_appointment_photos(conn, app_id, data.photos)
+
         conn.commit()  # атомарно фиксируем обе операции
 
-        await _process_appointment_photos(app_id, data.photos)
         await SlotNotifierBot().update_channel_slots()
         return app_id
 
@@ -180,19 +181,20 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
         conn.close()
 
 
-async def _process_appointment_photos(app_id: int, photos: list[PhotoModel]):
+def _process_appointment_photos(conn: sqlite3.Connection, app_id: int, photos: list[PhotoModel]):
     """Обрабатывает прикрепленные фото"""
     if not photos:
         return
 
-    with PhotosTable() as photo_db, AppointmentPhotosTable() as app_photo_db:
-        for photo in photos:
-            photo_id = photo_db.add_photo(
-                telegram_file_id=photo.telegram_file_id,
-                file_unique_id=photo.file_unique_id,
-                caption=photo.caption
-            )
-            app_photo_db.add_photo_to_appointment(app_id, photo_id)
+    photo_db = PhotosTable(conn=conn)
+    app_photo_db = AppointmentPhotosTable(conn=conn)
+    for photo in photos:
+        photo_id = photo_db.add_photo_no_commit(
+            telegram_file_id=photo.telegram_file_id,
+            file_unique_id=photo.file_unique_id,
+            caption=photo.caption
+        )
+        app_photo_db.add_photo_to_appointment(app_id, photo_id)
 
 
 @router.callback_query(MonthCallBack.filter())

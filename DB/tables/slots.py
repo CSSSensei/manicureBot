@@ -230,8 +230,10 @@ class SlotsTable(BaseTable):
             return datetime.fromisoformat(row['start_time']) if row['start_time'] else None
         return None
 
-    def set_slot_availability(self, slot_id: int, available: bool = False) -> bool:
+    def set_slot_availability_no_commit(self, slot_id: int, available: bool = False) -> bool:
         """Обновляет статус доступности слота.
+        ⚠️ ВНИМАНИЕ: Этот метод НЕ выполняет коммит транзакции.
+        Для сохранения изменений необходимо явно вызвать self.conn.commit()
 
         Args:
             slot_id: ID слота для обновления
@@ -249,7 +251,7 @@ class SlotsTable(BaseTable):
 
         query = f'UPDATE {self.__tablename__} SET is_available = ? WHERE id = ?'
         self.cursor.execute(query, (available, slot_id))
-        self.conn.commit()
+        # self.conn.commit()  Без коммита, так как операция идёт в паре с отменой встречи АТОМАРНО
 
         action = 'FREE SLOT' if available else 'RESERVE SLOT'
         self._log(f'{action} (ID: {slot_id})',

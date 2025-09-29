@@ -3,7 +3,6 @@ from aiogram.types import CallbackQuery
 
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
-from DB.tables.slots import SlotsTable
 from bot.bot_utils import msg_sender
 from bot.bot_utils.msg_sender import get_media_from_photos
 from bot.pages import get_active_bookings, get_master_apps, get_day_range
@@ -13,7 +12,7 @@ from bot import scheduler
 from bot.scheduler import SlotNotifierBot
 from config import bot
 from config import const
-from config.const import AppListMode, CANCELLED
+from config.const import AppListMode
 from phrases import PHRASES_RU
 
 router = Router()
@@ -88,7 +87,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
     if status is None or appointment_id is None:  # пустой коллбэк
         await callback.answer()
         return
-    with AppointmentsTable() as app_db, SlotsTable() as slots_db:
+    with AppointmentsTable() as app_db:
         app = app_db.get_appointment_by_id(appointment_id)
 
         if status == const.CANCELLED:
@@ -96,14 +95,16 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 await callback.message.edit_text(PHRASES_RU.answer.status.already_rejected)
 
             elif app.status in {const.PENDING, const.CONFIRMED}:
-                if app.status == const.CONFIRMED:
-                    app.status = status
-                    scheduler.cancel_scheduled_reminders(app)
-                    await msg_sender.notify_master(app)
-                app_db.update_appointment_status(appointment_id, status)
-                slots_db.set_slot_availability(app.slot.id, True)
-                await SlotNotifierBot().update_channel_slots()
-                await callback.message.edit_text(PHRASES_RU.answer.notify.client.app_cancelled_by_user)
+                success = AppointmentsTable.cancel_appointment(app, status)
+                if success:
+                    if app.status == const.CONFIRMED:
+                        app.status = status
+                        scheduler.cancel_scheduled_reminders(app)
+                        await msg_sender.notify_master(app)
+                    await SlotNotifierBot().update_channel_slots()
+                    await callback.message.edit_text(PHRASES_RU.answer.notify.client.app_cancelled_by_user)
+                else:
+                    await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
         elif status == const.REJECTED:
             with MastersTable() as master_db:
                 master = master_db.get_master(callback.from_user.id)
@@ -115,13 +116,15 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 await callback.message.edit_text(PHRASES_RU.answer.status.already_cancelled)
 
             elif app.status in {const.CONFIRMED}:
-                app.status = CANCELLED
-                scheduler.cancel_scheduled_reminders(app)
-                await msg_sender.notify_client(app)
-                app_db.update_appointment_status(appointment_id, status)
-                slots_db.set_slot_availability(app.slot.id, True)
-                await SlotNotifierBot().update_channel_slots()
-                await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)
+                success = AppointmentsTable.cancel_appointment(app, status)
+                if success:
+                    app.status = const.CANCELLED
+                    scheduler.cancel_scheduled_reminders(app)
+                    await msg_sender.notify_client(app)
+                    await SlotNotifierBot().update_channel_slots()
+                    await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)
+                else:
+                    await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
     await callback.answer()
 
 

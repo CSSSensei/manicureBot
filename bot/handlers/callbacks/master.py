@@ -163,13 +163,14 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
                     msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
                     await bot.delete_messages(chat_id=callback.from_user.id, message_ids=msgs_list)
             case (_, const.REJECTED):
-                with SlotsTable() as slots_db:
-                    slots_db.set_slot_availability(app.slot.id, True)
+                success = AppointmentsTable.cancel_appointment(app, const.REJECTED)
+                if success:
                     await SlotNotifierBot().update_channel_slots()
-                app_db.update_appointment_status(app.appointment_id, const.REJECTED)
-                app.status = const.REJECTED
-                await msg_sender.notify_client(app)
-                await callback.message.edit_text(text=format_string.master_reviewed_appointment(app))
+                    app.status = const.REJECTED
+                    await msg_sender.notify_client(app)
+                    await callback.message.edit_text(text=format_string.master_reviewed_appointment(app))
+                else:
+                    await callback.message.edit_text(text=PHRASES_RU.error.booking.try_again)
             case (_, const.CONFIRMED):
                 app_db.update_appointment_status(app.appointment_id, const.CONFIRMED)
                 app.status = const.CONFIRMED

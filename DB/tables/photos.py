@@ -19,14 +19,20 @@ class PhotosTable(BaseTable):
         self.conn.commit()
         self._log('CREATE_TABLE')
 
-    def add_photo(self, telegram_file_id: str, file_unique_id: str, caption: Optional[str] = None) -> int:
-        """Добавляет референсное фото и возвращает его ID."""
+    def add_photo_no_commit(self, telegram_file_id: str, file_unique_id: str, caption: Optional[str] = None) -> int:
+        """Добавляет референсное фото и возвращает его ID.
+
+        ⚠️ ВНИМАНИЕ: Этот метод НЕ выполняет коммит транзакции.
+        Для сохранения изменений необходимо явно вызвать self.conn.commit()
+
+        Returns:
+            ID добавленной записи
+        """
         query = f"""
         INSERT INTO {self.__tablename__} (telegram_file_id, file_unique_id, caption)
         VALUES (?, ?, ?)
         """
         self.cursor.execute(query, (telegram_file_id, file_unique_id, caption))
-        self.conn.commit()
         self._log('ADD_PHOTO', file_unique_id=file_unique_id)
         return self.cursor.lastrowid
 

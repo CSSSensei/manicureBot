@@ -42,7 +42,7 @@ def test_slots_table(dbs):
     available = dbs['slots'].get_available_slots()
     assert any(s.id == slot_id for s in available)
 
-    dbs['slots'].set_slot_availability(slot_id)
+    dbs['slots'].set_slot_availability_no_commit(slot_id)
     assert all(not s.is_available for s in dbs['slots'].get_available_slots())
 
 
@@ -64,7 +64,7 @@ def test_services_table(dbs):
 
 
 def test_photos_table(dbs):
-    photo_id = dbs['photos'].add_photo("tg_file_id_123", "unique_id_123", "Some caption")
+    photo_id = dbs['photos'].add_photo_no_commit("tg_file_id_123", "unique_id_123", "Some caption")
     assert isinstance(photo_id, int)
 
     photo = dbs['photos'].get_photo_by_id(photo_id)
@@ -89,7 +89,7 @@ def test_appointments_and_photos_link(dbs):
     updated_app = dbs['appointments'].get_appointment_by_id(appointment_id)
     assert updated_app.status == 'confirmed'
 
-    photo_id = dbs['photos'].add_photo("tg_file_id_456", "unique_id_456", "Caption #2")
+    photo_id = dbs['photos'].add_photo_no_commit("tg_file_id_456", "unique_id_456", "Caption #2")
     added = dbs['appointment_photos'].add_photo_to_appointment(appointment_id, photo_id)
     assert added
 
