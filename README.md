@@ -1,6 +1,6 @@
-<h1 align="center">💅 <a href="https://t.me/Nude_n_red_bot">nails.simple</a> Telegram bot </h1>
+<h1 align="center">💅 <a href="https://t.me/Nude_n_red_bot">Manicure Telegram Bot</a></h1>
 <p align="center">
-<b>Nail appointments available here only. Beautiful as always</b>
+<b>Perfect nails start here. Beautiful as always</b>
 
 </p><p align="center">
 <img src="https://img.shields.io/badge/made%20by-CSSSensei-FF00FF" >

@@ -1,4 +1,4 @@
-<h1 align="center">💅 <a href="https://t.me/Nude_n_red_bot">nails.simple</a> Telegram bot </h1>
+<h1 align="center">💅 <a href="https://t.me/Nude_n_red_bot">Manicure Telegram Bot</a></h1>
 <p align="center">
 <b>Запись на ноготочки только тут. Красиво, как всегда</b>
 
