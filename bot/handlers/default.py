@@ -69,6 +69,10 @@ async def _(message: Message, state: FSMContext):
                                     message_id=data.message_id,
                                     text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
                                     reply_markup=ikb.photo_keyboard())
+    elif message.document:
+        await message.answer(PHRASES_RU.answer.cant_take_document)
+    else:
+        await message.answer(PHRASES_RU.answer.not_photo_type)
 
 
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_COMMENT))
@@ -91,6 +95,8 @@ async def _(message: Message, state: FSMContext):
                                     message_id=data.message_id,
                                     text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
                                     reply_markup=ikb.comment_keyboard())
+    else:
+        await message.answer(PHRASES_RU.answer.not_text)
 
 
 @router.message()
