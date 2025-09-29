@@ -58,7 +58,7 @@ manicureBot/
 │   │   ├── admin/
 │   │   ├── master/
 │   │   └── default/
-│   ├── middlewares/             # Custom middlewares for bot processing
+│   ├── middlewares/           # Custom middlewares for bot processing
 │   │   ├── get_user.py
 │   │   ├── shadow_ban.py
 │   │   └── logging_query.py
@@ -80,6 +80,33 @@ manicureBot/
 ├── .env / .env.example        # Environment variables
 └── README.md                  # You're here 😎
 ```
+---
+<h2>🗄️ Database ER Diagram</h2>
+
+<p>The database schema reflects the main entities of the bot:</p>
+
+<ul>
+  <li><b>Users</b> — bot users (clients, admins, masters)</li>
+  <li><b>Masters</b> — extended <code>User</code> profile with additional information (master role, specialization, current appointment)</li>
+  <li><b>Services</b> — services available for booking (manicure, design, …)</li>
+  <li><b>Slots</b> — time slots for appointments (start/end time, status)</li>
+  <li><b>Appointments</b> — client bookings for services in specific slots</li>
+  <li><b>Photos</b> — photo references (can be attached to appointments)</li>
+  <li><b>Appointment_Photos</b> — many-to-many relationship between <code>Appointments</code> and <code>Photos</code></li>
+  <li><b>Weekdays</b> — days of the week reference table</li>
+  <li><b>Service_Schedule</b> — service availability by days of the week</li>
+  <li><b>Day_Schedules</b> — working hours by days of the week (JSON with time intervals)</li>
+  <li><b>Channel_Messages</b> — channel publications with metadata</li>
+  <li><b>Queries</b> — history of user search queries</li>
+  <li><b>Settings</b> — system table for application settings management</li>
+</ul>
+
+<blockquote>
+  <b>At the center — Appointments</b>, which connect users, services, slots, and photos.
+</blockquote>
+
+
+<img src="./images/ER-diagram.svg" alt="ER-diagram">
 
 ---
 
