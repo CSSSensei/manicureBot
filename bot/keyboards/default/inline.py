@@ -12,7 +12,7 @@ from DB.tables.slots import SlotsTable
 from bot.bot_utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
     PhotoAppCallBack
 from DB.models import Pagination, AppointmentModel
-from config.const import MONTHS, CANCELLED, REJECTED, CONFIRMED, CalendarMode, AppListMode, AppointmentPageAction
+from config.const import MONTHS, CANCELLED, REJECTED, CONFIRMED, PENDING, CalendarMode, AppListMode, AppointmentPageAction
 from phrases import PHRASES_RU
 from utils import format_string
 
@@ -27,16 +27,17 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
         ])
 
     if appointment.status not in {CANCELLED, REJECTED} and appointment.slot.start_time > datetime.now():
-        keyboard.append([
-            IButton(text=PHRASES_RU.button.cancel2,
-                    callback_data=BookingPageCallBack(
-                        page=pagination.page,
-                        action=AppointmentPageAction.SET_CANCELLED,
-                        app_id=appointment.appointment_id,
-                        app_date=appointment.slot.start_time.date(),
-                        mode=mode
-                    ).pack())
-        ])
+        if mode == AppListMode.MASTER or appointment.status == PENDING or appointment.slot.start_time - timedelta(hours=3) > datetime.now():
+            keyboard.append([
+                IButton(text=PHRASES_RU.button.cancel2,
+                        callback_data=BookingPageCallBack(
+                            page=pagination.page,
+                            action=AppointmentPageAction.SET_CANCELLED,
+                            app_id=appointment.appointment_id,
+                            app_date=appointment.slot.start_time.date(),
+                            mode=mode
+                        ).pack())
+            ])
 
     if pagination.total_pages > 1:
         no_action = BookingPageCallBack().pack()

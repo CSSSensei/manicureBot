@@ -1,3 +1,4 @@
+import datetime
 from aiogram import Router
 from aiogram.types import CallbackQuery
 
@@ -95,7 +96,12 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 await callback.message.edit_text(PHRASES_RU.answer.status.already_rejected)
 
             elif app.status in {const.PENDING, const.CONFIRMED}:
+                if app.status == const.CONFIRMED and datetime.datetime.now() + datetime.timedelta(hours=3) > app.slot.start_time:
+                    await callback.message.edit_text(PHRASES_RU.answer.too_late_to_cancel)
+                    return
+
                 success = AppointmentsTable.cancel_appointment(app, status)
+
                 if success:
                     if app.status == const.CONFIRMED:
                         app.status = status
