@@ -44,7 +44,11 @@ async def handle_slot_choosing(callback: CallbackQuery, callback_data: MonthCall
 
         prev_enabled = not (month == datetime.now().month and year == datetime.now().year) \
             if mode != CalendarMode.APPOINTMENT_MAP else True
-        text, reply_markup = ikb.create_calendar_keyboard(month, year, prev_enabled, mode, await AppointmentNavigation.get_appointment_data(state))
+        app = await AppointmentNavigation.get_appointment_data(state)
+        if mode == CalendarMode.BOOKING and (not app or not app.service):
+            await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
+            return
+        text, reply_markup = ikb.create_calendar_keyboard(month, year, prev_enabled, mode, app)
         await callback.message.edit_text(text=text, reply_markup=reply_markup)
         return
     mode = callback_data.mode
