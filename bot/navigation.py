@@ -135,7 +135,7 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_service_selection(callback: CallbackQuery, data: AppointmentModel):
         text, reply_markup = ikb.service_keyboard()
-        await callback.message.edit_text(text=text, reply_markup=reply_markup)
+        await callback.message.edit_text(text=text, reply_markup=reply_markup, disable_web_page_preview=True)
 
     @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: AppointmentModel):

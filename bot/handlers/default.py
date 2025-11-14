@@ -35,7 +35,7 @@ async def _(message: Message):
 @router.message(F.text.capitalize() == PHRASES_RU.button.booking)
 async def booking_message(message: Message, state: FSMContext):
     text, reply_markup = ikb.service_keyboard()
-    await message.answer(text=text, reply_markup=reply_markup)
+    await message.answer(text=text, reply_markup=reply_markup, disable_web_page_preview=True)
     await state.set_state(AppointmentStates.WAITING_FOR_SERVICE)
 
 
