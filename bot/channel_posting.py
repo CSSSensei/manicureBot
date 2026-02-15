@@ -26,7 +26,7 @@ class ChannelPostingService:
             to_time=end_date
         )
         if not slots:
-            return "На данный момент все окошки заняты!\n\nСледите за обновлениями <3"
+            return "На данный момент все окошки заняты!\n\nСледите за обновлениями ❤️"
         message = '<b>Свободные окошки</b>\n'
         slots_by_month = defaultdict(lambda: defaultdict(list))
         for slot in slots:
