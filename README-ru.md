@@ -113,7 +113,7 @@ manicureBot/
 
 ### 1. 📦 Установите зависимости
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. ⚙️ Настройте .env
@@ -124,12 +124,7 @@ cp .env.example .env
 
 ### 3. 🚀 Запустите бота
 ```bash
-python main.py
-```
-
-### 4. 🧪 Запустите тесты
-```bash
-pytest
+uv run python main.py
 ```
 
 ---

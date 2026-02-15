@@ -114,7 +114,7 @@ manicureBot/
 
 ### 1. 📦 Install dependencies
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. ⚙️ Set up .env
@@ -125,12 +125,7 @@ cp .env.example .env
 
 ### 3. 🚀 Run the bot
 ```bash
-python main.py
-```
-
-### 4. 🧪 Run tests
-```bash
-pytest
+uv run python main.py
 ```
 
 ---
