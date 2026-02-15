@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from datetime import datetime, time
 from typing import Optional
@@ -22,6 +23,8 @@ from config import const, bot
 from phrases import PHRASES_RU
 from bot.keyboards.master import inline as inline_mkb
 from utils import format_string
+
+logger = logging.getLogger(__name__)
 
 
 async def send_master_menu(user_id: int, message_id: Optional[int] = None):
@@ -199,11 +202,17 @@ async def _(message: Message):
             return
         if master.current_app_id:
             if master.message_id:
-                await bot.delete_message(chat_id=message.chat.id, message_id=master.message_id)
+                try:
+                    await bot.delete_message(chat_id=message.chat.id, message_id=master.message_id)
+                except Exception as e:
+                    logger.warning("Couldn't delete message %d: %s", master.message_id, e)
             if master.msg_to_delete:
-                msgs = list(map(int, master.msg_to_delete.split(',')))
-                msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
-                await bot.delete_messages(chat_id=message.chat.id, message_ids=msgs_list)
+                try:
+                    msgs = list(map(int, master.msg_to_delete.split(',')))
+                    msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
+                    await bot.delete_messages(chat_id=message.chat.id, message_ids=msgs_list)
+                except Exception as e:
+                    logger.warning("Couldn't delete message %s: %s", master.msg_to_delete, e)
             master_db.update_current_state(message.from_user.id)
         total_items = app_db.count_appointments(const.PENDING)
         if total_items == 0:
