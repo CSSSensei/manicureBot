@@ -680,6 +680,7 @@ class AppointmentsTable(BaseTable):
 
     def get_clients_with_stats(self, page: int = 1, per_page: int = 10) -> Tuple[List[ClientWithStats], Pagination]:
         """Возвращает список клиентов со статистикой по их записям с пагинацией.
+        Клиенты отсортированы по количеству завершённых записей (по убыванию).
 
         Args:
             page: Номер страницы (начинается с 1)
@@ -690,7 +691,6 @@ class AppointmentsTable(BaseTable):
             - Список объектов ClientWithStats для текущей страницы
             - Объект Pagination с информацией о пагинации
         """
-
         total_items = self.count_clients()
 
         pagination = Pagination(
@@ -700,82 +700,85 @@ class AppointmentsTable(BaseTable):
             total_pages=max(1, (total_items + per_page - 1) // per_page)
         )
 
-        clients_query = f"""
-        SELECT DISTINCT u.*
+        query = f"""
+        SELECT
+            u.user_id,
+            u.username,
+            u.first_name,
+            u.last_name,
+            u.is_admin,
+            u.is_banned,
+            u.contact,
+
+            COUNT(a.id)                                                                      AS total,
+            MIN(sl.start_time)                                                               AS first_appointment,
+            MAX(sl.start_time)                                                               AS last_appointment,
+
+            SUM(CASE WHEN a.status = 'completed'                          THEN 1 ELSE 0 END) AS completed_explicit,
+            SUM(CASE WHEN a.status = 'confirmed'
+                        AND sl.end_time <  datetime('now', '+3 hours')    THEN 1 ELSE 0 END) AS completed_confirmed,
+            SUM(CASE WHEN a.status = 'confirmed'
+                        AND sl.end_time >= datetime('now', '+3 hours')    THEN 1 ELSE 0 END) AS upcoming,
+            SUM(CASE WHEN a.status = 'pending'                            THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN a.status = 'cancelled'                          THEN 1 ELSE 0 END) AS cancelled,
+            SUM(CASE WHEN a.status = 'rejected'                           THEN 1 ELSE 0 END) AS rejected,
+
+            SUM(CASE WHEN a.status = 'completed'                          THEN 1
+                        WHEN a.status = 'confirmed'
+                        AND sl.end_time <  datetime('now', '+3 hours')    THEN 1
+                                                                          ELSE 0 END) AS completed_total
+
         FROM {self.__tablename__} a
         JOIN users u ON a.client_id = u.user_id
-        ORDER BY u.user_id
+        LEFT JOIN slots sl ON a.slot_id = sl.id
+        GROUP BY
+            u.user_id,
+            u.username,
+            u.first_name,
+            u.last_name,
+            u.is_admin,
+            u.is_banned,
+            u.contact
+        ORDER BY completed_total DESC, u.user_id
         LIMIT ? OFFSET ?
         """
-        self.cursor.execute(clients_query, (per_page, pagination.offset))
-        client_rows = self.cursor.fetchall()
 
-        clients_with_stats = []
+        self.cursor.execute(query, (per_page, pagination.offset))
+        rows = self.cursor.fetchall()
 
-        for client_row in client_rows:
-            client_id = client_row['user_id']
+        clients_with_stats: List[ClientWithStats] = []
 
+        for row in rows:
             user = UserModel(
-                user_id=client_id,
-                username=client_row['username'],
-                first_name=client_row['first_name'],
-                last_name=client_row['last_name'],
-                is_admin=client_row['is_admin'],
-                is_banned=client_row['is_banned'],
-                contact=client_row['contact']
+                user_id=row['user_id'],
+                username=row['username'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
+                is_admin=row['is_admin'],
+                is_banned=row['is_banned'],
+                contact=row['contact'],
             )
 
-            stats_query = f"""
-            SELECT 
-                status,
-                COUNT(*) as count,
-                SUM(CASE WHEN sl.end_time < datetime('now', '+3 hours') AND status = 'confirmed' THEN 1 ELSE 0 END) as completed_count,
-                SUM(CASE WHEN sl.end_time >= datetime('now', '+3 hours') AND status = 'confirmed' THEN 1 ELSE 0 END) as upcoming_count,
-                MIN(sl.start_time) as first_appointment,
-                MAX(sl.start_time) as last_appointment
-            FROM {self.__tablename__} a
-            LEFT JOIN slots sl ON a.slot_id = sl.id
-            WHERE a.client_id = ?
-            GROUP BY status
-            """
+            completed = row['completed_explicit'] + row['completed_confirmed']
 
-            self.cursor.execute(stats_query, (client_id,))
-            status_rows = self.cursor.fetchall()
-
-            stats = ClientStats()
-
-            for row in status_rows:
-                status = row['status']
-                count = row['count']
-
-                stats.total += count
-                stats.by_status[status] = count
-
-                if status == 'completed':
-                    stats.completed += count
-                elif status == 'confirmed':
-                    stats.upcoming += row['upcoming_count']
-                    stats.completed += row['completed_count']
-                elif status == 'pending':
-                    stats.pending = count
-                elif status == 'cancelled':
-                    stats.cancelled = count
-                elif status == 'rejected':
-                    stats.rejected = count
-
-                if row['first_appointment']:
-                    first_appt = datetime.fromisoformat(row['first_appointment'])
-                    if stats.first_appointment is None or first_appt < stats.first_appointment:
-                        stats.first_appointment = first_appt
-
-                if row['last_appointment']:
-                    last_appt = datetime.fromisoformat(row['last_appointment'])
-                    if stats.last_appointment is None or last_appt > stats.last_appointment:
-                        stats.last_appointment = last_appt
+            stats = ClientStats(
+                total=row['total'],
+                completed=completed,
+                upcoming=row['upcoming'],
+                pending=row['pending'],
+                cancelled=row['cancelled'],
+                rejected=row['rejected'],
+                first_appointment=(
+                    datetime.fromisoformat(row['first_appointment'])
+                    if row['first_appointment'] else None
+                ),
+                last_appointment=(
+                    datetime.fromisoformat(row['last_appointment'])
+                    if row['last_appointment'] else None
+                ),
+            )
 
             clients_with_stats.append(ClientWithStats(user=user, stats=stats))
-
-        clients_with_stats.sort(key=lambda x: x.stats.total, reverse=True)
 
         return clients_with_stats, pagination
 
