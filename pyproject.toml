@@ -35,4 +35,6 @@ build-backend = "hatchling.build"
 packages = ["bot"]
 
 [dependency-groups]
-dev = []
+dev = [
+    "ruff>=0.15.14",
+]
