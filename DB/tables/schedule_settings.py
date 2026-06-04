@@ -16,7 +16,7 @@ class ScheduleSettingsTable(BaseTable):
         self.conn.commit()
 
     def get_setting(self, name: str, default: str = None) -> str:
-        query = f"SELECT setting_value FROM {self.__tablename__} WHERE setting_name = ?"
+        query = f'SELECT setting_value FROM {self.__tablename__} WHERE setting_name = ?'
         self.cursor.execute(query, (name,))
         row = self.cursor.fetchone()
         return row['setting_value'] if row else default

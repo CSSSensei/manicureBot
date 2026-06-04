@@ -14,9 +14,11 @@ logger = logging.getLogger(__name__)
 
 @router.command('start', 'запустить бота')  # /start
 async def _(message: Message):
-    await message.answer(PHRASES_RU.replace('commands.start', booking=PHRASES_RU.button.booking),
-                         reply_markup=get_keyboard(message.from_user.id),
-                         disable_web_page_preview=True)
+    await message.answer(
+        PHRASES_RU.replace('commands.start', booking=PHRASES_RU.button.booking),
+        reply_markup=get_keyboard(message.from_user.id),
+        disable_web_page_preview=True,
+    )
 
 
 @router.command('help', 'как пользоваться ботом')  # /help
@@ -31,19 +33,22 @@ async def _(message: Message):
             master = masters[0]
             master_username = master.user.username or master.user.first_name or 'сюда'
             master_id = master.user.user_id
-        await message.answer(PHRASES_RU.replace('commands.help',
-                                                booking=PHRASES_RU.button.booking,
-                                                master_id=master_id,
-                                                master_username=master_username),
-                             reply_markup=get_keyboard(message.from_user.id))
+        await message.answer(
+            PHRASES_RU.replace(
+                'commands.help', booking=PHRASES_RU.button.booking, master_id=master_id, master_username=master_username
+            ),
+            reply_markup=get_keyboard(message.from_user.id),
+        )
 
 
 @router.command('about', 'о разработчиках')  # /about
 async def _(message: Message):
-    await message.answer_photo(caption=PHRASES_RU.commands.about,
-                               photo='https://yan-toples.ru/Phasalo/color-black-phasalo-project-margin.png',
-                               disable_web_page_preview=True,
-                               reply_markup=get_keyboard(message.from_user.id))
+    await message.answer_photo(
+        caption=PHRASES_RU.commands.about,
+        photo='https://yan-toples.ru/Phasalo/color-black-phasalo-project-margin.png',
+        disable_web_page_preview=True,
+        reply_markup=get_keyboard(message.from_user.id),
+    )
 
 
 @router.command(('commands', 'cmd'), 'список всех команд (это сообщение)')  # /commands, /cmd
@@ -52,7 +57,7 @@ async def _(message: Message):
     await message.answer(PHRASES_RU.title.commands + commands_text, reply_markup=get_keyboard(message.from_user.id))
 
 
-@router.command('cancel', 'выход из текущего состояния')   # /cancel
+@router.command('cancel', 'выход из текущего состояния')  # /cancel
 async def _(message: Message, state: FSMContext):
     await message.answer(PHRASES_RU.answer.state_cancelled)
     await state.clear()

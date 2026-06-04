@@ -1,4 +1,3 @@
-
 from DB.models import ServiceSchedule, Weekday
 from DB.tables.base import BaseTable
 
@@ -39,10 +38,9 @@ class ServiceScheduleTable(BaseTable):
             """
             self.cursor.execute(query, (service_id, weekday_id, is_available))
             self.conn.commit()
-            self._log('SET_SERVICE_AVAILABILITY',
-                      service_id=service_id,
-                      weekday_id=weekday_id,
-                      is_available=is_available)
+            self._log(
+                'SET_SERVICE_AVAILABILITY', service_id=service_id, weekday_id=weekday_id, is_available=is_available
+            )
             return True
         except Exception as e:
             self._log('SET_SERVICE_AVAILABILITY_ERROR', error=str(e))
@@ -74,9 +72,7 @@ class ServiceScheduleTable(BaseTable):
                     self.cursor.execute(query_enable, (service_id, weekday_id))
 
             self.conn.commit()
-            self._log('SET_SERVICE_WEEKDAYS',
-                      service_id=service_id,
-                      weekday_ids=weekday_ids)
+            self._log('SET_SERVICE_WEEKDAYS', service_id=service_id, weekday_ids=weekday_ids)
             return True
         except Exception as e:
             self._log('SET_SERVICE_WEEKDAYS_ERROR', error=str(e))
@@ -97,12 +93,11 @@ class ServiceScheduleTable(BaseTable):
             ServiceSchedule(
                 service_id=row['service_id'],
                 weekday=Weekday(
-                    id=row['weekday_id'],
-                    name=row['name'],
-                    name_ru=row['name_ru'],
-                    short_name=row['short_name']),
-                is_available=bool(row['is_available'])
-            ) for row in rows
+                    id=row['weekday_id'], name=row['name'], name_ru=row['name_ru'], short_name=row['short_name']
+                ),
+                is_available=bool(row['is_available']),
+            )
+            for row in rows
         ]
 
     def get_available_weekdays(self, service_id: int) -> list[int]:
@@ -146,13 +141,11 @@ class ServiceScheduleTable(BaseTable):
         Returns:
             Количество удалённых записей
         """
-        query = f"DELETE FROM {self.__tablename__} WHERE service_id = ?"
+        query = f'DELETE FROM {self.__tablename__} WHERE service_id = ?'
         self.cursor.execute(query, (service_id,))
         self.conn.commit()
         deleted_count = self.cursor.rowcount
-        self._log('DELETE_SERVICE_SCHEDULE',
-                  service_id=service_id,
-                  count=deleted_count)
+        self._log('DELETE_SERVICE_SCHEDULE', service_id=service_id, count=deleted_count)
         return deleted_count
 
     def initialize_default_schedule(self, service_id: int) -> bool:

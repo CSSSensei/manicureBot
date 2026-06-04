@@ -29,7 +29,7 @@ class WeekdaysTable(BaseTable):
         self._log('CREATE_TABLE')
 
     def _populate_weekdays(self) -> None:
-        self.cursor.execute(f"SELECT COUNT(*) as count FROM {self.__tablename__}")
+        self.cursor.execute(f'SELECT COUNT(*) as count FROM {self.__tablename__}')
         count = self.cursor.fetchone()['count']
 
         if count > 0:
@@ -42,7 +42,7 @@ class WeekdaysTable(BaseTable):
             (4, 'thursday', 'четверг', 'Чт'),
             (5, 'friday', 'пятница', 'Пт'),
             (6, 'saturday', 'суббота', 'Сб'),
-            (7, 'sunday', 'воскресенье', 'Вс')
+            (7, 'sunday', 'воскресенье', 'Вс'),
         ]
 
         query = f"""
@@ -55,63 +55,44 @@ class WeekdaysTable(BaseTable):
         self._log('POPULATE_WEEKDAYS', count=len(weekdays_data))
 
     def get_all_weekdays(self) -> list[Weekday]:
-        query = f"SELECT * FROM {self.__tablename__} ORDER BY id"
+        query = f'SELECT * FROM {self.__tablename__} ORDER BY id'
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
 
         return [
-            Weekday(
-                id=row['id'],
-                name=row['name'],
-                name_ru=row['name_ru'],
-                short_name=row['short_name']
-            ) for row in rows
+            Weekday(id=row['id'], name=row['name'], name_ru=row['name_ru'], short_name=row['short_name'])
+            for row in rows
         ]
 
     def get_weekday_by_id(self, weekday_id: int) -> Weekday | None:
-        query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
+        query = f'SELECT * FROM {self.__tablename__} WHERE id = ?'
         self.cursor.execute(query, (weekday_id,))
         row = self.cursor.fetchone()
 
         if not row:
             return None
 
-        return Weekday(
-            id=row['id'],
-            name=row['name'],
-            name_ru=row['name_ru'],
-            short_name=row['short_name']
-        )
+        return Weekday(id=row['id'], name=row['name'], name_ru=row['name_ru'], short_name=row['short_name'])
 
     def get_weekday_by_name(self, name: str) -> Weekday | None:
-        query = f"SELECT * FROM {self.__tablename__} WHERE name = ?"
+        query = f'SELECT * FROM {self.__tablename__} WHERE name = ?'
         self.cursor.execute(query, (name,))
         row = self.cursor.fetchone()
 
         if not row:
             return None
 
-        return Weekday(
-            id=row['id'],
-            name=row['name'],
-            name_ru=row['name_ru'],
-            short_name=row['short_name']
-        )
+        return Weekday(id=row['id'], name=row['name'], name_ru=row['name_ru'], short_name=row['short_name'])
 
     def get_weekday_by_name_ru(self, name_ru: str) -> Weekday | None:
-        query = f"SELECT * FROM {self.__tablename__} WHERE name_ru = ?"
+        query = f'SELECT * FROM {self.__tablename__} WHERE name_ru = ?'
         self.cursor.execute(query, (name_ru,))
         row = self.cursor.fetchone()
 
         if not row:
             return None
 
-        return Weekday(
-            id=row['id'],
-            name=row['name'],
-            name_ru=row['name_ru'],
-            short_name=row['short_name']
-        )
+        return Weekday(id=row['id'], name=row['name'], name_ru=row['name_ru'], short_name=row['short_name'])
 
     @staticmethod
     def get_weekday_id_by_date(date: datetime) -> int:

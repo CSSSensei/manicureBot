@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 class UserLoggerMiddleware(BaseMiddleware):
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
-            event: TelegramObject,
-            data: dict[str, Any]
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
     ) -> Any:
 
         #   <-| ----------------- -<phasalo>- ------------------ |->
@@ -39,10 +39,7 @@ class UserLoggerMiddleware(BaseMiddleware):
                 return await handler(event, data)
         user_row: UserModel | None = data.get('user_row')
         if user_row is None:
-            logger.warning(
-                'Cannot add queries. The \'user_row\' '
-                'key was not found in the middleware data.'
-            )
+            logger.warning("Cannot add queries. The 'user_row' key was not found in the middleware data.")
             return await handler(event, data)
 
         # Логируем текстовые сообщения

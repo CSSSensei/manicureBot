@@ -1,4 +1,3 @@
-
 from DB.models import AppointmentModel, ClientWithStats, Pagination, QueryModel, UserModel
 from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
@@ -7,8 +6,7 @@ from utils.format_string import get_status_app_string
 
 
 def format_user_list(users_info: list[UserModel], pagination: Pagination) -> str:
-    txt = [PHRASES_RU.title.users,
-           PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
+    txt = [PHRASES_RU.title.users, PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
     with MastersTable() as db:
         masters = {master_user.user.user_id for master_user in db.get_all_masters()}
     for user in users_info:
@@ -37,11 +35,11 @@ def format_user_list(users_info: list[UserModel], pagination: Pagination) -> str
 
 
 def format_queries_text(
-        queries: list[QueryModel],
-        name: str | None = None,
-        user_id: int | None = None,
-        footnote_template: str = PHRASES_RU.footnote.user_query,
-        line_template: str = PHRASES_RU.template.user_query
+    queries: list[QueryModel],
+    name: str | None = None,
+    user_id: int | None = None,
+    footnote_template: str = PHRASES_RU.footnote.user_query,
+    line_template: str = PHRASES_RU.template.user_query,
 ) -> str:
     """
     Форматирует список запросов в текстовое сообщение.
@@ -57,15 +55,18 @@ def format_queries_text(
         Отформатированная строка с историей запросов
     """
     username_display = name or user_id or PHRASES_RU.error.unknown
-    txt = [PHRASES_RU.title.query,
-           footnote_template.format(username=username_display, user_id=user_id)]
+    txt = [PHRASES_RU.title.query, footnote_template.format(username=username_display, user_id=user_id)]
 
     for query in queries:
         line_data = {
             'user_id': query.user.user_id,
             'time': query.query_date.strftime('%d.%m.%Y %H:%M:%S') if query.query_date else PHRASES_RU.error.unknown,
             'query': query.query_text,
-            'username': f'@{query.user.username}' if query.user and query.user.username else query.user.first_name if query.user else ''
+            'username': f'@{query.user.username}'
+            if query.user and query.user.username
+            else query.user.first_name
+            if query.user
+            else '',
         }
         txt.append(line_template.format(**line_data))
 
@@ -73,17 +74,18 @@ def format_queries_text(
 
 
 def format_client_list(clients_info: list[ClientWithStats], pagination: Pagination) -> str:
-    txt = [PHRASES_RU.title.clients,
-           PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
+    txt = [PHRASES_RU.title.clients, PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
 
     for client in clients_info:
         line_data = {
-            'username': f'@{client.user.username}' if client.user.username else client.user.first_name or PHRASES_RU.icon.not_username,
+            'username': f'@{client.user.username}'
+            if client.user.username
+            else client.user.first_name or PHRASES_RU.icon.not_username,
             'user_id': str(client.user.user_id).ljust(11),
             'total_apps': client.stats.total,
             'cancelled_apps': client.stats.cancelled,
             'completed_apps': client.stats.completed,
-            'pending_apps': f' ⏳ {client.stats.pending}' if client.stats.pending != 0 else ''
+            'pending_apps': f' ⏳ {client.stats.pending}' if client.stats.pending != 0 else '',
         }
 
         user_line = PHRASES_RU.replace('template.client_str', **line_data)
@@ -100,8 +102,7 @@ def format_client_list(clients_info: list[ClientWithStats], pagination: Paginati
 
 
 def format_app_actions(appointments: list[AppointmentModel], pagination: Pagination) -> str:
-    txt = [PHRASES_RU.title.actions,
-           PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
+    txt = [PHRASES_RU.title.actions, PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
 
     for app in appointments:
         slot_time = PHRASES_RU.error.unknown
@@ -119,7 +120,7 @@ def format_app_actions(appointments: list[AppointmentModel], pagination: Paginat
             'slot_time': slot_time,
             'status': status,
             'username': username,
-            'user_id': app.client.user_id
+            'user_id': app.client.user_id,
         }
 
         app_line = PHRASES_RU.replace('template.master.appointment_str', **line_data) + '\n'

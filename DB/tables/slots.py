@@ -10,7 +10,7 @@ class SlotsTable(BaseTable):
 
     def create_table(self):
         __timezone_offset = timezone(timedelta(hours=3))  # Для MSK (UTC+3)
-        self.cursor.executescript(f'''
+        self.cursor.executescript(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             start_time TIMESTAMP NOT NULL,
@@ -40,7 +40,7 @@ class SlotsTable(BaseTable):
             SET is_available = 0
             WHERE id = NEW.id;
         END;
-        ''')
+        """)
         self.conn.commit()
         self._log('CREATE_TABLE')
 
@@ -61,11 +61,11 @@ class SlotsTable(BaseTable):
     def add_slot(self, start_time: datetime, end_time: datetime) -> tuple[bool, int | str]:
         try:
             if not isinstance(start_time, datetime) or not isinstance(end_time, datetime):
-                return False, "Неверные параметры времени"
+                return False, 'Неверные параметры времени'
 
             if end_time <= start_time:
                 print(end_time, start_time)
-                return False, "Время окончания должно быть позже времени начала"
+                return False, 'Время окончания должно быть позже времени начала'
 
             query_check = f"""
                 SELECT id FROM {self.__tablename__}
@@ -73,7 +73,7 @@ class SlotsTable(BaseTable):
                 """
             self.cursor.execute(query_check, (start_time,))
             if self.cursor.fetchone():
-                return False, "Интервал с таким временем начала уже существует"
+                return False, 'Интервал с таким временем начала уже существует'
 
             query_insert = f"""
                 INSERT INTO {self.__tablename__} (start_time, end_time)
@@ -88,7 +88,7 @@ class SlotsTable(BaseTable):
 
         except Exception as e:
             self.conn.rollback()
-            error_msg = f"Error adding slot: {str(e)}"
+            error_msg = f'Error adding slot: {str(e)}'
             self._log('ADD_SLOT_ERROR', error=error_msg)
             return False, error_msg
 
@@ -117,19 +117,14 @@ class SlotsTable(BaseTable):
         if row:
             return SlotModel(
                 id=row['id'],
-                start_time=datetime.fromisoformat(row['start_time'])
-                if row['start_time'] is not None else None,
-                end_time=datetime.fromisoformat(row['end_time'])
-                if row['end_time'] is not None else None,
-                is_available=bool(row['is_available'])
+                start_time=datetime.fromisoformat(row['start_time']) if row['start_time'] is not None else None,
+                end_time=datetime.fromisoformat(row['end_time']) if row['end_time'] is not None else None,
+                is_available=bool(row['is_available']),
             )
         return None
 
     def get_available_slots(
-            self,
-            from_time: datetime | None = None,
-            to_time: datetime | None = None,
-            service_id: int | None = None
+        self, from_time: datetime | None = None, to_time: datetime | None = None, service_id: int | None = None
     ) -> list[SlotModel]:
         """
         Возвращает список доступных слотов.
@@ -151,11 +146,11 @@ class SlotsTable(BaseTable):
         params = []
 
         if from_time:
-            query += " AND start_time >= ?"
+            query += ' AND start_time >= ?'
             params.append(from_time)
 
         if to_time:
-            query += " AND start_time <= ?"
+            query += ' AND start_time <= ?'
             params.append(to_time)
 
         if service_id is not None:
@@ -169,7 +164,7 @@ class SlotsTable(BaseTable):
             else:
                 return []
 
-        query += " ORDER BY start_time ASC"
+        query += ' ORDER BY start_time ASC'
 
         self.cursor.execute(query, tuple(params))
 
@@ -178,24 +173,17 @@ class SlotsTable(BaseTable):
                 id=row['id'],
                 start_time=datetime.fromisoformat(row['start_time']),
                 end_time=datetime.fromisoformat(row['end_time']),
-                is_available=bool(row['is_available'])
+                is_available=bool(row['is_available']),
             )
             for row in self.cursor
         ]
 
-    def get_available_slots_by_day(
-            self,
-            day: date,
-            service_id: int | None = None
-    ) -> list[SlotModel]:
+    def get_available_slots_by_day(self, day: date, service_id: int | None = None) -> list[SlotModel]:
         start = datetime.combine(day, time.min)
         end = datetime.combine(day, time.max)
         return self.get_available_slots(from_time=start, to_time=end, service_id=service_id)
 
-    def get_first_available_slot(
-            self,
-            service_id: int | None = None
-    ) -> datetime | None:
+    def get_first_available_slot(self, service_id: int | None = None) -> datetime | None:
         """Проверяет наличие свободных слотов и возвращает дату первого доступного."""
         self._update_past_slots_status()
 
@@ -216,7 +204,7 @@ class SlotsTable(BaseTable):
             else:
                 return None
 
-        query += " ORDER BY start_time ASC LIMIT 1"
+        query += ' ORDER BY start_time ASC LIMIT 1'
 
         self.cursor.execute(query, params)
         row = self.cursor.fetchone()
@@ -249,11 +237,13 @@ class SlotsTable(BaseTable):
         # self.conn.commit()  Без коммита, так как операция идёт в паре с отменой встречи АТОМАРНО
 
         action = 'FREE SLOT' if available else 'RESERVE SLOT'
-        self._log(f'{action} (ID: {slot_id})',
-                  operation='UPDATE_SLOT_STATUS',
-                  old_status=current_status,
-                  new_status=available,
-                  slot_id=slot_id)
+        self._log(
+            f'{action} (ID: {slot_id})',
+            operation='UPDATE_SLOT_STATUS',
+            old_status=current_status,
+            new_status=available,
+            slot_id=slot_id,
+        )
 
         return True
 
@@ -272,21 +262,21 @@ class SlotsTable(BaseTable):
         try:
             slot = self.get_slot(slot_id)
             if not slot:
-                return False, "Слот с указанным ID не существует"
+                return False, 'Слот с указанным ID не существует'
 
             if not slot.is_available:
-                return False, "Невозможно удалить занятый слот"
+                return False, 'Невозможно удалить занятый слот'
 
-            query = f"UPDATE {self.__tablename__} SET is_deleted = 1, is_available = FALSE WHERE id = ?"
+            query = f'UPDATE {self.__tablename__} SET is_deleted = 1, is_available = FALSE WHERE id = ?'
             self.cursor.execute(query, (slot_id,))
             self.conn.commit()
 
             self._log('SOFT_DELETE_SLOT', slot_id=slot_id)
-            return True, "Слот успешно удален"
+            return True, 'Слот успешно удален'
 
         except Exception as e:
             self.conn.rollback()
-            error_msg = f"Ошибка при удалении слота: {str(e)}"
+            error_msg = f'Ошибка при удалении слота: {str(e)}'
             self._log('DELETE_SLOT_ERROR', error=error_msg)
             return False, error_msg
 

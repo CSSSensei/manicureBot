@@ -14,7 +14,7 @@ class BaseTable:
     def __init__(self, db_name: str = DB_DIR, conn: Connection | None = None):
         self.conn = conn or sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
-        self.conn.execute("PRAGMA foreign_keys = ON")
+        self.conn.execute('PRAGMA foreign_keys = ON')
         self.cursor = self.conn.cursor()
 
     def __enter__(self):
@@ -32,14 +32,14 @@ class BaseTable:
 
     def _log(self, action: str, **kwargs: Any):
         logger.info(
-            'Table=\'%s\', Action=\'%s\', Details: %s',
+            "Table='%s', Action='%s', Details: %s",
             self.__tablename__,
             action,
             ', '.join(f'{k}={v}' for k, v in kwargs.items()),
         )
 
     def _check_record_exists(self, table: str, column: str, value: int) -> bool:
-        query = f"SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1"
+        query = f'SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1'
         self.cursor.execute(query, (value,))
         return bool(self.cursor.fetchone())
 

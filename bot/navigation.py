@@ -23,7 +23,7 @@ class AppointmentNavigation:
         'WAITING_FOR_SLOT': AppointmentStates.WAITING_FOR_SLOT,
         'WAITING_FOR_PHOTOS': AppointmentStates.WAITING_FOR_PHOTOS,
         'WAITING_FOR_COMMENT': AppointmentStates.WAITING_FOR_COMMENT,
-        'CONFIRMATION': AppointmentStates.CONFIRMATION
+        'CONFIRMATION': AppointmentStates.CONFIRMATION,
     }
 
     FLOW_ORDER = list(STATES.keys())
@@ -60,12 +60,13 @@ class AppointmentNavigation:
 
     @classmethod
     async def handle_navigation(
-            cls,
-            callback: CallbackQuery,
-            state: FSMContext,
-            current_state: str,
-            action: int,
-            additional_check: Callable[[AppointmentModel], Awaitable[bool]] | None = None):
+        cls,
+        callback: CallbackQuery,
+        state: FSMContext,
+        current_state: str,
+        action: int,
+        additional_check: Callable[[AppointmentModel], Awaitable[bool]] | None = None,
+    ):
         if action == 0:  # Отмена
             await state.clear()
             await callback.message.edit_text(text=PHRASES_RU.answer.booking_canceled, reply_markup=None)
@@ -94,7 +95,7 @@ class AppointmentNavigation:
             'WAITING_FOR_SERVICE': {'service': None},
             'WAITING_FOR_SLOT': {'slot': None},
             'WAITING_FOR_PHOTOS': {'photos': None},
-            'WAITING_FOR_COMMENT': {'comment': None}
+            'WAITING_FOR_COMMENT': {'comment': None},
         }
         if step in clear_rules:
             data = await state.get_data()
@@ -110,7 +111,7 @@ class AppointmentNavigation:
             'WAITING_FOR_DATE': None,
             'WAITING_FOR_SLOT': None,
             'WAITING_FOR_PHOTOS': PHRASES_RU.callback.answer.photo_delete,
-            'WAITING_FOR_COMMENT': PHRASES_RU.callback.answer.comment_delete
+            'WAITING_FOR_COMMENT': PHRASES_RU.callback.answer.comment_delete,
         }
         await callback.answer(text=notify_rules[step])
 
@@ -123,7 +124,7 @@ class AppointmentNavigation:
             'WAITING_FOR_SLOT': cls._show_slot_selection,
             'WAITING_FOR_PHOTOS': cls._show_photo_upload,
             'WAITING_FOR_COMMENT': cls._show_comment_input,
-            'CONFIRMATION': cls._show_confirmation
+            'CONFIRMATION': cls._show_confirmation,
         }
         await handlers[step](callback, data)
 
@@ -135,11 +136,17 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_date_selection(callback: CallbackQuery, data: AppointmentModel):
         with SlotsTable() as slots_db:
-            slot_date = data.slot_date if data.slot_date else slots_db.get_first_available_slot(data.service.id if data.service else None)
+            slot_date = (
+                data.slot_date
+                if data.slot_date
+                else slots_db.get_first_available_slot(data.service.id if data.service else None)
+            )
             prev_enabled = not (slot_date.month == datetime.now().month and slot_date.year == datetime.now().year)
             data.slot_date = None
             if slot_date:
-                text, reply_markup = ikb.create_calendar_keyboard(slot_date.month, slot_date.year, prev_enabled, CalendarMode.BOOKING, data)
+                text, reply_markup = ikb.create_calendar_keyboard(
+                    slot_date.month, slot_date.year, prev_enabled, CalendarMode.BOOKING, data
+                )
                 await callback.message.edit_text(text, reply_markup=reply_markup)
             else:
                 await callback.message.edit_text(PHRASES_RU.error.no_slots)
@@ -149,7 +156,7 @@ class AppointmentNavigation:
         if data.slot_date:
             await callback.message.edit_text(
                 text=format_string.user_booking_text(data) + PHRASES_RU.answer.choose_slot,
-                reply_markup=ikb.slots_keyboard(data.slot_date)
+                reply_markup=ikb.slots_keyboard(data.slot_date),
             )
         else:
             logger.error('Appointment creation error: no slot date in state data')
@@ -158,20 +165,18 @@ class AppointmentNavigation:
     @staticmethod
     async def _show_photo_upload(callback: CallbackQuery, data: AppointmentModel):
         await callback.message.edit_text(
-            text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
-            reply_markup=ikb.photo_keyboard()
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo, reply_markup=ikb.photo_keyboard()
         )
 
     @staticmethod
     async def _show_comment_input(callback: CallbackQuery, data: AppointmentModel):
         await callback.message.edit_text(
             text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
-            reply_markup=ikb.comment_keyboard()
+            reply_markup=ikb.comment_keyboard(),
         )
 
     @staticmethod
     async def _show_confirmation(callback: CallbackQuery, data: AppointmentModel):
         await callback.message.edit_text(
-            text=format_string.user_booking_text(data) + PHRASES_RU.answer.confirm,
-            reply_markup=ikb.confirm_keyboard()
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.confirm, reply_markup=ikb.confirm_keyboard()
         )

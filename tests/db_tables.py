@@ -16,7 +16,7 @@ START = NOW + timedelta(days=1)
 END = START + timedelta(minutes=30)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def dbs():
     with (
         UsersTable() as users_db,
@@ -24,7 +24,7 @@ def dbs():
         ServicesTable() as services_db,
         PhotosTable() as photos_db,
         AppointmentsTable() as appointments_db,
-        AppointmentPhotosTable() as appointment_photos_db
+        AppointmentPhotosTable() as appointment_photos_db,
     ):
         yield {
             'slots': slots_db,
@@ -32,7 +32,7 @@ def dbs():
             'users': users_db,
             'photos': photos_db,
             'appointments': appointments_db,
-            'appointment_photos': appointment_photos_db
+            'appointment_photos': appointment_photos_db,
         }
 
 
@@ -65,12 +65,12 @@ def test_services_table(dbs):
 
 
 def test_photos_table(dbs):
-    photo_id = dbs['photos'].add_photo_no_commit("tg_file_id_123", "unique_id_123", "Some caption")
+    photo_id = dbs['photos'].add_photo_no_commit('tg_file_id_123', 'unique_id_123', 'Some caption')
     assert isinstance(photo_id, int)
 
     photo = dbs['photos'].get_photo_by_id(photo_id)
     assert isinstance(photo, PhotoModel)
-    assert photo.telegram_file_id == "tg_file_id_123"
+    assert photo.telegram_file_id == 'tg_file_id_123'
 
 
 def test_appointments_and_photos_link(dbs):
@@ -90,7 +90,7 @@ def test_appointments_and_photos_link(dbs):
     updated_app = dbs['appointments'].get_appointment_by_id(appointment_id)
     assert updated_app.status == 'confirmed'
 
-    photo_id = dbs['photos'].add_photo_no_commit("tg_file_id_456", "unique_id_456", "Caption #2")
+    photo_id = dbs['photos'].add_photo_no_commit('tg_file_id_456', 'unique_id_456', 'Caption #2')
     added = dbs['appointment_photos'].add_photo_to_appointment(appointment_id, photo_id)
     assert added
 

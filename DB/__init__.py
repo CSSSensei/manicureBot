@@ -52,19 +52,21 @@ from DB.tables.weekdays import WeekdaysTable
 
 
 def init_database():
-    with (UsersTable() as users_db,
-          QueriesTable() as queries_db,
-          SlotsTable() as slots_db,
-          ServicesTable() as services_db,
-          PhotosTable() as photos_db,
-          AppointmentsTable() as appointments_db,
-          AppointmentPhotosTable() as appointments_photos_db,
-          MastersTable() as masters_db,
-          WeekdaysTable() as weekdays_db,
-          ServiceScheduleTable() as service_schedule_db,
-          ChannelMessagesTable() as channel_messages_db,
-          DayScheduleTable() as day_schedule_db,
-          ScheduleSettingsTable() as schedule_settings_db):
+    with (
+        UsersTable() as users_db,
+        QueriesTable() as queries_db,
+        SlotsTable() as slots_db,
+        ServicesTable() as services_db,
+        PhotosTable() as photos_db,
+        AppointmentsTable() as appointments_db,
+        AppointmentPhotosTable() as appointments_photos_db,
+        MastersTable() as masters_db,
+        WeekdaysTable() as weekdays_db,
+        ServiceScheduleTable() as service_schedule_db,
+        ChannelMessagesTable() as channel_messages_db,
+        DayScheduleTable() as day_schedule_db,
+        ScheduleSettingsTable() as schedule_settings_db,
+    ):
         users_db.create_table()
         queries_db.create_table()
         slots_db.create_table()

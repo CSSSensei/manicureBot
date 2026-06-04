@@ -25,12 +25,7 @@ class ChannelMessagesTable(BaseTable):
         self.conn.commit()
         self._log('CREATE_TABLE')
 
-    def save_or_update_message(
-            self,
-            channel_id: int,
-            message_id: int,
-            message_type: str
-    ) -> bool:
+    def save_or_update_message(self, channel_id: int, message_id: int, message_type: str) -> bool:
         try:
             query = f"""
             INSERT INTO {self.__tablename__} (channel_id, message_id, message_type)
@@ -48,11 +43,7 @@ class ChannelMessagesTable(BaseTable):
             self._log('SAVE_CHANNEL_MESSAGE_ERROR', error=str(e))
             return False
 
-    def get_message_info(
-            self,
-            channel_id: int,
-            message_type: str
-    ) -> ChannelMessage | None:
+    def get_message_info(self, channel_id: int, message_type: str) -> ChannelMessage | None:
         query = f"""
         SELECT * FROM {self.__tablename__}
         WHERE channel_id = ? AND message_type = ? AND is_active = TRUE
@@ -67,15 +58,11 @@ class ChannelMessagesTable(BaseTable):
                 message_id=row['message_id'],
                 message_type=row['message_type'],
                 last_update=datetime.fromisoformat(row['last_update']) + timedelta(hours=3),
-                is_active=bool(row['is_active'])
+                is_active=bool(row['is_active']),
             )
         return None
 
-    def deactivate_message(
-            self,
-            channel_id: int,
-            message_type: str
-    ) -> bool:
+    def deactivate_message(self, channel_id: int, message_type: str) -> bool:
         try:
             query = f"""
             UPDATE {self.__tablename__}
@@ -84,9 +71,7 @@ class ChannelMessagesTable(BaseTable):
             """
             self.cursor.execute(query, (channel_id, message_type))
             self.conn.commit()
-            self._log('DEACTIVATE_CHANNEL_MESSAGE',
-                      channel_id=channel_id,
-                      message_type=message_type)
+            self._log('DEACTIVATE_CHANNEL_MESSAGE', channel_id=channel_id, message_type=message_type)
             return True
         except Exception as e:
             self._log('DEACTIVATE_CHANNEL_MESSAGE_ERROR', error=str(e))

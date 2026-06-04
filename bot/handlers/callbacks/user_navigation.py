@@ -31,15 +31,16 @@ router = Router()
 @router.callback_query(MonthCallBack.filter(), StateFilter(AppointmentStates.WAITING_FOR_DATE))
 async def handle_month_selection(callback: CallbackQuery, callback_data: MonthCallBack, state: FSMContext):
     if callback_data.day <= 0:
-        await callback.answer(PHRASES_RU.error.date if callback_data.day == 0 else PHRASES_RU.error.no_slots_for_this_day)
+        await callback.answer(
+            PHRASES_RU.error.date if callback_data.day == 0 else PHRASES_RU.error.no_slots_for_this_day
+        )
         return
     selected_date = datetime(callback_data.year, callback_data.month, callback_data.day)
-    await AppointmentNavigation.update_appointment_data(state, slot_date=selected_date, message_id=callback.message.message_id)
+    await AppointmentNavigation.update_appointment_data(
+        state, slot_date=selected_date, message_id=callback.message.message_id
+    )
     await AppointmentNavigation.handle_navigation(
-        callback=callback,
-        state=state,
-        current_state="WAITING_FOR_DATE",
-        action=1
+        callback=callback, state=state, current_state='WAITING_FOR_DATE', action=1
     )
 
 
@@ -49,17 +50,13 @@ async def handle_slot_selection(callback: CallbackQuery, callback_data: SlotCall
         slot = slots_db.get_slot(callback_data.slot_id)
         await AppointmentNavigation.update_appointment_data(
             state,
-            slot=SlotModel(id=callback_data.slot_id,
-                           start_time=slot.start_time,
-                           end_time=slot.end_time,
-                           is_available=False)
+            slot=SlotModel(
+                id=callback_data.slot_id, start_time=slot.start_time, end_time=slot.end_time, is_available=False
+            ),
         )
 
     await AppointmentNavigation.handle_navigation(
-        callback=callback,
-        state=state,
-        current_state="WAITING_FOR_SLOT",
-        action=1
+        callback=callback, state=state, current_state='WAITING_FOR_SLOT', action=1
     )
 
 
@@ -69,30 +66,24 @@ async def handle_service_selection(callback: CallbackQuery, callback_data: Servi
         await AppointmentNavigation.update_appointment_data(
             state,
             service=ServiceModel(
-                id=callback_data.service_id,
-                name=service_db.get_service(callback_data.service_id).name
-            )
+                id=callback_data.service_id, name=service_db.get_service(callback_data.service_id).name
+            ),
         )
 
     await AppointmentNavigation.handle_navigation(
-        callback=callback,
-        state=state,
-        current_state="WAITING_FOR_SERVICE",
-        action=1
+        callback=callback, state=state, current_state='WAITING_FOR_SERVICE', action=1
     )
 
 
 @router.callback_query(
-    ActionButtonCallBack.filter(),
-    StateFilter(AppointmentStates.CONFIRMATION),
-    ~IsCancelActionFilter())
-async def handle_appointment_confirmation(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext):
+    ActionButtonCallBack.filter(), StateFilter(AppointmentStates.CONFIRMATION), ~IsCancelActionFilter()
+)
+async def handle_appointment_confirmation(
+    callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext
+):
     if callback_data.action == -1:
         await AppointmentNavigation.handle_navigation(
-            callback=callback,
-            state=state,
-            current_state="CONFIRMATION",
-            action=-1
+            callback=callback, state=state, current_state='CONFIRMATION', action=-1
         )
         return
 
@@ -100,32 +91,30 @@ async def handle_appointment_confirmation(callback: CallbackQuery, callback_data
 
     try:
         app_id = await process_appointment_creation(callback.from_user.id, data)
-        message = (format_string.user_booking_text(data, '') + PHRASES_RU.answer.confirmation_wait if app_id
-                   else PHRASES_RU.error.booking.occupied_slot)
+        message = (
+            format_string.user_booking_text(data, '') + PHRASES_RU.answer.confirmation_wait
+            if app_id
+            else PHRASES_RU.error.booking.occupied_slot
+        )
 
         if app_id:
             data.client = UserModel(
                 user_id=callback.from_user.id,
                 username=callback.from_user.username,
                 first_name=callback.from_user.first_name,
-                last_name=callback.from_user.last_name)
+                last_name=callback.from_user.last_name,
+            )
             data.appointment_id = app_id
             await pages.update_master_booking_ui(data)
 
         await clear_and_respond(callback, state, message)
     except Exception as e:
-        logger.error(
-            f'Appointment creation error for user {callback.from_user.id}: {e}',
-            exc_info=True
-        )
+        logger.error(f'Appointment creation error for user {callback.from_user.id}: {e}', exc_info=True)
         await clear_and_respond(callback, state, PHRASES_RU.error.booking.try_again)
 
 
 @router.callback_query(ActionButtonCallBack.filter(), StateFilter(*AppointmentNavigation.STATES.values()))
-async def handle_navigation_actions(
-        callback: CallbackQuery,
-        callback_data: ActionButtonCallBack,
-        state: FSMContext):
+async def handle_navigation_actions(callback: CallbackQuery, callback_data: ActionButtonCallBack, state: FSMContext):
     current_state = await state.get_state()
     state_name = next(k for k, v in AppointmentNavigation.STATES.items() if v == current_state)
 
@@ -148,7 +137,7 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
 
     conn = sqlite3.connect(DB_DIR)
     try:
-        conn.execute("BEGIN IMMEDIATE")  # начинаем транзакцию
+        conn.execute('BEGIN IMMEDIATE')  # начинаем транзакцию
 
         slots_db = SlotsTable(conn=conn)
         app_db = AppointmentsTable(conn=conn)
@@ -157,10 +146,7 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
             return None
 
         app_id = app_db.create_appointment(
-            client_id=user_id,
-            slot_id=data.slot.id,
-            service_id=data.service.id,
-            comment=data.comment
+            client_id=user_id, slot_id=data.slot.id, service_id=data.service.id, comment=data.comment
         )
 
         _process_appointment_photos(conn, app_id, data.photos)
@@ -185,9 +171,7 @@ def _process_appointment_photos(conn: sqlite3.Connection, app_id: int, photos: l
     app_photo_db = AppointmentPhotosTable(conn=conn)
     for photo in photos:
         photo_id = photo_db.add_photo_no_commit(
-            telegram_file_id=photo.telegram_file_id,
-            file_unique_id=photo.file_unique_id,
-            caption=photo.caption
+            telegram_file_id=photo.telegram_file_id, file_unique_id=photo.file_unique_id, caption=photo.caption
         )
         app_photo_db.add_photo_to_appointment(app_id, photo_id)
 

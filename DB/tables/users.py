@@ -9,7 +9,7 @@ class UsersTable(BaseTable):
     __tablename__ = 'users'
 
     def create_table(self):
-        self.cursor.execute(f'''
+        self.cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             user_id INTEGER PRIMARY KEY,
             username TEXT,
@@ -19,7 +19,7 @@ class UsersTable(BaseTable):
             is_banned BOOLEAN NOT NULL DEFAULT 0,
             contact TEXT,
             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )''')
+        )""")
         self.conn.commit()
         self._log('CREATE_TABLE')
 
@@ -34,18 +34,22 @@ class UsersTable(BaseTable):
             )
 
             if needs_update:
-                self.cursor.execute(f'''
+                self.cursor.execute(
+                    f"""
                     UPDATE {self.__tablename__}
                     SET username = ?, first_name = ?, last_name = ?
-                    WHERE user_id = ?''',
-                                    (user.username, user.first_name, user.last_name, user.user_id))
+                    WHERE user_id = ?""",
+                    (user.username, user.first_name, user.last_name, user.user_id),
+                )
                 self.conn.commit()
                 self._log('UPDATE_USER', user_id=user.user_id)
         else:
-            self.cursor.execute(f'''
+            self.cursor.execute(
+                f"""
                 INSERT INTO {self.__tablename__} (user_id, username, first_name, last_name, is_admin)
-                VALUES (?, ?, ?, ?, ?)''',
-                                (user.user_id, user.username, user.first_name, user.last_name, int(user.is_admin)))
+                VALUES (?, ?, ?, ?, ?)""",
+                (user.user_id, user.username, user.first_name, user.last_name, int(user.is_admin)),
+            )
             self.conn.commit()
             self._log('ADD_USER', user_id=user.user_id)
 
@@ -71,16 +75,18 @@ class UsersTable(BaseTable):
                     if row['registration_date']
                     else None
                 ),
-                contact=row['contact']
+                contact=row['contact'],
             )
         return None
 
     def update_user(self, user: UserModel) -> UserModel | None:
-        self.cursor.execute(f'''
+        self.cursor.execute(
+            f"""
         UPDATE {self.__tablename__}
         SET username = ?, first_name = ?, last_name = ?, is_admin = ?
-        WHERE user_id = ?''',
-                            (user.username, user.first_name, user.last_name, int(user.is_admin), user.user_id))
+        WHERE user_id = ?""",
+            (user.username, user.first_name, user.last_name, int(user.is_admin), user.user_id),
+        )
         self.conn.commit()
         self._log('UPDATE_USER', user_id=user.user_id)
         return self.get_user(user.user_id)
@@ -100,10 +106,11 @@ class UsersTable(BaseTable):
             page=page,
             per_page=per_page,
             total_items=0,  # Будет обновлено после запроса
-            total_pages=0   # -//-
+            total_pages=0,  # -//-
         )
 
-        self.cursor.execute('''
+        self.cursor.execute(
+            """
             SELECT
                 u.user_id, u.username, u.first_name, u.last_name,
                 u.is_admin, u.is_banned, u.registration_date, u.contact,
@@ -113,22 +120,28 @@ class UsersTable(BaseTable):
             GROUP BY u.user_id
             ORDER BY u.registration_date DESC
             LIMIT ? OFFSET ?
-        ''', (pagination.per_page, pagination.offset))
+        """,
+            (pagination.per_page, pagination.offset),
+        )
 
-        users = [UserModel(
-            user_id=row['user_id'],
-            username=row['username'],
-            first_name=row['first_name'],
-            last_name=row['last_name'],
-            is_admin=bool(row['is_admin']),
-            is_banned=bool(row['is_banned']),
-            registration_date=(
-                datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
-                if row['registration_date']
-                else None),
-            contact=row['contact'],
-            query_count=row['query_count']
-        ) for row in self.cursor]
+        users = [
+            UserModel(
+                user_id=row['user_id'],
+                username=row['username'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
+                is_admin=bool(row['is_admin']),
+                is_banned=bool(row['is_banned']),
+                registration_date=(
+                    datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
+                    if row['registration_date']
+                    else None
+                ),
+                contact=row['contact'],
+                query_count=row['query_count'],
+            )
+            for row in self.cursor
+        ]
 
         self.cursor.execute('SELECT COUNT(*) as total FROM users')
         total_users = self.cursor.fetchone()['total']
@@ -140,22 +153,25 @@ class UsersTable(BaseTable):
 
     def get_admins(self) -> list[UserModel]:
         """Получение администраторов"""
-        self.cursor.execute(f'''
-        SELECT * FROM {self.__tablename__} WHERE is_admin = 1''')
-        return [UserModel(
-            user_id=row['user_id'],
-            username=row['username'],
-            first_name=row['first_name'],
-            last_name=row['last_name'],
-            is_admin=True,
-            is_banned=bool(row['is_banned']),
-            registration_date=(
-                datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
-                if row['registration_date']
-                else None
-            ),
-            contact=row['contact']
-        ) for row in self.cursor]
+        self.cursor.execute(f"""
+        SELECT * FROM {self.__tablename__} WHERE is_admin = 1""")
+        return [
+            UserModel(
+                user_id=row['user_id'],
+                username=row['username'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
+                is_admin=True,
+                is_banned=bool(row['is_banned']),
+                registration_date=(
+                    datetime.fromisoformat(row['registration_date']) + timedelta(hours=3)
+                    if row['registration_date']
+                    else None
+                ),
+                contact=row['contact'],
+            )
+            for row in self.cursor
+        ]
 
     def set_admin(self, user_id: int, set_by: int, is_admin: bool = True) -> bool:
         try:
@@ -164,8 +180,7 @@ class UsersTable(BaseTable):
                 return False
 
             self.cursor.execute(
-                f'UPDATE {self.__tablename__} SET is_admin = ? WHERE user_id = ?',
-                (int(is_admin), user_id)
+                f'UPDATE {self.__tablename__} SET is_admin = ? WHERE user_id = ?', (int(is_admin), user_id)
             )
             self.conn.commit()
             self._log('SET_ADMIN', user_id=user_id, is_admin=is_admin, set_by=set_by)
@@ -181,10 +196,7 @@ class UsersTable(BaseTable):
             if not self.cursor.fetchone():
                 return False
 
-            self.cursor.execute(
-                f'UPDATE {self.__tablename__} SET is_banned = ? WHERE user_id = ?',
-                (int(ban), user_id)
-            )
+            self.cursor.execute(f'UPDATE {self.__tablename__} SET is_banned = ? WHERE user_id = ?', (int(ban), user_id))
             self.conn.commit()
 
             action = 'BAN' if ban else 'UNBAN'
@@ -199,7 +211,7 @@ class UsersTable(BaseTable):
             return False
 
     def update_contact(self, user_id: int, contact: str) -> None:
-        query = f"UPDATE {self.__tablename__} SET contact = ? WHERE user_id = ?"
+        query = f'UPDATE {self.__tablename__} SET contact = ? WHERE user_id = ?'
         self.cursor.execute(query, (contact, user_id))
         self._log('UPDATE_CLIENT_CONTACT', user_id=user_id, contact=contact)
 

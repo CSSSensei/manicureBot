@@ -8,7 +8,7 @@ class MastersTable(BaseTable):
     __tablename__ = 'masters'
 
     def create_table(self):
-        self.cursor.executescript(f'''
+        self.cursor.executescript(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY,
             name TEXT,
@@ -18,7 +18,7 @@ class MastersTable(BaseTable):
             current_app_id INT,
             msg_to_delete TEXT,
             FOREIGN KEY (id) REFERENCES users(user_id) ON DELETE CASCADE
-        )''')
+        )""")
         self.conn.commit()
         self._log('CREATE_TABLE')
 
@@ -33,14 +33,14 @@ class MastersTable(BaseTable):
             True если статус успешно установлен, False если пользователь не существует
         """
         if not self._check_record_exists('users', 'user_id', user_id):
-            self._log('SET_MASTER_FAILED', reason="User not found", user_id=user_id)
+            self._log('SET_MASTER_FAILED', reason='User not found', user_id=user_id)
             return False
 
         try:
-            query = '''
+            query = """
             INSERT OR REPLACE INTO masters (id, is_master)
             VALUES (?, ?)
-            '''
+            """
             self.cursor.execute(query, (user_id, is_master))
             self.conn.commit()
             self._log('SET_MASTER_SUCCESS', user_id=user_id, is_master=is_master)
@@ -51,12 +51,12 @@ class MastersTable(BaseTable):
             return False
 
     def get_all_masters(self) -> list[Master]:
-        query = f'''
+        query = f"""
         SELECT m.*, u.*
         FROM {self.__tablename__} m
         LEFT JOIN users u ON m.id = u.user_id
         WHERE is_master = TRUE
-        '''
+        """
 
         try:
             self.cursor.execute(query)
@@ -70,12 +70,13 @@ class MastersTable(BaseTable):
                         username=row['username'],
                         first_name=row['first_name'],
                         last_name=row['last_name'],
-                        contact=row['contact']),
+                        contact=row['contact'],
+                    ),
                     specialization=row['specialization'],
                     is_master=row['is_master'],
                     message_id=row['message_id'],
                     current_app_id=row['current_app_id'],
-                    msg_to_delete=row['msg_to_delete']
+                    msg_to_delete=row['msg_to_delete'],
                 )
                 masters.append(master)
             return masters
@@ -110,20 +111,23 @@ class MastersTable(BaseTable):
                     first_name=row['first_name'],
                     last_name=row['last_name'],
                     contact=row['contact'],
-                    is_admin=row['is_admin']),
+                    is_admin=row['is_admin'],
+                ),
                 specialization=row['specialization'],
                 is_master=row['is_master'],
                 message_id=row['message_id'],
                 current_app_id=row['current_app_id'],
-                msg_to_delete=row['msg_to_delete']
+                msg_to_delete=row['msg_to_delete'],
             )
         return None
 
-    def update_current_state(self,
-                             master_id: int,
-                             message_id: int | None = None,
-                             current_app_id: int | None = None,
-                             msg_to_delete: str | None = None) -> bool:
+    def update_current_state(
+        self,
+        master_id: int,
+        message_id: int | None = None,
+        current_app_id: int | None = None,
+        msg_to_delete: str | None = None,
+    ) -> bool:
         """Обновляет message_id для указанного мастера.
 
         Args:
@@ -135,7 +139,7 @@ class MastersTable(BaseTable):
             bool: True если обновление прошло успешно, False если мастер не найден
         """
         if not self._check_record_exists(self.__tablename__, 'id', master_id):
-            self._log('UPDATE_MESSAGE_ID_FAILED', reason="Master not found", master_id=master_id)
+            self._log('UPDATE_MESSAGE_ID_FAILED', reason='Master not found', master_id=master_id)
             return False
 
         try:
@@ -146,11 +150,13 @@ class MastersTable(BaseTable):
             """
             self.cursor.execute(query, (message_id, current_app_id, msg_to_delete, master_id))
             self.conn.commit()
-            self._log('UPDATE_MESSAGE_ID_SUCCESS',
-                      master_id=master_id,
-                      current_app_id=current_app_id,
-                      message_id=message_id,
-                      msg_to_delete=msg_to_delete)
+            self._log(
+                'UPDATE_MESSAGE_ID_SUCCESS',
+                master_id=master_id,
+                current_app_id=current_app_id,
+                message_id=message_id,
+                msg_to_delete=msg_to_delete,
+            )
             return True
         except sqlite3.Error as e:
             self._log('UPDATE_MESSAGE_ID_ERROR', error=str(e), master_id=master_id)

@@ -1,4 +1,3 @@
-
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 
@@ -15,23 +14,39 @@ def page_keyboard(type_of_event: PageListSection, pagination: Pagination, user_i
     no_action = AdminPageCallBack(type_of_event=PageListSection.NO_ACTION).pack()
     empty_button = IButton(text=' ', callback_data=no_action)
 
-    past_button = IButton(
-        text=PHRASES_RU.button.prev_page,
-        callback_data=AdminPageCallBack(type_of_event=type_of_event,
-                                        page=pagination.page - 1,
-                                        user_id=user_id).pack()
-    ) if pagination.has_prev else empty_button
+    past_button = (
+        IButton(
+            text=PHRASES_RU.button.prev_page,
+            callback_data=AdminPageCallBack(
+                type_of_event=type_of_event, page=pagination.page - 1, user_id=user_id
+            ).pack(),
+        )
+        if pagination.has_prev
+        else empty_button
+    )
 
-    next_button = IButton(
-        text=PHRASES_RU.button.next_page,
-        callback_data=AdminPageCallBack(type_of_event=type_of_event,
-                                        page=pagination.page + 1,
-                                        user_id=user_id).pack()
-    ) if pagination.has_next else empty_button
+    next_button = (
+        IButton(
+            text=PHRASES_RU.button.next_page,
+            callback_data=AdminPageCallBack(
+                type_of_event=type_of_event, page=pagination.page + 1, user_id=user_id
+            ).pack(),
+        )
+        if pagination.has_next
+        else empty_button
+    )
 
-    return IMarkup(inline_keyboard=[[
-        past_button,
-        IButton(text=PHRASES_RU.replace('template.page_counter', current=pagination.page, total=pagination.total_pages),
-                callback_data=no_action),
-        next_button
-    ]])
+    return IMarkup(
+        inline_keyboard=[
+            [
+                past_button,
+                IButton(
+                    text=PHRASES_RU.replace(
+                        'template.page_counter', current=pagination.page, total=pagination.total_pages
+                    ),
+                    callback_data=no_action,
+                ),
+                next_button,
+            ]
+        ]
+    )

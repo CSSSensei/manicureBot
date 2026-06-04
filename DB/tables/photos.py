@@ -1,4 +1,3 @@
-
 from DB.models import PhotoModel
 from DB.tables.base import BaseTable
 
@@ -8,13 +7,13 @@ class PhotosTable(BaseTable):
 
     def create_table(self):
         """Создание таблицы photos"""
-        self.cursor.execute(f'''
+        self.cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             telegram_file_id TEXT NOT NULL,
             file_unique_id TEXT NOT NULL,
             caption TEXT
-        )''')
+        )""")
         self.conn.commit()
         self._log('CREATE_TABLE')
 
@@ -36,7 +35,7 @@ class PhotosTable(BaseTable):
         return self.cursor.lastrowid
 
     def get_photo_by_id(self, photo_id: int) -> PhotoModel | None:
-        query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
+        query = f'SELECT * FROM {self.__tablename__} WHERE id = ?'
         self.cursor.execute(query, (photo_id,))
         row = self.cursor.fetchone()
         if row:

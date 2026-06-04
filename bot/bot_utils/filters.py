@@ -1,4 +1,3 @@
-
 from aiogram.filters import BaseFilter, Filter
 from aiogram.types import CallbackQuery, Message
 
@@ -22,16 +21,25 @@ class MasterFilter(BaseFilter):
         with MastersTable() as master_db, UsersTable() as db:
             user_master: Master | None = master_db.get_master(message.from_user.id)
             user: UserModel | None = db.get_user(message.from_user.id)
-            return user.is_admin or user_master and user_master.is_master   # АДМИН ИМЕЕТ ДОСТУП К ИНТЕРФЕЙСУ МАСТЕРА
+            return user.is_admin or user_master and user_master.is_master  # АДМИН ИМЕЕТ ДОСТУП К ИНТЕРФЕЙСУ МАСТЕРА
 
 
 class IsCancelActionFilter(Filter):
-    async def __call__(self, callback: CallbackQuery, **data) -> bool:  # Проверка, относится ли коллбэк к кнопке «Отмена»
-        callback_data = data.get("callback_data")
+    async def __call__(
+        self, callback: CallbackQuery, **data
+    ) -> bool:  # Проверка, относится ли коллбэк к кнопке «Отмена»
+        callback_data = data.get('callback_data')
         return callback_data.action == 0 if callback_data else False
 
 
 class NotBookingCalendar(Filter):
-    async def __call__(self, callback: CallbackQuery, **data) -> bool:  # Проверка, относится ли коллбэк к кнопке календаря для удаления слота
-        callback_data = data.get("callback_data")
-        return callback_data.mode in {const.CalendarMode.DELETE, const.CalendarMode.APPOINTMENT_MAP} or callback_data.action != 0 if callback_data else False
+    async def __call__(
+        self, callback: CallbackQuery, **data
+    ) -> bool:  # Проверка, относится ли коллбэк к кнопке календаря для удаления слота
+        callback_data = data.get('callback_data')
+        return (
+            callback_data.mode in {const.CalendarMode.DELETE, const.CalendarMode.APPOINTMENT_MAP}
+            or callback_data.action != 0
+            if callback_data
+            else False
+        )

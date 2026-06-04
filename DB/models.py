@@ -119,10 +119,7 @@ class AppointmentModel(BaseModel):
     slot_date: datetime | None = None
 
     def is_ready_for_confirmation(self) -> bool:
-        return all([
-            self.slot and self.slot.id is not None,
-            self.service and self.service.id is not None
-        ])
+        return all([self.slot and self.slot.id is not None, self.service and self.service.id is not None])
 
     @property
     def formatted_date(self) -> str:
@@ -154,13 +151,7 @@ class AppointmentModel(BaseModel):
 
         base_data = {k: v for k, v in data.items() if k in cls.model_fields}
 
-        return cls(
-            slot=slot,
-            service=service,
-            client=client,
-            photos=photos,
-            **base_data
-        )
+        return cls(slot=slot, service=service, client=client, photos=photos, **base_data)
 
     def __str__(self):
         return (

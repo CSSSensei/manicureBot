@@ -68,7 +68,7 @@ async def _(message: Message, amount: int):
         txt = format_list.format_queries_text(
             queries=queries,
             footnote_template=PHRASES_RU.footnote.all_queries,
-            line_template=PHRASES_RU.template.all_queries
+            line_template=PHRASES_RU.template.all_queries,
         )
 
         if txt:

@@ -1,4 +1,3 @@
-
 from DB.models import ServiceModel
 from DB.tables.base import BaseTable
 from DB.tables.service_schedule import ServiceScheduleTable
@@ -8,7 +7,7 @@ class ServicesTable(BaseTable):
     __tablename__ = 'services'
 
     def create_table(self):
-        self.cursor.execute(f'''
+        self.cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -16,7 +15,7 @@ class ServicesTable(BaseTable):
             duration INTEGER,
             price REAL,
             is_active BOOLEAN NOT NULL DEFAULT 1  -- В SQLite BOOLEAN как INTEGER (0/1)
-        )''')
+        )""")
         self.conn.commit()
         self._log('CREATE_TABLE')
 
@@ -34,31 +33,37 @@ class ServicesTable(BaseTable):
         return last_row_id
 
     def get_active_services(self) -> list[ServiceModel]:
-        query = f"SELECT * FROM {self.__tablename__} WHERE is_active = TRUE"
+        query = f'SELECT * FROM {self.__tablename__} WHERE is_active = TRUE'
         self.cursor.execute(query)
-        return [ServiceModel(
-            id=row['id'],
-            name=row['name'],
-            description=row['description'],
-            duration=row['duration'],
-            price=row['price'],
-            is_active=bool(row['is_active'])
-        ) for row in self.cursor]
+        return [
+            ServiceModel(
+                id=row['id'],
+                name=row['name'],
+                description=row['description'],
+                duration=row['duration'],
+                price=row['price'],
+                is_active=bool(row['is_active']),
+            )
+            for row in self.cursor
+        ]
 
     def get_all_services(self) -> list[ServiceModel]:
-        query = f"SELECT * FROM {self.__tablename__}"
+        query = f'SELECT * FROM {self.__tablename__}'
         self.cursor.execute(query)
-        return [ServiceModel(
-            id=row['id'],
-            name=row['name'],
-            description=row['description'],
-            duration=row['duration'],
-            price=row['price'],
-            is_active=bool(row['is_active'])
-        ) for row in self.cursor]
+        return [
+            ServiceModel(
+                id=row['id'],
+                name=row['name'],
+                description=row['description'],
+                duration=row['duration'],
+                price=row['price'],
+                is_active=bool(row['is_active']),
+            )
+            for row in self.cursor
+        ]
 
     def get_service(self, service_id) -> ServiceModel | None:
-        query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
+        query = f'SELECT * FROM {self.__tablename__} WHERE id = ?'
         self.cursor.execute(query, (service_id,))
         row = self.cursor.fetchone()
         if not row:
@@ -69,19 +74,20 @@ class ServicesTable(BaseTable):
             description=row['description'],
             duration=row['duration'],
             price=row['price'],
-            is_active=bool(row['is_active']))
+            is_active=bool(row['is_active']),
+        )
 
     def toggle_service_active(self, service_id: int, is_active: bool) -> None:
         if not self._check_record_exists('services', 'id', service_id):
-            raise ValueError(f"Service with id {service_id} not found")
-        query = f"UPDATE {self.__tablename__} SET is_active = ? WHERE id = ?"
+            raise ValueError(f'Service with id {service_id} not found')
+        query = f'UPDATE {self.__tablename__} SET is_active = ? WHERE id = ?'
         self.cursor.execute(query, (int(is_active), service_id))
         self.conn.commit()
         self._log('TOGGLE_SERVICE_ACTIVE', service_id=service_id, is_active=is_active)
 
     def update_service(self, service: ServiceModel) -> None:
         if not self._check_record_exists(self.__tablename__, 'id', service.id):
-            raise ValueError(f"Service with id {service.id} not found")
+            raise ValueError(f'Service with id {service.id} not found')
 
         query = f"""
         UPDATE {self.__tablename__}
@@ -92,14 +98,10 @@ class ServicesTable(BaseTable):
             is_active = ?
         WHERE id = ?
         """
-        self.cursor.execute(query, (
-            service.name,
-            service.description,
-            service.duration,
-            service.price,
-            int(service.is_active),
-            service.id
-        ))
+        self.cursor.execute(
+            query,
+            (service.name, service.description, service.duration, service.price, int(service.is_active), service.id),
+        )
         self.conn.commit()
         self._log('UPDATE_SERVICE', service_id=service.id)
 

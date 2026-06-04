@@ -92,11 +92,18 @@ def user_sent_booking(data: AppointmentModel, header: str) -> str:
 def master_sent_booking(data: AppointmentModel, header: str) -> str:
     text = header
     if data.client:
-        text += PHRASES_RU.replace('template.master.client_username',
-                                   user_id=data.client.user_id,
-                                   username=f'@{data.client.username}' if data.client.username else data.client.first_name or PHRASES_RU.error.no_username)
-    text += PHRASES_RU.replace('template.master.slot', date=data.formatted_date,
-                               datetime=data.slot_str) if data.slot else ''
+        text += PHRASES_RU.replace(
+            'template.master.client_username',
+            user_id=data.client.user_id,
+            username=f'@{data.client.username}'
+            if data.client.username
+            else data.client.first_name or PHRASES_RU.error.no_username,
+        )
+    text += (
+        PHRASES_RU.replace('template.master.slot', date=data.formatted_date, datetime=data.slot_str)
+        if data.slot
+        else ''
+    )
     if data.service and data.service.name:
         text += PHRASES_RU.replace('template.user.service', service=data.service.name)
     if data.photos and len(data.photos) > 0:
@@ -117,11 +124,18 @@ def master_reviewed_appointment(data: AppointmentModel):
 def master_booking_text(data: AppointmentModel, total_items: int = 1) -> str:
     text = PHRASES_RU.title.admin_new_booking + PHRASES_RU.replace('footnote.total', total=total_items)
     if data.client:
-        text += PHRASES_RU.replace('template.master.client_username',
-                                   user_id=data.client.user_id,
-                                   username=f'@{data.client.username}' if data.client.username else data.client.first_name or PHRASES_RU.error.no_username)
-    text += PHRASES_RU.replace('template.master.slot', date=data.formatted_date,
-                               datetime=data.slot_str) if data.slot else ''
+        text += PHRASES_RU.replace(
+            'template.master.client_username',
+            user_id=data.client.user_id,
+            username=f'@{data.client.username}'
+            if data.client.username
+            else data.client.first_name or PHRASES_RU.error.no_username,
+        )
+    text += (
+        PHRASES_RU.replace('template.master.slot', date=data.formatted_date, datetime=data.slot_str)
+        if data.slot
+        else ''
+    )
     if data.service and data.service.name:
         text += PHRASES_RU.replace('template.master.service', service=data.service.name)
     if data.comment:
@@ -145,13 +159,22 @@ def parse_slots_text(text: str) -> list[tuple[datetime, datetime]]:
     lines = [line.strip() for line in text.split('\n') if line.strip()]
 
     if not lines:
-        raise ValueError("Пустой текст")
+        raise ValueError('Пустой текст')
 
     month_line = lines[0].lower()
     month_map = {
-        'январь': 1, 'февраль': 2, 'март': 3, 'апрель': 4,
-        'май': 5, 'июнь': 6, 'июль': 7, 'август': 8,
-        'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12
+        'январь': 1,
+        'февраль': 2,
+        'март': 3,
+        'апрель': 4,
+        'май': 5,
+        'июнь': 6,
+        'июль': 7,
+        'август': 8,
+        'сентябрь': 9,
+        'октябрь': 10,
+        'ноябрь': 11,
+        'декабрь': 12,
     }
 
     month = next((num for name, num in month_map.items() if name in month_line), None)
@@ -207,7 +230,7 @@ def parse_slots_text(text: str) -> list[tuple[datetime, datetime]]:
 
 def slots_to_text(slots: list[SlotModel]) -> str:
     if not slots:
-        return ""
+        return ''
 
     slots_by_month = defaultdict(lambda: defaultdict(list))
     for slot in slots:
@@ -231,18 +254,18 @@ def slots_to_text(slots: list[SlotModel]) -> str:
 
             slot_strings = []
             for slot in date_slots:
-                slot_strings.append(slot.start_time.strftime("%H:%M"))
+                slot_strings.append(slot.start_time.strftime('%H:%M'))
 
-            line = f"{day} — {' '.join(slot_strings)}"
+            line = f'{day} — {" ".join(slot_strings)}'
             result_lines.append(line)
 
-    return "\n".join(result_lines)
+    return '\n'.join(result_lines)
 
 
 def parse_service_text(text: str, service_id: int | None = None) -> ServiceModel:
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     if not lines:
-        raise ValueError("Пустой запрос")
+        raise ValueError('Пустой запрос')
 
     service_name = lines[0].strip()
 
@@ -255,25 +278,25 @@ def parse_service_text(text: str, service_id: int | None = None) -> ServiceModel
 
     for line in lines[1:]:
         if ':' not in line:
-            raise ValueError(f"Некорректный формат строки: {line}")
+            raise ValueError(f'Некорректный формат строки: {line}')
 
         key, value = line[:2], line[2:].strip()
         if key in seen_keys:
-            raise ValueError(f"Поле {key} указано более одного раза")
+            raise ValueError(f'Поле {key} указано более одного раза')
         seen_keys.add(key)
 
         if key == 'о:':
             service.description = value
         elif key == 'с:':
             if not value.isdigit():
-                raise ValueError("Стоимость должна быть числом")
+                raise ValueError('Стоимость должна быть числом')
             service.price = int(value)
         elif key == 'д:':
             if not value.isdigit():
-                raise ValueError("Длительность должна быть числом (в минутах)")
+                raise ValueError('Длительность должна быть числом (в минутах)')
             service.duration = int(value)
         else:
-            raise ValueError(f"Неизвестный префикс: {key}")
+            raise ValueError(f'Неизвестный префикс: {key}')
 
     return service
 
@@ -307,18 +330,25 @@ def parse_schedule_message(text: str) -> dict[int, list[tuple[time, time]]]:
     }
     """
     day_mapping = {
-        'пн': 0, 'понедельник': 0,
-        'вт': 1, 'вторник': 1,
-        'ср': 2, 'среда': 2,
-        'чт': 3, 'четверг': 3,
-        'пт': 4, 'пятница': 4,
-        'сб': 5, 'суббота': 5,
-        'вс': 6, 'воскресенье': 6
+        'пн': 0,
+        'понедельник': 0,
+        'вт': 1,
+        'вторник': 1,
+        'ср': 2,
+        'среда': 2,
+        'чт': 3,
+        'четверг': 3,
+        'пт': 4,
+        'пятница': 4,
+        'сб': 5,
+        'суббота': 5,
+        'вс': 6,
+        'воскресенье': 6,
     }
 
     result: dict[int, list[tuple[time, time]]] = {i: [] for i in range(7)}
 
-    lines = text.strip().replace('—', '-').split("\n")
+    lines = text.strip().replace('—', '-').split('\n')
     for line in lines:
         line = line.strip()
         if not line or '-' not in line:
@@ -333,15 +363,15 @@ def parse_schedule_message(text: str) -> dict[int, list[tuple[time, time]]]:
         weekday = day_mapping[day_key]
         slots_text = slots_part.strip().lower()
 
-        if "выходной" in slots_text or "отдых" in slots_text:
+        if 'выходной' in slots_text or 'отдых' in slots_text:
             result[weekday] = []
             continue
 
         slots: list[tuple[time, time]] = []
         for token in slots_text.split():
-            if "-" in token:
+            if '-' in token:
                 # интервал времени
-                start_str, end_str = token.split("-", 1)
+                start_str, end_str = token.split('-', 1)
                 try:
                     start = time.fromisoformat(start_str)
                     end = time.fromisoformat(end_str)
@@ -367,16 +397,16 @@ def show_current_schedule() -> str:
     with DayScheduleTable() as db:
         schedules = db.get_all_schedules()
 
-    weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-    response = "<b>📅 Текущее расписание:</b>\n"
+    weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+    response = '<b>📅 Текущее расписание:</b>\n'
 
     for i, day_name in enumerate(weekdays):
         schedule = schedules.get(i)
         if schedule and schedule.is_working:
-            times = " ".join(start.strftime('%H:%M') for start, _ in schedule.time_slots)
-            response += f"{day_name} — {times}\n"
+            times = ' '.join(start.strftime('%H:%M') for start, _ in schedule.time_slots)
+            response += f'{day_name} — {times}\n'
         else:
-            response += f"{day_name} — выходной\n"
+            response += f'{day_name} — выходной\n'
 
     return response
 

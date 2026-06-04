@@ -28,13 +28,14 @@ class GetUserMiddleware(BaseMiddleware):
         try:
             with UsersTable() as users_db:
                 user_row: UserModel | None = users_db.get_user(user.id)
-                if (not user_row or user.username != user_row.username
-                        or user.first_name != user_row.first_name or user.last_name != user_row.last_name):
+                if (
+                    not user_row
+                    or user.username != user_row.username
+                    or user.first_name != user_row.first_name
+                    or user.last_name != user_row.last_name
+                ):
                     new_user = UserModel(
-                        user_id=user.id,
-                        username=user.username,
-                        first_name=user.first_name,
-                        last_name=user.last_name
+                        user_id=user.id, username=user.username, first_name=user.first_name, last_name=user.last_name
                     )
                     user_row = users_db.add_user(new_user)
                 data.update(user_row=user_row)

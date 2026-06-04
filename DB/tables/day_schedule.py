@@ -19,7 +19,7 @@ class DayScheduleTable(BaseTable):
         """)
         self.conn.commit()
 
-        self.cursor.execute(f"SELECT COUNT(*) FROM {self.__tablename__}")
+        self.cursor.execute(f'SELECT COUNT(*) FROM {self.__tablename__}')
         count = self.cursor.fetchone()[0]
 
         if count == 0:
@@ -27,13 +27,13 @@ class DayScheduleTable(BaseTable):
 
     def _initialize_default_schedule(self):
         default_slots = {
-            0: [("10:00", "13:00"), ("14:30", "17:30"), ("18:00", "21:00")],    # Понедельник
-            1: [],                                                              # Вторник - выходной
-            2: [("10:00", "13:00"), ("14:30", "17:30"), ("18:00", "21:00")],    # Среда
-            3: [("14:30", "18:00"), ("18:00", "21:00")],                        # Четверг
-            4: [("14:30", "17:30"), ("18:00", "21:00")],                        # Пятница
-            5: [],                                                              # Суббота - выходной
-            6: [("11:00", "14:00"), ("14:30", "17:30"), ("18:00", "20:00")]     # Воскресенье
+            0: [('10:00', '13:00'), ('14:30', '17:30'), ('18:00', '21:00')],  # Понедельник
+            1: [],  # Вторник - выходной
+            2: [('10:00', '13:00'), ('14:30', '17:30'), ('18:00', '21:00')],  # Среда
+            3: [('14:30', '18:00'), ('18:00', '21:00')],  # Четверг
+            4: [('14:30', '17:30'), ('18:00', '21:00')],  # Пятница
+            5: [],  # Суббота - выходной
+            6: [('11:00', '14:00'), ('14:30', '17:30'), ('18:00', '20:00')],  # Воскресенье
         }
 
         for weekday, slots in default_slots.items():
@@ -51,28 +51,26 @@ class DayScheduleTable(BaseTable):
         self.conn.commit()
 
     def get_day_schedule(self, weekday: int) -> DaySchedule | None:
-        query = f"SELECT * FROM {self.__tablename__} WHERE weekday = ?"
+        query = f'SELECT * FROM {self.__tablename__} WHERE weekday = ?'
         self.cursor.execute(query, (weekday,))
         row = self.cursor.fetchone()
         if row:
-            slots = [(time.fromisoformat(start), time.fromisoformat(end)) for start, end in json.loads(row['time_slots'])]
-            return DaySchedule(
-                weekday=row['weekday'],
-                time_slots=slots,
-                is_working=bool(row['is_working'])
-            )
+            slots = [
+                (time.fromisoformat(start), time.fromisoformat(end)) for start, end in json.loads(row['time_slots'])
+            ]
+            return DaySchedule(weekday=row['weekday'], time_slots=slots, is_working=bool(row['is_working']))
         return None
 
     def get_all_schedules(self) -> dict[int, DaySchedule]:
-        query = f"SELECT * FROM {self.__tablename__} ORDER BY weekday"
+        query = f'SELECT * FROM {self.__tablename__} ORDER BY weekday'
         self.cursor.execute(query)
 
         schedules = {}
         for row in self.cursor.fetchall():
-            time_slots = [(time.fromisoformat(start), time.fromisoformat(end)) for start, end in json.loads(row['time_slots'])]
+            time_slots = [
+                (time.fromisoformat(start), time.fromisoformat(end)) for start, end in json.loads(row['time_slots'])
+            ]
             schedules[row['weekday']] = DaySchedule(
-                weekday=row['weekday'],
-                time_slots=time_slots,
-                is_working=bool(row['is_working'])
+                weekday=row['weekday'], time_slots=time_slots, is_working=bool(row['is_working'])
             )
         return schedules

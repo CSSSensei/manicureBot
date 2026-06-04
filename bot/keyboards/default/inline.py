@@ -36,113 +36,136 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
     keyboard = []
 
     if appointment.photos:
-        keyboard.append([
-            IButton(text=PHRASES_RU.button.photos,
-                    callback_data=PhotoAppCallBack(app_id=appointment.appointment_id).pack())
-        ])
+        keyboard.append(
+            [
+                IButton(
+                    text=PHRASES_RU.button.photos,
+                    callback_data=PhotoAppCallBack(app_id=appointment.appointment_id).pack(),
+                )
+            ]
+        )
 
     if appointment.status not in {CANCELLED, REJECTED} and appointment.slot.start_time > datetime.now():
-        if mode == AppListMode.MASTER or appointment.status == PENDING or appointment.slot.start_time - timedelta(hours=3) > datetime.now():
-            keyboard.append([
-                IButton(text=PHRASES_RU.button.cancel2,
+        if (
+            mode == AppListMode.MASTER
+            or appointment.status == PENDING
+            or appointment.slot.start_time - timedelta(hours=3) > datetime.now()
+        ):
+            keyboard.append(
+                [
+                    IButton(
+                        text=PHRASES_RU.button.cancel2,
                         callback_data=BookingPageCallBack(
                             page=pagination.page,
                             action=AppointmentPageAction.SET_CANCELLED,
                             app_id=appointment.appointment_id,
                             app_date=appointment.slot.start_time.date(),
-                            mode=mode
-                        ).pack())
-            ])
+                            mode=mode,
+                        ).pack(),
+                    )
+                ]
+            )
 
     if pagination.total_pages > 1:
         no_action = BookingPageCallBack().pack()
         empty_button = IButton(text=' ', callback_data=no_action)
-        page_data = {
-            'mode': mode,
-            'app_id': appointment.appointment_id,
-            'app_date': appointment.slot.start_time.date()
-        }
+        page_data = {'mode': mode, 'app_id': appointment.appointment_id, 'app_date': appointment.slot.start_time.date()}
 
-        past_button = IButton(
-            text=PHRASES_RU.button.prev_page,
-            callback_data=BookingPageCallBack(page=pagination.page - 1, **page_data).pack()
-        ) if pagination.has_prev else empty_button
+        past_button = (
+            IButton(
+                text=PHRASES_RU.button.prev_page,
+                callback_data=BookingPageCallBack(page=pagination.page - 1, **page_data).pack(),
+            )
+            if pagination.has_prev
+            else empty_button
+        )
 
-        next_button = IButton(
-            text=PHRASES_RU.button.next_page,
-            callback_data=BookingPageCallBack(page=pagination.page + 1, **page_data).pack()
-        ) if pagination.has_next else empty_button
-        keyboard.append([
-            past_button,
-            IButton(text=PHRASES_RU.replace('template.page_counter', current=pagination.page, total=pagination.total_pages),
-                    callback_data=no_action),
-            next_button
-        ])
+        next_button = (
+            IButton(
+                text=PHRASES_RU.button.next_page,
+                callback_data=BookingPageCallBack(page=pagination.page + 1, **page_data).pack(),
+            )
+            if pagination.has_next
+            else empty_button
+        )
+        keyboard.append(
+            [
+                past_button,
+                IButton(
+                    text=PHRASES_RU.replace(
+                        'template.page_counter', current=pagination.page, total=pagination.total_pages
+                    ),
+                    callback_data=no_action,
+                ),
+                next_button,
+            ]
+        )
 
     if mode == AppListMode.MASTER:
-        keyboard.append([
-            IButton(
-                text=PHRASES_RU.button.back,
-                callback_data=BookingPageCallBack(
-                    page=pagination.page,
-                    app_date=appointment.slot.start_time.date(),
-                    action=AppointmentPageAction.BACK_TO_MAP,
-                    mode=mode
-                ).pack()
-            )
-        ])
+        keyboard.append(
+            [
+                IButton(
+                    text=PHRASES_RU.button.back,
+                    callback_data=BookingPageCallBack(
+                        page=pagination.page,
+                        app_date=appointment.slot.start_time.date(),
+                        action=AppointmentPageAction.BACK_TO_MAP,
+                        mode=mode,
+                    ).pack(),
+                )
+            ]
+        )
 
     return IMarkup(inline_keyboard=keyboard)
 
 
 def user_cancel_keyboard(appointment_id: int, page: int, mode: AppListMode, app_date: date | None) -> IMarkup | None:
     back_button = IButton(
-        text=PHRASES_RU.button.back, callback_data=BookingPageCallBack(
-            page=page,
-            action=AppointmentPageAction.BACK,
-            app_id=appointment_id,
-            app_date=app_date,
-            mode=mode).pack()
+        text=PHRASES_RU.button.back,
+        callback_data=BookingPageCallBack(
+            page=page, action=AppointmentPageAction.BACK, app_id=appointment_id, app_date=app_date, mode=mode
+        ).pack(),
     )
 
     cancel_button = IButton(
         text=PHRASES_RU.button.cancel3,
         callback_data=BookingStatusCallBack(
-            status=CANCELLED if mode == AppListMode.USER else REJECTED,
-            app_id=appointment_id).pack()
+            status=CANCELLED if mode == AppListMode.USER else REJECTED, app_id=appointment_id
+        ).pack(),
     )
     keyboard = [[cancel_button], [back_button]]
     return IMarkup(inline_keyboard=keyboard)
 
 
 def _base_keyboard(
-        buttons: list[list[IButton]],
-        *,
-        cur_page: int,
-        next_page: int | None = None,
+    buttons: list[list[IButton]],
+    *,
+    cur_page: int,
+    next_page: int | None = None,
 ) -> IMarkup:
     """Базовая клавиатура с кнопками Назад/Далее/Отмена."""
-    row = [IButton(
-        text=PHRASES_RU.button.back,
-        callback_data=ActionButtonCallBack(action=-1, current_page=cur_page).pack()
-    )]
+    row = [
+        IButton(
+            text=PHRASES_RU.button.back, callback_data=ActionButtonCallBack(action=-1, current_page=cur_page).pack()
+        )
+    ]
     if next_page == -1:
-        row.append(IButton(
-            text=PHRASES_RU.button.confirm,
-            callback_data=ActionButtonCallBack(action=1, current_page=cur_page).pack()
-        ))
+        row.append(
+            IButton(
+                text=PHRASES_RU.button.confirm,
+                callback_data=ActionButtonCallBack(action=1, current_page=cur_page).pack(),
+            )
+        )
 
     elif next_page is not None:
-        row.append(IButton(
-            text=PHRASES_RU.button.next,
-            callback_data=ActionButtonCallBack(action=1, current_page=cur_page).pack()
-        ))
+        row.append(
+            IButton(
+                text=PHRASES_RU.button.next, callback_data=ActionButtonCallBack(action=1, current_page=cur_page).pack()
+            )
+        )
 
     buttons.append(row)
-    cancel_button = IButton(
-        text=PHRASES_RU.button.cancel,
-        callback_data=ActionButtonCallBack(action=0).pack()
-    )
+    cancel_button = IButton(text=PHRASES_RU.button.cancel, callback_data=ActionButtonCallBack(action=0).pack())
     if len(buttons[-1]) < 2:
         buttons[-1].append(cancel_button)
     else:
@@ -150,25 +173,28 @@ def _base_keyboard(
     return IMarkup(inline_keyboard=buttons)
 
 
-def first_page_calendar(appointment: AppointmentModel, mode: CalendarMode = CalendarMode.BOOKING) -> tuple[str | None, IMarkup | None]:
+def first_page_calendar(
+    appointment: AppointmentModel, mode: CalendarMode = CalendarMode.BOOKING
+) -> tuple[str | None, IMarkup | None]:
     with SlotsTable() as slots_db:
         first_slot = slots_db.get_first_available_slot()
         if not first_slot:
             return None, None
 
         current_date = datetime.now()
-        is_current_month = (first_slot.month == current_date.month and
-                            first_slot.year == current_date.year)
+        is_current_month = first_slot.month == current_date.month and first_slot.year == current_date.year
         prev_enabled = not is_current_month
 
         return create_calendar_keyboard(first_slot.month, first_slot.year, prev_enabled, mode, appointment)
 
 
-def create_calendar_keyboard(month: int,
-                             year: int,
-                             prev: bool,
-                             mode: CalendarMode = CalendarMode.BOOKING,
-                             appointment: AppointmentModel | None = None) -> tuple[str, IMarkup]:
+def create_calendar_keyboard(
+    month: int,
+    year: int,
+    prev: bool,
+    mode: CalendarMode = CalendarMode.BOOKING,
+    appointment: AppointmentModel | None = None,
+) -> tuple[str, IMarkup]:
     now = datetime.now()
     today = now.date()
     month_days = calendar.monthrange(year, month)[1]
@@ -193,24 +219,21 @@ def create_calendar_keyboard(month: int,
     header_text = _generate_header_text(month, future_slots, mode, booked_slots, appointment)
 
     keyboard = _build_calendar_keyboard(
-        month=month,
-        year=year,
-        prev_enabled=prev,
-        available_dates=available_dates,
-        today=today,
-        mode=mode
+        month=month, year=year, prev_enabled=prev, available_dates=available_dates, today=today, mode=mode
     )
     if mode == CalendarMode.BOOKING:
-        keyboard.inline_keyboard.append([
-            IButton(
-                text=PHRASES_RU.button.back,
-                callback_data=ActionButtonCallBack(action=-1, current_page=2).pack()),
-            IButton(
-                text=PHRASES_RU.button.cancel,
-                callback_data=ActionButtonCallBack(action=0).pack()
-            )])
+        keyboard.inline_keyboard.append(
+            [
+                IButton(
+                    text=PHRASES_RU.button.back, callback_data=ActionButtonCallBack(action=-1, current_page=2).pack()
+                ),
+                IButton(text=PHRASES_RU.button.cancel, callback_data=ActionButtonCallBack(action=0).pack()),
+            ]
+        )
     elif mode == CalendarMode.DELETE or mode == CalendarMode.APPOINTMENT_MAP:
-        keyboard.inline_keyboard.append([IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)])
+        keyboard.inline_keyboard.append(
+            [IButton(text=PHRASES_RU.button.back, callback_data=PHRASES_RU.callback_data.master.cancel)]
+        )
 
     return header_text, keyboard
 
@@ -243,23 +266,29 @@ def _get_appointment_dates(start_date: datetime, end_date: datetime) -> tuple[se
         return booked_slots, future_slots_len, confirmed_slots_len
 
 
-def _generate_header_text(month: int, future_slots_len: int, mode: CalendarMode, booked_slots_len: int = 0,
-                          app: AppointmentModel | None = None) -> str:
+def _generate_header_text(
+    month: int,
+    future_slots_len: int,
+    mode: CalendarMode,
+    booked_slots_len: int = 0,
+    app: AppointmentModel | None = None,
+) -> str:
     month_name = MONTHS[month]
     match mode:
         case CalendarMode.BOOKING:
             appointment_header = format_string.user_booking_text(app)
             if future_slots_len > 0:
-                return appointment_header + (PHRASES_RU.replace('answer.available_slots',
-                                                                month=month_name,
-                                                                len_slots=future_slots_len) + PHRASES_RU.answer.choose_date)
+                return appointment_header + (
+                    PHRASES_RU.replace('answer.available_slots', month=month_name, len_slots=future_slots_len)
+                    + PHRASES_RU.answer.choose_date
+                )
             return PHRASES_RU.replace('answer.no_available_slots', month=month_name.lower())
 
         case CalendarMode.DELETE:
             if future_slots_len > 0:
-                return PHRASES_RU.replace('answer.master.choose_date_to_delete',
-                                          month=month_name,
-                                          len_slots=future_slots_len)
+                return PHRASES_RU.replace(
+                    'answer.master.choose_date_to_delete', month=month_name, len_slots=future_slots_len
+                )
             return PHRASES_RU.replace('answer.master.no_available_slots', month=month_name)
 
         case CalendarMode.APPOINTMENT_MAP:
@@ -278,25 +307,16 @@ def _generate_header_text(month: int, future_slots_len: int, mode: CalendarMode,
             caption += PHRASES_RU.answer.master.choose_appointment_date
             return caption
 
-    return ""
+    return ''
 
 
 def _build_calendar_keyboard(
-        month: int,
-        year: int,
-        prev_enabled: bool,
-        available_dates: set[date],
-        today: date,
-        mode: CalendarMode
+    month: int, year: int, prev_enabled: bool, available_dates: set[date], today: date, mode: CalendarMode
 ) -> IMarkup:
     navigation_buttons = _create_navigation_row(month, year, prev_enabled, mode)
     weekdays_row = _create_weekdays_row(mode)
     calendar_rows = _create_calendar_days_rows(
-        month=month,
-        year=year,
-        available_dates=available_dates,
-        today=today,
-        mode=mode
+        month=month, year=year, available_dates=available_dates, today=today, mode=mode
     )
 
     all_buttons = [navigation_buttons, weekdays_row] + calendar_rows
@@ -304,48 +324,31 @@ def _build_calendar_keyboard(
     return IMarkup(inline_keyboard=all_buttons)
 
 
-def _create_navigation_row(
-        month: int,
-        year: int,
-        prev_enabled: bool,
-        mode: CalendarMode
-) -> list[IButton]:
+def _create_navigation_row(month: int, year: int, prev_enabled: bool, mode: CalendarMode) -> list[IButton]:
     return [
         IButton(
             text=' ' if not prev_enabled else PHRASES_RU.button.prev_page,
             callback_data=MonthCallBack(
                 month=month, year=year, action=(0 if not prev_enabled else -1), mode=mode
-            ).pack()
+            ).pack(),
         ),
-        IButton(
-            text=f'{MONTHS[month]} {year}',
-            callback_data=MonthCallBack(action=0, mode=mode).pack()
-        ),
+        IButton(text=f'{MONTHS[month]} {year}', callback_data=MonthCallBack(action=0, mode=mode).pack()),
         IButton(
             text=PHRASES_RU.button.next_page,
-            callback_data=MonthCallBack(
-                month=month, year=year, action=1, mode=mode
-            ).pack()
-        )
+            callback_data=MonthCallBack(month=month, year=year, action=1, mode=mode).pack(),
+        ),
     ]
 
 
 def _create_weekdays_row(mode: CalendarMode) -> list[IButton]:
     return [
-        IButton(
-            text=day,
-            callback_data=MonthCallBack(month=-1, mode=mode).pack()
-        )
+        IButton(text=day, callback_data=MonthCallBack(month=-1, mode=mode).pack())
         for day in ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
     ]
 
 
 def _create_calendar_days_rows(
-        month: int,
-        year: int,
-        available_dates: set[date],
-        today: date,
-        mode: CalendarMode
+    month: int, year: int, available_dates: set[date], today: date, mode: CalendarMode
 ) -> list[list[IButton]]:
     rows = []
     month_cal = calendar.monthcalendar(year, month)
@@ -354,9 +357,7 @@ def _create_calendar_days_rows(
         week_buttons = []
         for day in week:
             if day == 0:
-                week_buttons.append(
-                    IButton(text=' ', callback_data=MonthCallBack(mode=mode).pack())
-                )
+                week_buttons.append(IButton(text=' ', callback_data=MonthCallBack(mode=mode).pack()))
                 continue
 
             target_date = date(year, month, day)
@@ -384,13 +385,7 @@ def _get_day_button_text(day: int, is_today: bool, is_available: bool) -> str:
 
 
 def _get_day_callback_data(day: int, month: int, year: int, is_available: bool, mode: CalendarMode) -> str:
-    return MonthCallBack(
-        day=day if is_available else -1,
-        month=month,
-        year=year,
-        action=0,
-        mode=mode
-    ).pack()
+    return MonthCallBack(day=day if is_available else -1, month=month, year=year, action=0, mode=mode).pack()
 
 
 def service_keyboard() -> tuple[str, IMarkup]:
@@ -409,10 +404,7 @@ def service_keyboard() -> tuple[str, IMarkup]:
                 services_txt += ' (нет свободных слотов)\n'
             else:
                 services_txt += f' (слотов: {slots_count})\n'
-                builder.button(
-                    text=service.name,
-                    callback_data=ServiceCallBack(service_id=service.id).pack()
-                )
+                builder.button(text=service.name, callback_data=ServiceCallBack(service_id=service.id).pack())
     builder.adjust(2)  # 2 кнопки в ряд
     if len(builder.export()) == 0:
         services_txt = PHRASES_RU.error.no_slots
@@ -423,15 +415,12 @@ def slots_keyboard(cur_date: datetime.date) -> IMarkup:
     builder = InlineKeyboardBuilder()
     with SlotsTable() as slots_db:
         for slot in slots_db.get_available_slots_by_day(cur_date):
-            builder.button(
-                text=str(slot),
-                callback_data=SlotCallBack(slot_id=slot.id).pack()
-            )
+            builder.button(text=str(slot), callback_data=SlotCallBack(slot_id=slot.id).pack())
     builder.adjust(1)
     return _base_keyboard(
         builder.export(),  # type: ignore
         cur_page=2,
-        next_page=None
+        next_page=None,
     )
 
 
@@ -439,7 +428,7 @@ def photo_keyboard() -> IMarkup:
     return _base_keyboard(
         [],
         cur_page=3,
-        next_page=4  # Переход к комментарию
+        next_page=4,  # Переход к комментарию
     )
 
 
@@ -447,7 +436,7 @@ def comment_keyboard() -> IMarkup:
     return _base_keyboard(
         [],
         cur_page=4,
-        next_page=5  # Переход к подтверждению
+        next_page=5,  # Переход к подтверждению
     )
 
 
@@ -455,5 +444,5 @@ def confirm_keyboard() -> IMarkup:
     return _base_keyboard(
         [],
         cur_page=5,
-        next_page=-1  # Нет кнопки "Далее" (финальный шаг)
+        next_page=-1,  # Нет кнопки "Далее" (финальный шаг)
     )
