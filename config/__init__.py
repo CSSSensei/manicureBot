@@ -8,6 +8,8 @@ from pathlib import Path
 import colorlog
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiohttp_socks import ProxyConnector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import find_dotenv, load_dotenv
 
@@ -33,6 +35,7 @@ class TgBot:
     token: str
     password: str
     channel_id: int
+    proxy_url: str | None = None
     message_max_symbols: int = 400
 
 
@@ -47,7 +50,8 @@ def __load_config() -> Config:
         tg_bot=TgBot(
             token=os.getenv('BOT_TOKEN'),
             password=os.getenv('PASSWORD'),
-            channel_id=int(os.getenv('CHANNEL_ID'))
+            channel_id=int(os.getenv('CHANNEL_ID')),
+            proxy_url=os.getenv('PROXY_URL'),
         ),
         log=LogConfig(
             level=os.getenv('LOG_LEVEL', 'INFO'),
@@ -92,7 +96,13 @@ def setup_logging(cfg: LogConfig):
 
 
 config: Config = __load_config()
-bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'))
+
+_session = None
+if config.tg_bot.proxy_url:
+    _session = AiohttpSession()
+    _session._connector = ProxyConnector.from_url(config.tg_bot.proxy_url)
+
+bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'), session=_session)
 scheduler = AsyncIOScheduler()
 
 setup_logging(config.log)
