@@ -23,7 +23,6 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
-from aiohttp_socks import ProxyConnector
 
 from bot import handlers
 from bot.middlewares.get_user import GetUserMiddleware
@@ -41,8 +40,7 @@ def _create_bot() -> Bot:
     session = None
     if config.tg_bot.proxy_url:
         logger.info('Proxy configured: %s — creating proxy session', config.tg_bot.proxy_url)
-        session = AiohttpSession()
-        session._connector = ProxyConnector.from_url(config.tg_bot.proxy_url)
+        session = AiohttpSession(proxy=config.tg_bot.proxy_url)
     else:
         logger.info('No proxy configured, using direct connection')
     return Bot(
