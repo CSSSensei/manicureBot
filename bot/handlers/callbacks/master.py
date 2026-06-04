@@ -212,7 +212,7 @@ async def handle_month_generation(callback: CallbackQuery, callback_data: AddSlo
             text = f'Проверьте, что слоты сгенерированы верно\n\n<code>{slots_text}</code>'
             await callback.message.edit_text(text=text, reply_markup=inline_mkb.master_confirm_adding_slot(month, year))
         case 'add':
-            text = await db_manager.add_slots_from_list([(sl.start_time, sl.end_time) for sl in slots])
+            text = await db_manager.add_slots_from_list(callback.bot, [(sl.start_time, sl.end_time) for sl in slots])
             text_chunks = format_string.split_text(text, 4096)
             for i in range(len(text_chunks)):
                 if i == 0:
@@ -281,7 +281,7 @@ async def _(callback: CallbackQuery, state: FSMContext):
     if not slots:
         await callback.message.edit_text(PHRASES_RU.error.slots_not_found)
         return
-    result_text = await db_manager.add_slots_from_list(slots)
+    result_text = await db_manager.add_slots_from_list(callback.bot, slots)
     text_chunks = format_string.split_text(result_text, 4096)
     await state.clear()
     for i in range(len(text_chunks)):
