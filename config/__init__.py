@@ -5,6 +5,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 import colorlog
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
@@ -97,12 +99,28 @@ def setup_logging(cfg: LogConfig):
 
 config: Config = __load_config()
 
+setup_logging(config.log)
+
 _session = None
 if config.tg_bot.proxy_url:
+    logger.info("Proxy configured: %s — creating proxy session", config.tg_bot.proxy_url)
     _session = AiohttpSession()
     _session._connector = ProxyConnector.from_url(config.tg_bot.proxy_url)
+    logger.debug("ProxyConnector created successfully")
+else:
+    logger.info("No proxy configured, using direct connection")
 
 bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'), session=_session)
 scheduler = AsyncIOScheduler()
 
-setup_logging(config.log)
+
+async def verify_proxy() -> bool:
+    if not config.tg_bot.proxy_url:
+        return True
+    try:
+        me = await bot.get_me()
+        logger.info("Proxy connection verified — bot @%s is reachable", me.username)
+        return True
+    except Exception as exc:
+        logger.error("Proxy connection failed (%s): %s", config.tg_bot.proxy_url, exc)
+        return False

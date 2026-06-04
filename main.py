@@ -27,7 +27,7 @@ from bot.middlewares.get_user import GetUserMiddleware
 from bot.middlewares.logging_query import UserLoggerMiddleware
 from bot.middlewares.shadow_ban import ShadowBanMiddleware
 from bot.scheduler import setup_scheduler
-from config import bot, scheduler
+from config import bot, scheduler, verify_proxy
 from DB import init_database
 from utils.db_manager import backup_db
 
@@ -56,7 +56,10 @@ async def main() -> None:
     dp.message.middleware.register(UserLoggerMiddleware())
     dp.inline_query.middleware.register(UserLoggerMiddleware())
 
-    logger.info(f'{(await bot.get_me()).first_name} starting\n * Running on http://t.me/{(await bot.get_me()).username}')
+    await verify_proxy()
+
+    me = await bot.get_me()
+    logger.info('%s starting\n * Running on http://t.me/%s', me.first_name, me.username)
 
     await setup_scheduler(scheduler)
     scheduler.add_job(backup_db, 'cron', hour=5, minute=0, args=(bot,))
