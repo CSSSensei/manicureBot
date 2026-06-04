@@ -105,7 +105,7 @@ async def handle_appointment_confirmation(
                 last_name=callback.from_user.last_name,
             )
             data.appointment_id = app_id
-            await pages.update_master_booking_ui(data)
+            await pages.update_master_booking_ui(callback.bot, data)
 
         await clear_and_respond(callback, state, message)
     except Exception as e:
@@ -153,7 +153,7 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
 
         conn.commit()  # атомарно фиксируем обе операции
 
-        await SlotNotifierBot().update_channel_slots()
+        await SlotNotifierBot(callback.bot).update_channel_slots()
         return app_id
 
     except Exception:

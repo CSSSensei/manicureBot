@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @router.command(('users', 'u'), 'таблица со всеми пользователями')  # /users
 async def _(message: Message):
-    await pages.get_users(message.from_user.id)
+    await pages.get_users(message.bot, message.from_user.id)
 
 
 @router.command(('commands', 'cmds'), 'список всех доступных команд')  # /commands /cmds
@@ -87,7 +87,7 @@ async def _(message: Message):
 @router.command(('user_query', 'uq', 'qu'), 'запросы пользователя по ID', 'user_id')  # /user_query
 @command_arguments.user_id
 async def _(message: Message, user_id: int):
-    await pages.user_query(message.from_user.id, user_id)
+    await pages.user_query(message.bot, message.from_user.id, user_id)
 
 
 @router.command('master', 'назначить мастером', 'user_id')  # /master
