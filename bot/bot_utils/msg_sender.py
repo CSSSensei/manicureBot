@@ -3,7 +3,6 @@ import logging
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, ReplyKeyboardMarkup
 
-from bot.keyboards import get_keyboard
 from config import bot
 from config.const import CANCELLED, CONFIRMED, REJECTED
 from DB.models import AppointmentModel, PhotoModel
@@ -127,6 +126,7 @@ async def send_reminder(appointment_id: int, reminder_type: str):
                 time_left = PHRASES_RU.replace('answer.notify.client.h24_notification', service=appointment.service.name.lower())
         text = PHRASES_RU.replace('answer.notify.client.scheduled', time_left=time_left)
 
+        from bot.keyboards import get_keyboard
         await bot.send_message(
             chat_id=appointment.client.user_id,
             text=text,
