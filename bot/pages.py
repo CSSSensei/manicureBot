@@ -1,27 +1,35 @@
-import logging
 import datetime
-from typing import Optional
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InputMediaPhoto, CallbackQuery
+import logging
 
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import CallbackQuery, InputMediaPhoto
+
+from bot import keyboards
+from bot.bot_utils.msg_sender import send_or_edit_message
+from bot.keyboards.admin import inline as admin_ikb
+from bot.keyboards.master import inline as master_ikb
+from config import bot
+from config.const import (
+    ACTIONS_PER_PAGE,
+    CONFIRMED,
+    PENDING,
+    QUERIES_PER_PAGE,
+    USERS_PER_PAGE,
+    AppListMode,
+    PageListSection,
+)
 from DB.models import AppointmentModel, Pagination
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
-from bot.bot_utils.msg_sender import send_or_edit_message
-from phrases import PHRASES_RU
 from DB.tables.queries import QueriesTable
 from DB.tables.users import UsersTable
-from config import bot
-from config.const import USERS_PER_PAGE, ACTIONS_PER_PAGE, QUERIES_PER_PAGE, PENDING, AppListMode, CONFIRMED, PageListSection
+from phrases import PHRASES_RU
 from utils import format_list, format_string
-from bot import keyboards
-from bot.keyboards.admin import inline as admin_ikb
-from bot.keyboards.master import inline as master_ikb
 
 logger = logging.getLogger(__name__)
 
 
-async def get_users(user_id: int, message_id: Optional[int] = None, page: int = 1):
+async def get_users(user_id: int, message_id: int | None = None, page: int = 1):
     with UsersTable() as users_db:
         users, pagination = users_db.get_all_users(page, USERS_PER_PAGE)
 
@@ -35,7 +43,7 @@ async def get_users(user_id: int, message_id: Optional[int] = None, page: int = 
             await bot.send_message(chat_id=user_id, text=txt, reply_markup=reply_markup)
 
 
-async def user_query(user_id: int, user_id_to_find: Optional[int], message_id: Optional[int] = None, page: int = 1):
+async def user_query(user_id: int, user_id_to_find: int | None, message_id: int | None = None, page: int = 1):
     with QueriesTable() as queries_db, UsersTable() as users_db:
         queries, pagination = queries_db.get_user_queries(user_id_to_find, page, QUERIES_PER_PAGE)
         if not user_id_to_find or not queries:
@@ -79,7 +87,7 @@ async def user_query(user_id: int, user_id_to_find: Optional[int], message_id: O
             )
 
 
-async def get_active_bookings(user_id: int, page: int = 1, message_id: Optional[int] = None):
+async def get_active_bookings(user_id: int, page: int = 1, message_id: int | None = None):
     with AppointmentsTable() as app_db:
         app, pagination = app_db.get_client_appointments(user_id, page)
         if pagination.total_items > 0:
@@ -116,7 +124,7 @@ async def get_master_apps(callback: CallbackQuery, date: datetime.date, page: in
 async def _send_appointment_message(user_id: int,
                                     app: AppointmentModel,
                                     pagination: Pagination,
-                                    message_id: Optional[int] = None,
+                                    message_id: int | None = None,
                                     mode: AppListMode = AppListMode.USER):
     caption = PHRASES_RU.error.unknown
     match mode:
@@ -184,7 +192,7 @@ async def update_master_booking_ui(data: AppointmentModel):
                         )
 
 
-async def get_history(user_id: int, message_id: Optional[int] = None, page: int = 1):
+async def get_history(user_id: int, message_id: int | None = None, page: int = 1):
     with AppointmentsTable() as app_db:
         appointments, pagination = app_db.get_master_actions(page, ACTIONS_PER_PAGE)
 

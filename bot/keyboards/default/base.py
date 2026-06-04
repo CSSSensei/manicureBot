@@ -1,5 +1,6 @@
-from aiogram.utils.keyboard import ReplyKeyboardMarkup as KMarkup
 from aiogram.utils.keyboard import KeyboardButton as KButton
+from aiogram.utils.keyboard import ReplyKeyboardMarkup as KMarkup
+
 from phrases import PHRASES_RU
 
 

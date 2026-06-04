@@ -1,21 +1,22 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Tuple, Optional, Any
+from typing import Any
+
 from aiogram.filters.callback_data import CallbackData
 
-from config.const import CalendarMode, Action, AppListMode, AppointmentPageAction, PageListSection
+from config.const import Action, AppListMode, AppointmentPageAction, CalendarMode, PageListSection
 
 
 @dataclass
 class CommandUnit:
     """Контейнер для хранения информации о команде бота"""
     name: str  # Основное имя команды
-    aliases: Tuple[str, ...] = ()  # Дополнительные варианты вызова
+    aliases: tuple[str, ...] = ()  # Дополнительные варианты вызова
     description: str = ''
     is_admin: bool = False
     is_master: bool = False
     is_user: bool = True
-    placeholders: Optional[Tuple[Any, ...]] = None
+    placeholders: tuple[Any, ...] | None = None
 
     def __str__(self):
         base = f'/{self.name}'
@@ -35,20 +36,20 @@ class AdminPageCallBack(CallbackData, prefix='cut'):
 
 
 class BookingPageCallBack(CallbackData, prefix='booking'):
-    page: Optional[int] = None  # None - кнопка с текущей странице, не подразумевает действий
-    action: Optional[AppointmentPageAction] = None  # 'set_cancelled' - отменить запись, 'back' - назад
-    app_id: Optional[int] = None
-    app_date: Optional[date] = None
-    mode: Optional[AppListMode] = None
+    page: int | None = None  # None - кнопка с текущей странице, не подразумевает действий
+    action: AppointmentPageAction | None = None  # 'set_cancelled' - отменить запись, 'back' - назад
+    app_id: int | None = None
+    app_date: date | None = None
+    mode: AppListMode | None = None
 
 
 class BookingStatusCallBack(CallbackData, prefix='status'):
-    status: Optional[str] = None  # 'cancel'
-    app_id: Optional[int] = None
+    status: str | None = None  # 'cancel'
+    app_id: int | None = None
 
 
 class PhotoAppCallBack(CallbackData, prefix='photo'):
-    app_id: Optional[int] = None
+    app_id: int | None = None
 
 
 class MonthCallBack(CallbackData, prefix="calendar"):
@@ -70,13 +71,13 @@ class ServiceCallBack(CallbackData, prefix="service"):
 
 class ActionButtonCallBack(CallbackData, prefix="action_button"):
     action: int  # 1 - вперед, -1 -назад, 0 - отмена
-    current_page: Optional[int] = None
+    current_page: int | None = None
 
 
 class MasterButtonCallBack(CallbackData, prefix="master"):
     status: str  # {'pending', 'confirmed', 'completed', 'cancelled'}
-    appointment_id: Optional[int] = None
-    msg_to_delete: Optional[str] = None
+    appointment_id: int | None = None
+    msg_to_delete: str | None = None
 
 
 class AddSlotsMonthCallBack(CallbackData, prefix="add_slots_month"):
@@ -87,7 +88,7 @@ class AddSlotsMonthCallBack(CallbackData, prefix="add_slots_month"):
 
 class MasterServiceCallBack(CallbackData, prefix="master_service"):
     service_id: int
-    action: Optional[str] = None  # 'set_active', 'set_inactive', 'updated'
+    action: str | None = None  # 'set_active', 'set_inactive', 'updated'
 
 
 class ScheduleServiceCallBack(CallbackData, prefix="schedule_service"):
@@ -101,6 +102,6 @@ class EditServiceCallBack(CallbackData, prefix="edit_master_service"):
 
 
 class DeleteSlotCallBack(CallbackData, prefix="delete_slot"):
-    slot_id: Optional[int] = None
-    slot_date: Optional[date] = None
+    slot_id: int | None = None
+    slot_date: date | None = None
     action: str = Action.slot_calendar

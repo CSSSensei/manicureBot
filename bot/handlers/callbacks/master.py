@@ -1,10 +1,30 @@
-from datetime import datetime, date, time
+from datetime import date, datetime, time
 
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from bot import pages, scheduler
+from bot.bot_utils import msg_sender
+from bot.bot_utils.filters import MasterFilter, NotBookingCalendar
+from bot.bot_utils.models import (
+    AddSlotsMonthCallBack,
+    DeleteSlotCallBack,
+    EditServiceCallBack,
+    MasterButtonCallBack,
+    MasterServiceCallBack,
+    MonthCallBack,
+    ScheduleServiceCallBack,
+)
+from bot.handlers.master import send_master_menu
+from bot.keyboards.default import inline as ikb
+from bot.keyboards.master import inline as inline_mkb
+from bot.navigation import AppointmentNavigation
+from bot.scheduler import SlotNotifierBot
+from bot.states import MasterStates
+from config import bot, const
+from config.const import CalendarMode
 from DB import models
 from DB.models import format_date
 from DB.tables.appointments import AppointmentsTable
@@ -12,21 +32,8 @@ from DB.tables.masters import MastersTable
 from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot import pages, scheduler
-from bot.bot_utils import msg_sender
-from bot.bot_utils.filters import NotBookingCalendar, MasterFilter
-from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, MonthCallBack, \
-    DeleteSlotCallBack, ScheduleServiceCallBack
-from bot.handlers.master import send_master_menu
-from bot.navigation import AppointmentNavigation
-from bot.scheduler import SlotNotifierBot
-from bot.states import MasterStates
-from bot.keyboards.master import inline as inline_mkb
-from bot.keyboards.default import inline as ikb
-from config import const, bot
-from config.const import CalendarMode
 from phrases import PHRASES_RU
-from utils import format_string, db_manager
+from utils import db_manager, format_string
 from utils.slot_generator import SlotGenerator
 
 router = Router()
@@ -164,7 +171,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
 
                 if callback_data.msg_to_delete:
                     msgs = list(map(int, callback_data.msg_to_delete.split(',')))
-                    msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
+                    msgs_list = list(range(msgs[0], msgs[-1] + 1))
                     await bot.delete_messages(chat_id=callback.from_user.id, message_ids=msgs_list)
             case (_, const.REJECTED):
                 success = AppointmentsTable.cancel_appointment(app, const.REJECTED)

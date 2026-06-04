@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 from sqlite3 import Connection
-from typing import Any, Optional
+from typing import Any
 
 from config.const import DB_DIR
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class BaseTable:
     __tablename__: str
 
-    def __init__(self, db_name: str = DB_DIR, conn: Optional[Connection] = None):
+    def __init__(self, db_name: str = DB_DIR, conn: Connection | None = None):
         self.conn = conn or sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
@@ -21,7 +21,6 @@ class BaseTable:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Вызывается при выходе из контекстного менеджера"""
         if self.conn:
             if exc_type is not None:  # Если произошло исключение
                 self.conn.rollback()
@@ -40,7 +39,6 @@ class BaseTable:
         )
 
     def _check_record_exists(self, table: str, column: str, value: int) -> bool:
-        """Проверяет существование записи в указанной таблице."""
         query = f"SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1"
         self.cursor.execute(query, (value,))
         return bool(self.cursor.fetchone())

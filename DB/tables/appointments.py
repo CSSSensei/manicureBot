@@ -1,12 +1,11 @@
 import sqlite3
-from datetime import datetime, timedelta, timezone, date
-from typing import Optional, Set, Tuple, List
+from datetime import date, datetime, timedelta, timezone
 
-from DB.models import AppointmentModel, UserModel, SlotModel, ServiceModel, Pagination, ClientWithStats, ClientStats
+from config.const import CANCELLED, COMPLETED, CONFIRMED, DB_DIR, PENDING, REJECTED
+from DB.models import AppointmentModel, ClientStats, ClientWithStats, Pagination, ServiceModel, SlotModel, UserModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.base import BaseTable
 from DB.tables.slots import SlotsTable
-from config.const import PENDING, COMPLETED, CONFIRMED, CANCELLED, REJECTED, DB_DIR
 
 
 class AppointmentsTable(BaseTable):
@@ -14,7 +13,7 @@ class AppointmentsTable(BaseTable):
     __valid_statuses = {PENDING, CONFIRMED, CANCELLED, COMPLETED, REJECTED}
     __timezone_offset = timezone(timedelta(hours=3))  # Для MSK (UTC+3)
 
-    def _parse_datetime(self, dt_str: Optional[str]) -> Optional[datetime]:
+    def _parse_datetime(self, dt_str: str | None) -> datetime | None:
         if not dt_str:
             return None
         dt = datetime.fromisoformat(dt_str)
@@ -23,7 +22,6 @@ class AppointmentsTable(BaseTable):
         return dt.astimezone(self.__timezone_offset)
 
     def create_table(self) -> None:
-        """Создание таблицы appointments с индексами и триггером"""
         self.cursor.executescript(f'''
             CREATE TABLE IF NOT EXISTS {self.__tablename__} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,8 +40,8 @@ class AppointmentsTable(BaseTable):
             CREATE INDEX IF NOT EXISTS idx_appointments_client ON {self.__tablename__}(client_id);
             CREATE INDEX IF NOT EXISTS idx_appointments_slot ON {self.__tablename__}(slot_id);
             CREATE INDEX IF NOT EXISTS idx_appointments_status ON {self.__tablename__}(status);
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_slot 
-            ON {self.__tablename__}(slot_id) 
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_slot
+            ON {self.__tablename__}(slot_id)
             WHERE status IN ('pending', 'confirmed');
 
             CREATE TRIGGER IF NOT EXISTS update_appointments_timestamp
@@ -61,10 +59,9 @@ class AppointmentsTable(BaseTable):
             client_id: int,
             slot_id: int,
             service_id: int,
-            comment: Optional[str] = None,
+            comment: str | None = None,
             status: str = 'pending'
     ) -> int:
-        """Создает новую запись и возвращает её ID."""
         if status not in self.__valid_statuses:
             raise ValueError(f"Invalid status. Allowed values: {self.__valid_statuses}")
 
@@ -87,7 +84,7 @@ class AppointmentsTable(BaseTable):
                   appointment_id=appointment_id)
         return appointment_id
 
-    def get_nth_pending_appointment(self, n: int = 0) -> Optional[AppointmentModel]:
+    def get_nth_pending_appointment(self, n: int = 0) -> AppointmentModel | None:
         """Возвращает N-ю по счету pending запись (по умолчанию первую) с возможностью смещения.
 
         Args:
@@ -173,7 +170,7 @@ class AppointmentsTable(BaseTable):
         result = self.cursor.fetchone()
         return result['count'] if result else 0
 
-    def get_client_appointments(self, client_id: int, page: int = 1, only_future: bool = True) -> tuple[Optional[AppointmentModel], Pagination]:
+    def get_client_appointments(self, client_id: int, page: int = 1, only_future: bool = True) -> tuple[AppointmentModel | None, Pagination]:
         """Возвращает список актуальных записей клиента с постраничной навигацией.
         Args:
             client_id: ID клиента
@@ -209,12 +206,12 @@ class AppointmentsTable(BaseTable):
         pagination.total_pages = max(1, (total_items + per_page - 1) // per_page)
 
         query = f"""
-            SELECT 
-                a.*, 
-                s.name as service_name, 
-                sl.start_time, 
-                sl.end_time, 
-                u.username, 
+            SELECT
+                a.*,
+                s.name as service_name,
+                sl.start_time,
+                sl.end_time,
+                u.username,
                 u.contact
             FROM {self.__tablename__} a
             LEFT JOIN services s ON a.service_id = s.id
@@ -258,7 +255,6 @@ class AppointmentsTable(BaseTable):
         return app, pagination
 
     def _update_appointment_status(self, appointment_id: int, status: str) -> None:
-        """Обновляет статус записи."""
         if status not in self.__valid_statuses:
             raise ValueError(f"Invalid status. Allowed values: {self.__valid_statuses}")
 
@@ -267,7 +263,7 @@ class AppointmentsTable(BaseTable):
             raise ValueError(f"Appointment with id {appointment_id} not found")
 
         query = f"""
-        UPDATE {self.__tablename__} 
+        UPDATE {self.__tablename__}
         SET status = ?
         WHERE id = ?
         """
@@ -277,17 +273,16 @@ class AppointmentsTable(BaseTable):
                   status=status)
 
     def update_appointment_status(self, appointment_id: int, status: str) -> None:
-        """Обновляет статус записи."""
         self._update_appointment_status(appointment_id, status)
         self.conn.commit()
 
-    def get_appointment_by_id(self, appointment_id: int) -> Optional[AppointmentModel]:
+    def get_appointment_by_id(self, appointment_id: int) -> AppointmentModel | None:
         query = f"""
-        SELECT 
-            a.*, 
-            s.name as service_name, 
-            sl.start_time, 
-            sl.end_time, 
+        SELECT
+            a.*,
+            s.name as service_name,
+            sl.start_time,
+            sl.end_time,
             u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
@@ -351,18 +346,18 @@ class AppointmentsTable(BaseTable):
         end_of_day = start_of_day + timedelta(days=1)
 
         query = f"""
-        SELECT 
-            a.*, 
-            s.name as service_name, 
-            sl.start_time, 
-            sl.end_time, 
+        SELECT
+            a.*,
+            s.name as service_name,
+            sl.start_time,
+            sl.end_time,
             u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
         LEFT JOIN users u ON a.client_id = u.user_id
-        WHERE a.status = ? 
-        AND sl.end_time >= ? 
+        WHERE a.status = ?
+        AND sl.end_time >= ?
         AND sl.start_time <= ?
         ORDER BY sl.start_time ASC
         """
@@ -409,7 +404,6 @@ class AppointmentsTable(BaseTable):
         return appointments
 
     def get_master_actions(self, page: int = 1, per_page: int = 10) -> tuple[list[AppointmentModel], Pagination]:
-        """Возвращает список всех записей (со всеми статусами) с пагинацией, отсортированный от новых к старым"""
         pagination = Pagination(
             page=page,
             per_page=per_page,
@@ -425,11 +419,11 @@ class AppointmentsTable(BaseTable):
         pagination.total_pages = max(1, (total_items + per_page - 1) // per_page)
 
         query = f"""
-        SELECT 
-            a.*, 
-            s.name as service_name, 
-            sl.start_time, 
-            sl.end_time, 
+        SELECT
+            a.*,
+            s.name as service_name,
+            sl.start_time,
+            sl.end_time,
             u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
@@ -481,7 +475,7 @@ class AppointmentsTable(BaseTable):
             to_time: datetime,
             page: int = 1,
             per_page: int = 1
-    ) -> Tuple[List[AppointmentModel], Pagination]:
+    ) -> tuple[list[AppointmentModel], Pagination]:
         """Возвращает список записей по статусу и временному интервалу с пагинацией.
 
         Args:
@@ -514,8 +508,8 @@ class AppointmentsTable(BaseTable):
         SELECT COUNT(*) as total
         FROM {self.__tablename__} a
         LEFT JOIN slots sl ON a.slot_id = sl.id
-        WHERE a.status = ? 
-        AND sl.start_time >= ? 
+        WHERE a.status = ?
+        AND sl.start_time >= ?
         AND sl.start_time <= ?
         """
 
@@ -526,18 +520,18 @@ class AppointmentsTable(BaseTable):
         pagination.total_pages = max(1, (total_items + per_page - 1) // per_page)
 
         query = f"""
-        SELECT 
-            a.*, 
-            s.name as service_name, 
-            sl.start_time, 
-            sl.end_time, 
+        SELECT
+            a.*,
+            s.name as service_name,
+            sl.start_time,
+            sl.end_time,
             u.*
         FROM {self.__tablename__} a
         LEFT JOIN services s ON a.service_id = s.id
         LEFT JOIN slots sl ON a.slot_id = sl.id
         LEFT JOIN users u ON a.client_id = u.user_id
-        WHERE a.status = ? 
-        AND sl.start_time >= ? 
+        WHERE a.status = ?
+        AND sl.start_time >= ?
         AND sl.start_time <= ?
         ORDER BY sl.start_time ASC
         LIMIT ? OFFSET ?
@@ -586,7 +580,7 @@ class AppointmentsTable(BaseTable):
 
         return appointments, pagination
 
-    def get_booked_slot_dates(self, status: str, from_time: datetime, to_time: datetime) -> Set[date]:
+    def get_booked_slot_dates(self, status: str, from_time: datetime, to_time: datetime) -> set[date]:
         """Возвращает множество start_time всех слотов, соответствующих условиям.
 
         Args:
@@ -669,7 +663,7 @@ class AppointmentsTable(BaseTable):
         SELECT COUNT(*) as completed_count
         FROM appointments a
         JOIN slots s ON a.slot_id = s.id
-        WHERE 
+        WHERE
             a.status = 'confirmed' AND
             s.end_time < datetime('now', '+3 hours')
         """
@@ -678,7 +672,7 @@ class AppointmentsTable(BaseTable):
         result = self.cursor.fetchone()
         return result['completed_count'] if result else 0
 
-    def get_clients_with_stats(self, page: int = 1, per_page: int = 10) -> Tuple[List[ClientWithStats], Pagination]:
+    def get_clients_with_stats(self, page: int = 1, per_page: int = 10) -> tuple[list[ClientWithStats], Pagination]:
         """Возвращает список клиентов со статистикой по их записям с пагинацией.
         Клиенты отсортированы по количеству завершённых записей (по убыванию).
 
@@ -746,7 +740,7 @@ class AppointmentsTable(BaseTable):
         self.cursor.execute(query, (per_page, pagination.offset))
         rows = self.cursor.fetchall()
 
-        clients_with_stats: List[ClientWithStats] = []
+        clients_with_stats: list[ClientWithStats] = []
 
         for row in rows:
             user = UserModel(

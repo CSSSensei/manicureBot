@@ -1,15 +1,16 @@
 import logging
+
 from aiogram.types import Message
 
-from DB.tables.masters import MastersTable
-from phrases import PHRASES_RU
-from DB.tables.queries import QueriesTable
-from DB.tables.users import UsersTable
-from utils import format_list
+import temp
 from bot import pages
 from bot.bot_utils import command_arguments
 from bot.bot_utils.routers import AdminRouter, BaseRouter
-import temp
+from DB.tables.masters import MastersTable
+from DB.tables.queries import QueriesTable
+from DB.tables.users import UsersTable
+from phrases import PHRASES_RU
+from utils import format_list
 
 router = AdminRouter()
 logger = logging.getLogger(__name__)

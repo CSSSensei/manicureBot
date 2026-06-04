@@ -1,12 +1,13 @@
 import logging
-from typing import Any, Awaitable, Callable, Optional, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.exceptions import AiogramError
 from aiogram.types import Update, User
 
-from DB.tables.users import UsersTable
 from DB.models import UserModel as UserModel
+from DB.tables.users import UsersTable
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,9 @@ logger = logging.getLogger(__name__)
 class GetUserMiddleware(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[Update, dict[str, Any]], Awaitable[Any]],
         event: Update,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
 
         user: User = data.get('event_from_user')
@@ -26,7 +27,7 @@ class GetUserMiddleware(BaseMiddleware):
 
         try:
             with UsersTable() as users_db:
-                user_row: Optional[UserModel] = users_db.get_user(user.id)
+                user_row: UserModel | None = users_db.get_user(user.id)
                 if (not user_row or user.username != user_row.username
                         or user.first_name != user_row.first_name or user.last_name != user_row.last_name):
                     new_user = UserModel(

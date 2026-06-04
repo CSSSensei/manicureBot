@@ -1,19 +1,19 @@
 import datetime
+
 from aiogram import Router
 from aiogram.types import CallbackQuery
 
+from bot import scheduler
+from bot.bot_utils import msg_sender
+from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
+from bot.bot_utils.msg_sender import get_media_from_photos
+from bot.keyboards.default import inline as ikb
+from bot.pages import get_active_bookings, get_day_range, get_master_apps
+from bot.scheduler import SlotNotifierBot
+from config import bot, const
+from config.const import AppListMode, AppointmentPageAction
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
-from bot.bot_utils import msg_sender
-from bot.bot_utils.msg_sender import get_media_from_photos
-from bot.pages import get_active_bookings, get_master_apps, get_day_range
-from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
-from bot.keyboards.default import inline as ikb
-from bot import scheduler
-from bot.scheduler import SlotNotifierBot
-from config import bot
-from config import const
-from config.const import AppListMode, AppointmentPageAction
 from phrases import PHRASES_RU
 
 router = Router()

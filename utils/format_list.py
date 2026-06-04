@@ -1,13 +1,12 @@
-from typing import List, Optional
-from DB.models import UserModel, QueryModel, AppointmentModel, ClientWithStats
+
+from DB.models import AppointmentModel, ClientWithStats, Pagination, QueryModel, UserModel
 from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
-from DB.models import Pagination
 from utils import format_string
 from utils.format_string import get_status_app_string
 
 
-def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str:
+def format_user_list(users_info: list[UserModel], pagination: Pagination) -> str:
     txt = [PHRASES_RU.title.users,
            PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
     with MastersTable() as db:
@@ -38,9 +37,9 @@ def format_user_list(users_info: List[UserModel], pagination: Pagination) -> str
 
 
 def format_queries_text(
-        queries: List[QueryModel],
-        name: Optional[str] = None,
-        user_id: Optional[int] = None,
+        queries: list[QueryModel],
+        name: str | None = None,
+        user_id: int | None = None,
         footnote_template: str = PHRASES_RU.footnote.user_query,
         line_template: str = PHRASES_RU.template.user_query
 ) -> str:
@@ -73,7 +72,7 @@ def format_queries_text(
     return ''.join(txt)
 
 
-def format_client_list(clients_info: List[ClientWithStats], pagination: Pagination) -> str:
+def format_client_list(clients_info: list[ClientWithStats], pagination: Pagination) -> str:
     txt = [PHRASES_RU.title.clients,
            PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
 
@@ -100,7 +99,7 @@ def format_client_list(clients_info: List[ClientWithStats], pagination: Paginati
     return ''.join(txt)
 
 
-def format_app_actions(appointments: List[AppointmentModel], pagination: Pagination) -> str:
+def format_app_actions(appointments: list[AppointmentModel], pagination: Pagination) -> str:
     txt = [PHRASES_RU.title.actions,
            PHRASES_RU.replace('footnote.total', total=pagination.total_items)]
 

@@ -1,14 +1,12 @@
-from typing import List
 
-from DB.tables.base import BaseTable
 from DB.models import ServiceSchedule, Weekday
+from DB.tables.base import BaseTable
 
 
 class ServiceScheduleTable(BaseTable):
     __tablename__ = 'service_schedule'
 
     def create_table(self) -> None:
-        """Создание таблицы service_schedule"""
         self.cursor.executescript(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             service_id INTEGER,
@@ -35,7 +33,7 @@ class ServiceScheduleTable(BaseTable):
         """
         try:
             query = f"""
-            INSERT OR REPLACE INTO {self.__tablename__} 
+            INSERT OR REPLACE INTO {self.__tablename__}
             (service_id, weekday_id, is_available)
             VALUES (?, ?, ?)
             """
@@ -50,7 +48,7 @@ class ServiceScheduleTable(BaseTable):
             self._log('SET_SERVICE_AVAILABILITY_ERROR', error=str(e))
             return False
 
-    def set_service_weekdays(self, service_id: int, weekday_ids: List[int]) -> bool:
+    def set_service_weekdays(self, service_id: int, weekday_ids: list[int]) -> bool:
         """
         Устанавливает доступные дни недели для услуги.
         Все указанные дни будут доступны, остальные - недоступны.
@@ -59,18 +57,16 @@ class ServiceScheduleTable(BaseTable):
             True если успешно, False если ошибка
         """
         try:
-            # Сначала устанавливаем все дни как недоступные
             query_disable = f"""
-            INSERT OR REPLACE INTO {self.__tablename__} 
+            INSERT OR REPLACE INTO {self.__tablename__}
             (service_id, weekday_id, is_available)
             SELECT ?, id, FALSE FROM weekdays
             """
             self.cursor.execute(query_disable, (service_id,))
 
-            # Затем включаем указанные дни
             if weekday_ids:
                 query_enable = f"""
-                INSERT OR REPLACE INTO {self.__tablename__} 
+                INSERT OR REPLACE INTO {self.__tablename__}
                 (service_id, weekday_id, is_available)
                 VALUES (?, ?, TRUE)
                 """
@@ -86,10 +82,7 @@ class ServiceScheduleTable(BaseTable):
             self._log('SET_SERVICE_WEEKDAYS_ERROR', error=str(e))
             return False
 
-    def get_service_schedule(self, service_id: int) -> List[ServiceSchedule]:
-        """
-        Возвращает расписание для указанной услуги.
-        """
+    def get_service_schedule(self, service_id: int) -> list[ServiceSchedule]:
         query = f"""
         SELECT ss.*, w.*
         FROM {self.__tablename__} ss
@@ -112,13 +105,10 @@ class ServiceScheduleTable(BaseTable):
             ) for row in rows
         ]
 
-    def get_available_weekdays(self, service_id: int) -> List[int]:
-        """
-        Возвращает список ID дней недели, когда услуга доступна.
-        """
+    def get_available_weekdays(self, service_id: int) -> list[int]:
         query = f"""
-        SELECT weekday_id 
-        FROM {self.__tablename__} 
+        SELECT weekday_id
+        FROM {self.__tablename__}
         WHERE service_id = ? AND is_available = TRUE
         ORDER BY weekday_id
         """
@@ -128,12 +118,9 @@ class ServiceScheduleTable(BaseTable):
         return [row['weekday_id'] for row in rows]
 
     def is_service_available(self, service_id: int, weekday_id: int) -> bool:
-        """
-        Проверяет, доступна ли услуга в указанный день недели.
-        """
         query = f"""
-        SELECT is_available 
-        FROM {self.__tablename__} 
+        SELECT is_available
+        FROM {self.__tablename__}
         WHERE service_id = ? AND weekday_id = ?
         """
         self.cursor.execute(query, (service_id, weekday_id))
@@ -141,13 +128,10 @@ class ServiceScheduleTable(BaseTable):
 
         return bool(row['is_available']) if row else False
 
-    def get_services_for_weekday(self, weekday_id: int) -> List[int]:
-        """
-        Возвращает список ID услуг, доступных в указанный день недели.
-        """
+    def get_services_for_weekday(self, weekday_id: int) -> list[int]:
         query = f"""
-        SELECT service_id 
-        FROM {self.__tablename__} 
+        SELECT service_id
+        FROM {self.__tablename__}
         WHERE weekday_id = ? AND is_available = TRUE
         """
         self.cursor.execute(query, (weekday_id,))
@@ -172,16 +156,9 @@ class ServiceScheduleTable(BaseTable):
         return deleted_count
 
     def initialize_default_schedule(self, service_id: int) -> bool:
-        """
-        Инициализирует расписание по умолчанию для новой услуги
-        (все дни доступны).
-
-        Returns:
-            True если успешно
-        """
         try:
             query = f"""
-            INSERT INTO {self.__tablename__} 
+            INSERT INTO {self.__tablename__}
             (service_id, weekday_id, is_available)
             SELECT ?, id, TRUE FROM weekdays
             """

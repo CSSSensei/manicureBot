@@ -1,12 +1,12 @@
 import logging
 from collections import defaultdict
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
 from aiogram.exceptions import TelegramBadRequest
 
+from config import bot, const
 from DB.tables.channel_messages import ChannelMessagesTable
 from DB.tables.slots import SlotsTable
-from config import bot, const
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,6 @@ class ChannelPostingService:
         self.slots_db = SlotsTable()
 
     async def generate_slots_message(self) -> str:
-        """Генерирует текст сообщения со свободными слотами."""
         # Получаем слоты на ближайшие 2 месяца
         end_date = datetime.now() + timedelta(weeks=8)
         slots = self.slots_db.get_available_slots(
@@ -34,7 +33,6 @@ class ChannelPostingService:
             day = slot.start_time.day
             slots_by_month[year_month][day].append(slot)
 
-        # Сортируем месяцы по порядку
         sorted_months = sorted(slots_by_month.keys())
 
         result_lines = []
@@ -61,7 +59,6 @@ class ChannelPostingService:
         return message
 
     async def post_or_update_slots_message(self) -> bool:
-        """Отправляет или обновляет сообщение со слотами в канале."""
         try:
             message_text = await self.generate_slots_message()
 
@@ -70,7 +67,6 @@ class ChannelPostingService:
             )
 
             if existing_message:
-                # Редактируем существующее сообщение
                 await self.bot.edit_message_text(
                     chat_id=self.channel_id,
                     message_id=existing_message.message_id,
@@ -79,7 +75,6 @@ class ChannelPostingService:
                 )
                 return True
             else:
-                # Отправляем новое сообщение
                 message = await self.bot.send_message(
                     chat_id=self.channel_id,
                     text=message_text,
@@ -95,7 +90,7 @@ class ChannelPostingService:
 
         except TelegramBadRequest as e:
             if "message is not modified" in str(e):
-                pass
+                return True
             else:
                 raise
 
@@ -104,7 +99,6 @@ class ChannelPostingService:
             return False
 
     async def delete_slots_message(self) -> bool:
-        """Удаляет сообщение со слотами из канала."""
         try:
             message_info = self.messages_db.get_message_info(
                 self.channel_id, 'slots'

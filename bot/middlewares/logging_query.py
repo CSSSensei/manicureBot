@@ -1,12 +1,14 @@
 import logging
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from aiogram import BaseMiddleware
-from typing import Callable, Dict, Any, Awaitable, Optional
-from aiogram.types import Message, TelegramObject, InlineQuery
+from aiogram.types import InlineQuery, Message, TelegramObject
 
-from DB.tables.queries import QueriesTable
-from DB.models import UserModel as UserModel, QueryModel
 from bot.bot_utils.routers import BaseRouter
-
+from DB.models import QueryModel
+from DB.models import UserModel as UserModel
+from DB.tables.queries import QueriesTable
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +16,9 @@ logger = logging.getLogger(__name__)
 class UserLoggerMiddleware(BaseMiddleware):
     async def __call__(
             self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+            handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
             event: TelegramObject,
-            data: Dict[str, Any]
+            data: dict[str, Any]
     ) -> Any:
 
         #   <-| ----------------- -<phasalo>- ------------------ |->
@@ -35,7 +37,7 @@ class UserLoggerMiddleware(BaseMiddleware):
             ]
             if event.text and any(event.text.startswith(cmd) for cmd in skip_commands):
                 return await handler(event, data)
-        user_row: Optional[UserModel] = data.get('user_row')
+        user_row: UserModel | None = data.get('user_row')
         if user_row is None:
             logger.warning(
                 'Cannot add queries. The \'user_row\' '

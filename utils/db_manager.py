@@ -1,18 +1,18 @@
+import subprocess
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Tuple
-import subprocess
+
 from aiogram import Bot
 from aiogram.types import FSInputFile
 
-from DB import models
-from DB.tables.slots import SlotsTable
 from bot.scheduler import SlotNotifierBot
 from config import const
+from DB import models
+from DB.tables.slots import SlotsTable
 from phrases import PHRASES_RU
 
 
-async def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
+async def add_slots_from_list(slots: list[tuple[datetime, datetime]]):
     added_slots = []
     not_added_slots = []
     with SlotsTable() as db:
@@ -27,7 +27,7 @@ async def add_slots_from_list(slots: List[Tuple[datetime, datetime]]):
     result_text = ''
     if added_slots:
         added_by_date = defaultdict(list)
-        for slot_id, start, end in added_slots:
+        for _slot_id, start, end in added_slots:
             date_key = start.date()
             added_by_date[date_key].append((start, end))
 

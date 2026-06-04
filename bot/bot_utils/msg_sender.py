@@ -1,15 +1,14 @@
 import logging
 
 from aiogram.exceptions import TelegramBadRequest
-from typing import Optional, Union, List
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message, InputMediaPhoto
+from aiogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, ReplyKeyboardMarkup
 
-from DB.models import PhotoModel, AppointmentModel
-from DB.tables.appointments import AppointmentsTable
-from DB.tables.masters import MastersTable
 from bot.keyboards import get_keyboard
 from config import bot
-from config.const import CANCELLED, REJECTED, CONFIRMED
+from config.const import CANCELLED, CONFIRMED, REJECTED
+from DB.models import AppointmentModel, PhotoModel
+from DB.tables.appointments import AppointmentsTable
+from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
 
 logger = logging.getLogger(__name__)
@@ -18,20 +17,10 @@ logger = logging.getLogger(__name__)
 async def send_or_edit_message(
     chat_id: int,
     text: str,
-    reply_markup: Optional[Union[InlineKeyboardMarkup, ReplyKeyboardMarkup]] = None,
-    message_id: Optional[int] = None,
+    reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | None = None,
+    message_id: int | None = None,
     **kwargs
-) -> Optional[Message]:
-    """
-    Отправляет новое сообщение или редактирует существующее с детальным логированием.
-
-    :param chat_id: ID чата
-    :param text: Текст сообщения
-    :param reply_markup: Клавиатура (Inline или Reply)
-    :param message_id: Если передан, редактирует сообщение, иначе отправляет новое
-    :param kwargs: Дополнительные аргументы для send_message/edit_message_text
-    :return: Объект Message или None в случае ошибки
-    """
+) -> Message | None:
     try:
         if message_id:
             try:
@@ -74,8 +63,8 @@ async def send_or_edit_message(
         raise
 
 
-def get_media_from_photos(photos: List[PhotoModel], caption: Optional[str] = None) -> List[InputMediaPhoto]:
-    media: List[InputMediaPhoto] = []
+def get_media_from_photos(photos: list[PhotoModel], caption: str | None = None) -> list[InputMediaPhoto]:
+    media: list[InputMediaPhoto] = []
     for photo in photos:
         media.append(InputMediaPhoto(media=photo.telegram_file_id, caption=caption if len(media) == 0 else None))
     return media[:9]

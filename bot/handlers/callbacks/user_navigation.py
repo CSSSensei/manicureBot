@@ -1,28 +1,26 @@
+import logging
 import sqlite3
 from datetime import datetime
-import logging
-from typing import Optional
 
 from aiogram import Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from DB.models import PhotoModel, UserModel, AppointmentModel, SlotModel, ServiceModel
+from bot import pages
+from bot.bot_utils.filters import IsCancelActionFilter
+from bot.bot_utils.models import ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack
+from bot.navigation import AppointmentNavigation
+from bot.scheduler import SlotNotifierBot
+from bot.states import AppointmentStates
+from config.const import DB_DIR
+from DB.models import AppointmentModel, PhotoModel, ServiceModel, SlotModel, UserModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.photos import PhotosTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot.bot_utils.filters import IsCancelActionFilter
-from bot.bot_utils.models import MonthCallBack, ServiceCallBack, ActionButtonCallBack, SlotCallBack
-
-from bot.navigation import AppointmentNavigation
-from bot.scheduler import SlotNotifierBot
-from bot.states import AppointmentStates
-from config.const import DB_DIR
 from phrases import PHRASES_RU
-from bot import pages
 from utils import format_string
 
 logger = logging.getLogger(__name__)
@@ -140,13 +138,11 @@ async def handle_navigation_actions(
 
 
 async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message: str):
-    """Очищает состояние и отправляет ответ"""
     await state.clear()
     await callback.message.edit_text(text=message, reply_markup=None)
 
 
-async def process_appointment_creation(user_id: int, data: AppointmentModel) -> Optional[int]:
-    """Создает запись и возвращает статус успешности"""
+async def process_appointment_creation(user_id: int, data: AppointmentModel) -> int | None:
     if not data.is_ready_for_confirmation():
         return None
 
@@ -182,7 +178,6 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
 
 
 def _process_appointment_photos(conn: sqlite3.Connection, app_id: int, photos: list[PhotoModel]):
-    """Обрабатывает прикрепленные фото"""
     if not photos:
         return
 

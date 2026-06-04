@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
 
+from DB.models import Pagination, QueryModel, UserModel
 from DB.tables.base import BaseTable
-from DB.models import UserModel, QueryModel, Pagination
-
 from utils.format_string import clear_string
 
 
@@ -11,7 +9,6 @@ class QueriesTable(BaseTable):
     __tablename__ = 'queries'
 
     def create_table(self):
-        """Создание таблицы queries"""
         self.cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             query_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +22,6 @@ class QueriesTable(BaseTable):
         self._log('CREATE_TABLE')
 
     def add_query(self, query: QueryModel) -> QueryModel:
-        """Добавление нового запроса"""
         self.cursor.execute(f'''
         INSERT INTO {self.__tablename__} (user_id, query_text)
         VALUES (?, ?)''', (query.user_id, clear_string(query.query_text)))
@@ -34,8 +30,7 @@ class QueriesTable(BaseTable):
         self._log('ADD_QUERY', query_id=query_id, user_id=query.user_id)
         return self.get_query(query_id)
 
-    def get_query(self, query_id: int) -> Optional[QueryModel]:
-        """Получение запроса по ID"""
+    def get_query(self, query_id: int) -> QueryModel | None:
         self.cursor.execute(f'''
         SELECT q.query_id, q.user_id, q.query_text, q.query_date,
                u.username, u.first_name, u.last_name, u.is_admin
@@ -65,8 +60,7 @@ class QueriesTable(BaseTable):
             )
         return None
 
-    def get_user_queries(self, user_id: int, page: int = 1, per_page: int = 10) -> Tuple[List[QueryModel], Pagination]:
-        """Получение запросов пользователя с постраничной навигацией"""
+    def get_user_queries(self, user_id: int, page: int = 1, per_page: int = 10) -> tuple[list[QueryModel], Pagination]:
 
         pagination = Pagination(
             page=page,
@@ -76,7 +70,7 @@ class QueriesTable(BaseTable):
         )
 
         self.cursor.execute(f'''
-            SELECT 
+            SELECT
                 q.query_id, q.user_id, q.query_text, q.query_date,
                 u.username, u.first_name, u.last_name, u.is_admin
             FROM {self.__tablename__} q
@@ -117,8 +111,7 @@ class QueriesTable(BaseTable):
 
         return queries, pagination
 
-    def get_all_queries(self, limit: Optional[int] = None) -> List[QueryModel]:
-        """Получение всех запросов"""
+    def get_all_queries(self, limit: int | None = None) -> list[QueryModel]:
         query = f'''
         SELECT q.query_id, q.user_id, q.query_text, q.query_date,
                u.username, u.first_name, u.last_name, u.is_admin
@@ -152,15 +145,13 @@ class QueriesTable(BaseTable):
             ) for row in self.cursor
         ]
 
-    def get_last_queries(self, amount: int = 5) -> List[QueryModel]:
-        """Получение последних запросов"""
+    def get_last_queries(self, amount: int = 5) -> list[QueryModel]:
         if amount < 0:
             raise ValueError('Amount cannot be negative')
 
         return self.get_all_queries(limit=amount)
 
     def delete_query(self, query_id: int) -> bool:
-        """Удаление запроса по ID"""
         self.cursor.execute(f'DELETE FROM {self.__tablename__} WHERE query_id = ?', (query_id,))
         self.conn.commit()
         deleted = self.cursor.rowcount > 0
@@ -169,7 +160,6 @@ class QueriesTable(BaseTable):
         return deleted
 
     def delete_user_queries(self, user_id: int) -> int:
-        """Удаление всех запросов пользователя"""
         self.cursor.execute(f'DELETE FROM {self.__tablename__} WHERE user_id = ?', (user_id,))
         self.conn.commit()
         deleted_count = self.cursor.rowcount

@@ -1,8 +1,8 @@
 from aiogram import Router
 from aiogram.types import CallbackQuery
 
-from bot.bot_utils.models import AdminPageCallBack
 from bot import pages
+from bot.bot_utils.models import AdminPageCallBack
 from config.const import PageListSection
 
 router = Router()

@@ -1,14 +1,16 @@
-import os
 import logging
 import logging.handlers
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+import colorlog
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from dotenv import load_dotenv, find_dotenv
-import colorlog
+from dotenv import find_dotenv, load_dotenv
+
 from config.const import BASE_DIR
 
 load_dotenv(find_dotenv())

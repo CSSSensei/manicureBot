@@ -1,23 +1,38 @@
 import calendar
-from datetime import datetime, timedelta, date
-from typing import Optional, List, Set, Tuple
+from datetime import date, datetime, timedelta
 
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from bot.bot_utils.models import (
+    ActionButtonCallBack,
+    BookingPageCallBack,
+    BookingStatusCallBack,
+    MonthCallBack,
+    PhotoAppCallBack,
+    ServiceCallBack,
+    SlotCallBack,
+)
+from config.const import (
+    CANCELLED,
+    CONFIRMED,
+    MONTHS,
+    PENDING,
+    REJECTED,
+    AppListMode,
+    AppointmentPageAction,
+    CalendarMode,
+)
+from DB.models import AppointmentModel, Pagination
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot.bot_utils.models import BookingPageCallBack, ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack, BookingStatusCallBack, \
-    PhotoAppCallBack
-from DB.models import Pagination, AppointmentModel
-from config.const import MONTHS, CANCELLED, REJECTED, CONFIRMED, PENDING, CalendarMode, AppListMode, AppointmentPageAction
 from phrases import PHRASES_RU
 from utils import format_string
 
 
-def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination, mode: AppListMode) -> Optional[IMarkup]:
+def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination, mode: AppListMode) -> IMarkup | None:
     keyboard = []
 
     if appointment.photos:
@@ -80,7 +95,7 @@ def booking_page_keyboard(appointment: AppointmentModel, pagination: Pagination,
     return IMarkup(inline_keyboard=keyboard)
 
 
-def user_cancel_keyboard(appointment_id: int, page: int, mode: AppListMode, app_date: Optional[date]) -> Optional[IMarkup]:
+def user_cancel_keyboard(appointment_id: int, page: int, mode: AppListMode, app_date: date | None) -> IMarkup | None:
     back_button = IButton(
         text=PHRASES_RU.button.back, callback_data=BookingPageCallBack(
             page=page,
@@ -101,10 +116,10 @@ def user_cancel_keyboard(appointment_id: int, page: int, mode: AppListMode, app_
 
 
 def _base_keyboard(
-        buttons: List[List[IButton]],
+        buttons: list[list[IButton]],
         *,
         cur_page: int,
-        next_page: Optional[int] = None,
+        next_page: int | None = None,
 ) -> IMarkup:
     """Базовая клавиатура с кнопками Назад/Далее/Отмена."""
     row = [IButton(
@@ -135,7 +150,7 @@ def _base_keyboard(
     return IMarkup(inline_keyboard=buttons)
 
 
-def first_page_calendar(appointment: AppointmentModel, mode: CalendarMode = CalendarMode.BOOKING) -> Tuple[Optional[str], Optional[IMarkup]]:
+def first_page_calendar(appointment: AppointmentModel, mode: CalendarMode = CalendarMode.BOOKING) -> tuple[str | None, IMarkup | None]:
     with SlotsTable() as slots_db:
         first_slot = slots_db.get_first_available_slot()
         if not first_slot:
@@ -153,7 +168,7 @@ def create_calendar_keyboard(month: int,
                              year: int,
                              prev: bool,
                              mode: CalendarMode = CalendarMode.BOOKING,
-                             appointment: Optional[AppointmentModel] = None) -> Tuple[str, IMarkup]:
+                             appointment: AppointmentModel | None = None) -> tuple[str, IMarkup]:
     now = datetime.now()
     today = now.date()
     month_days = calendar.monthrange(year, month)[1]
@@ -200,19 +215,19 @@ def create_calendar_keyboard(month: int,
     return header_text, keyboard
 
 
-def _get_available_dates(start_date: datetime, end_date: datetime) -> Tuple[Set[date], int]:
+def _get_available_dates(start_date: datetime, end_date: datetime) -> tuple[set[date], int]:
     with SlotsTable() as slots_db:
         slots = slots_db.get_available_slots(start_date, end_date)
         return {s.start_time.date() for s in slots}, len(slots)
 
 
-def _get_service_available_dates(service_id: int, start_date: datetime, end_date: datetime) -> Tuple[Set[date], int]:
+def _get_service_available_dates(service_id: int, start_date: datetime, end_date: datetime) -> tuple[set[date], int]:
     with SlotsTable() as slots_db:
         slots = slots_db.get_available_slots(start_date, end_date, service_id)
         return {s.start_time.date() for s in slots}, len(slots)
 
 
-def _get_appointment_dates(start_date: datetime, end_date: datetime) -> Tuple[Set[date], int, int]:
+def _get_appointment_dates(start_date: datetime, end_date: datetime) -> tuple[set[date], int, int]:
     with AppointmentsTable() as db:
         booked_slots = db.get_booked_slot_dates(CONFIRMED, start_date, end_date)
         confirmed_slots_len = db.count_appointments_by_status_and_time(CONFIRMED, start_date, end_date)
@@ -229,7 +244,7 @@ def _get_appointment_dates(start_date: datetime, end_date: datetime) -> Tuple[Se
 
 
 def _generate_header_text(month: int, future_slots_len: int, mode: CalendarMode, booked_slots_len: int = 0,
-                          app: Optional[AppointmentModel] = None) -> str:
+                          app: AppointmentModel | None = None) -> str:
     month_name = MONTHS[month]
     match mode:
         case CalendarMode.BOOKING:
@@ -270,7 +285,7 @@ def _build_calendar_keyboard(
         month: int,
         year: int,
         prev_enabled: bool,
-        available_dates: Set[date],
+        available_dates: set[date],
         today: date,
         mode: CalendarMode
 ) -> IMarkup:
@@ -294,7 +309,7 @@ def _create_navigation_row(
         year: int,
         prev_enabled: bool,
         mode: CalendarMode
-) -> List[IButton]:
+) -> list[IButton]:
     return [
         IButton(
             text=' ' if not prev_enabled else PHRASES_RU.button.prev_page,
@@ -315,7 +330,7 @@ def _create_navigation_row(
     ]
 
 
-def _create_weekdays_row(mode: CalendarMode) -> List[IButton]:
+def _create_weekdays_row(mode: CalendarMode) -> list[IButton]:
     return [
         IButton(
             text=day,
@@ -328,10 +343,10 @@ def _create_weekdays_row(mode: CalendarMode) -> List[IButton]:
 def _create_calendar_days_rows(
         month: int,
         year: int,
-        available_dates: Set[date],
+        available_dates: set[date],
         today: date,
         mode: CalendarMode
-) -> List[List[IButton]]:
+) -> list[list[IButton]]:
     rows = []
     month_cal = calendar.monthcalendar(year, month)
 
@@ -378,8 +393,7 @@ def _get_day_callback_data(day: int, month: int, year: int, is_available: bool, 
     ).pack()
 
 
-def service_keyboard() -> Tuple[str, IMarkup]:
-    """Клавиатура с услугами."""
+def service_keyboard() -> tuple[str, IMarkup]:
     builder = InlineKeyboardBuilder()
     services_txt = PHRASES_RU.answer.choose_service
     with ServicesTable() as service_db, SlotsTable() as slots_db:
@@ -392,7 +406,7 @@ def service_keyboard() -> Tuple[str, IMarkup]:
 
             slots_count = slots_db.count_available_slots_for_service(service.id)
             if slots_count == 0:
-                services_txt += f' (нет свободных слотов)\n'
+                services_txt += ' (нет свободных слотов)\n'
             else:
                 services_txt += f' (слотов: {slots_count})\n'
                 builder.button(
@@ -406,7 +420,6 @@ def service_keyboard() -> Tuple[str, IMarkup]:
 
 
 def slots_keyboard(cur_date: datetime.date) -> IMarkup:
-    """Клавиатура со слотами времени."""
     builder = InlineKeyboardBuilder()
     with SlotsTable() as slots_db:
         for slot in slots_db.get_available_slots_by_day(cur_date):
@@ -423,7 +436,6 @@ def slots_keyboard(cur_date: datetime.date) -> IMarkup:
 
 
 def photo_keyboard() -> IMarkup:
-    """Клавиатура для загрузки фото."""
     return _base_keyboard(
         [],
         cur_page=3,
@@ -432,7 +444,6 @@ def photo_keyboard() -> IMarkup:
 
 
 def comment_keyboard() -> IMarkup:
-    """Клавиатура для комментария."""
     return _base_keyboard(
         [],
         cur_page=4,
@@ -441,7 +452,6 @@ def comment_keyboard() -> IMarkup:
 
 
 def confirm_keyboard() -> IMarkup:
-    """Клавиатура подтверждения."""
     return _base_keyboard(
         [],
         cur_page=5,

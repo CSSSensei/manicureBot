@@ -17,17 +17,17 @@
 # ⠀     ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠋⠉⠀⠀⣿⠇⠠⠿⠃⠿⠛⠻⣿⠡⣶⣶⠿⠟⠼⠟⠛⣿⡇⣾⣿⡶⠆⠻⢿⣶⠾⠋⢠⣿⠋⠉⠀⠠⠿⠷⠶⠀⢿⣷⠾⠟⠁⣼⡟⠰⠿⠛⢻⡿⠠⡶⢰⡿⠉⢿⠇⠀⢿⣷⣾⠟⠁
 #
 
-import logging
 import asyncio
+import logging
+
 from aiogram import Dispatcher
 
-from config import bot, scheduler
-from bot.middlewares.get_user import GetUserMiddleware
-from bot.middlewares.shadow_ban import ShadowBanMiddleware
-from bot.middlewares.logging_query import UserLoggerMiddleware
-from bot.scheduler import setup_scheduler
-
 from bot import handlers
+from bot.middlewares.get_user import GetUserMiddleware
+from bot.middlewares.logging_query import UserLoggerMiddleware
+from bot.middlewares.shadow_ban import ShadowBanMiddleware
+from bot.scheduler import setup_scheduler
+from config import bot, scheduler
 from DB import init_database
 from utils.db_manager import backup_db
 

@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, time
-from typing import Optional, List, Any, Dict, Tuple
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -18,19 +18,17 @@ def format_date(time: datetime):
 
 @dataclass
 class UserModel:
-    """Класс для представления пользователя"""
     user_id: int
-    username: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     is_admin: bool = False
     is_banned: bool = False
-    registration_date: Optional[datetime] = None
-    contact: Optional[str] = None
+    registration_date: datetime | None = None
+    contact: str | None = None
     query_count: int = 0
 
     def full_name(self) -> str:
-        """Возвращает полное имя пользователя"""
         parts = []
         if self.first_name:
             parts.append(self.first_name)
@@ -41,12 +39,11 @@ class UserModel:
 
 @dataclass
 class QueryModel:
-    """Класс для представления запроса"""
     user_id: int
     query_text: str
-    query_id: Optional[int] = None
-    query_date: Optional[datetime] = None
-    user: Optional[UserModel] = None
+    query_id: int | None = None
+    query_date: datetime | None = None
+    user: UserModel | None = None
 
 
 @dataclass
@@ -71,23 +68,21 @@ class Pagination:
 
 @dataclass
 class ServiceModel:
-    """Класс для представления сервиса"""
     name: str
-    price: Optional[float] = None
-    description: Optional[str] = None
-    id: Optional[int] = None
-    duration: Optional[int] = None
+    price: float | None = None
+    description: str | None = None
+    id: int | None = None
+    duration: int | None = None
     is_active: bool = True
 
 
 @dataclass
 class SlotModel:
-    """Класс для представления слота для записи"""
     start_time: datetime
     end_time: datetime
     is_available: bool
     is_deleted: bool = False
-    id: Optional[int] = None
+    id: int | None = None
 
     def __str__(self):
         start = self.start_time.strftime('%H:%M') if self.start_time else '00:00'
@@ -104,29 +99,26 @@ class SlotModel:
 
 @dataclass
 class PhotoModel:
-    """Класс для представления фото референсов"""
-    id: Optional[int] = None
-    telegram_file_id: Optional[str] = None
-    file_unique_id: Optional[str] = None
-    caption: Optional[str] = None
+    id: int | None = None
+    telegram_file_id: str | None = None
+    file_unique_id: str | None = None
+    caption: str | None = None
 
 
 class AppointmentModel(BaseModel):
-    """Модель записи на прием с валидацией обязательных полей"""
-    appointment_id: Optional[int] = None
+    appointment_id: int | None = None
     status: str = PENDING
-    slot: Optional[SlotModel] = None
-    service: Optional[ServiceModel] = None
-    photos: Optional[List[PhotoModel]] = None
-    comment: Optional[str] = None
-    client: Optional[UserModel] = None
-    message_id: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    slot_date: Optional[datetime] = None
+    slot: SlotModel | None = None
+    service: ServiceModel | None = None
+    photos: list[PhotoModel] | None = None
+    comment: str | None = None
+    client: UserModel | None = None
+    message_id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    slot_date: datetime | None = None
 
     def is_ready_for_confirmation(self) -> bool:
-        """Проверяет, все ли обязательные поля заполнены"""
         return all([
             self.slot and self.slot.id is not None,
             self.service and self.service.id is not None
@@ -134,7 +126,6 @@ class AppointmentModel(BaseModel):
 
     @property
     def formatted_date(self) -> str:
-        """Возвращает дату слота в формате '{день недели} %d.%m' или ошибку, если слот не задан"""
         if not self.slot:
             return 'Ошибка: дата не указана'
 
@@ -146,10 +137,9 @@ class AppointmentModel(BaseModel):
         if not self.slot:
             return '00:00 – 00:00'
         return str(self.slot)
-    
+
     @classmethod
     def from_fsm_data(cls, data: dict[str, Any]) -> 'AppointmentModel':
-        """Преобразует данные из FSM в модель AppointmentModel."""
         slot_data = data.pop('slot', None)
         service_data = data.pop('service', None)
         client_data = data.pop('client', None)
@@ -173,7 +163,6 @@ class AppointmentModel(BaseModel):
         )
 
     def __str__(self):
-        """Строковое представление записи"""
         return (
             f'Запись #{self.appointment_id or "новая"}\n'
             f'Услуга: {self.service.name if self.service else "не выбрана"}\n'
@@ -185,27 +174,25 @@ class AppointmentModel(BaseModel):
 
 @dataclass
 class Master:
-    """Класс для представления общей инфо о записи"""
-    user: Optional[UserModel] = None
-    specialization: Optional[str] = None
-    is_master: Optional[bool] = None
-    message_id: Optional[int] = None
-    current_app_id: Optional[int] = None
-    msg_to_delete: Optional[str] = None
+    user: UserModel | None = None
+    specialization: str | None = None
+    is_master: bool | None = None
+    message_id: int | None = None
+    current_app_id: int | None = None
+    msg_to_delete: str | None = None
 
 
 @dataclass
 class ClientStats:
-    """Класс для хранения статистики по клиенту"""
     total: int = 0
     completed: int = 0
     upcoming: int = 0
     pending: int = 0
     cancelled: int = 0
     rejected: int = 0
-    first_appointment: Optional[datetime] = None
-    last_appointment: Optional[datetime] = None
-    by_status: Dict[str, int] = None
+    first_appointment: datetime | None = None
+    last_appointment: datetime | None = None
+    by_status: dict[str, int] = None
 
     def __post_init__(self):
         if self.by_status is None:
@@ -246,5 +233,5 @@ class ChannelMessage:
 @dataclass
 class DaySchedule:
     weekday: int
-    time_slots: List[Tuple[time, time]]  # Список времени начала слотов
+    time_slots: list[tuple[time, time]]  # Список времени начала слотов
     is_working: bool

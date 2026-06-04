@@ -1,18 +1,17 @@
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Optional, Awaitable, Callable
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from DB.tables.slots import SlotsTable
-from DB.models import AppointmentModel
+from bot.keyboards.default import inline as ikb
 from bot.states import AppointmentStates
 from config.const import CalendarMode
+from DB.models import AppointmentModel
+from DB.tables.slots import SlotsTable
 from phrases import PHRASES_RU
-from bot.keyboards.default import inline as ikb
 from utils import format_string
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +43,7 @@ class AppointmentNavigation:
         return updated_model
 
     @classmethod
-    def get_next_state(cls, current_state: str) -> Optional[str]:
-        """Возвращает следующее состояние в процессе записи"""
+    def get_next_state(cls, current_state: str) -> str | None:
         try:
             idx = cls.FLOW_ORDER.index(current_state)
             return cls.FLOW_ORDER[idx + 1] if idx + 1 < len(cls.FLOW_ORDER) else None
@@ -53,8 +51,7 @@ class AppointmentNavigation:
             return None
 
     @classmethod
-    def get_prev_state(cls, current_state: str) -> Optional[str]:
-        """Возвращает предыдущее состояние в процессе записи"""
+    def get_prev_state(cls, current_state: str) -> str | None:
         try:
             idx = cls.FLOW_ORDER.index(current_state)
             return cls.FLOW_ORDER[idx - 1] if idx > 0 else None
@@ -68,7 +65,7 @@ class AppointmentNavigation:
             state: FSMContext,
             current_state: str,
             action: int,
-            additional_check: Optional[Callable[[AppointmentModel], Awaitable[bool]]] = None):
+            additional_check: Callable[[AppointmentModel], Awaitable[bool]] | None = None):
         if action == 0:  # Отмена
             await state.clear()
             await callback.message.edit_text(text=PHRASES_RU.answer.booking_canceled, reply_markup=None)
@@ -93,7 +90,6 @@ class AppointmentNavigation:
 
     @classmethod
     async def _clear_step_data(cls, state: FSMContext, step: str) -> bool:
-        """Очищает данные, связанные с определенным шагом"""
         clear_rules = {
             'WAITING_FOR_SERVICE': {'service': None},
             'WAITING_FOR_SLOT': {'slot': None},
@@ -120,7 +116,6 @@ class AppointmentNavigation:
 
     @classmethod
     async def _call_step_handler(cls, callback: CallbackQuery, state: FSMContext, step: str):
-        """Вызывает обработчик для конкретного шага"""
         data = await cls.get_appointment_data(state)
         handlers = {
             'WAITING_FOR_SERVICE': cls._show_service_selection,
@@ -157,7 +152,7 @@ class AppointmentNavigation:
                 reply_markup=ikb.slots_keyboard(data.slot_date)
             )
         else:
-            logger.error(f'Appointment creation error: no slot date in state data')
+            logger.error('Appointment creation error: no slot date in state data')
             await callback.message.edit_text(PHRASES_RU.error.booking.try_again, reply_markup=None)
 
     @staticmethod

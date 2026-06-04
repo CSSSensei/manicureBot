@@ -1,33 +1,32 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, time
-from typing import Optional
 
 from aiogram import F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from bot import pages
+from bot.bot_utils import command_arguments
+from bot.bot_utils.msg_sender import get_media_from_photos, send_or_edit_message
+from bot.bot_utils.routers import BaseRouter, MasterRouter
+from bot.keyboards import get_keyboard
+from bot.keyboards.master import inline as inline_mkb
+from bot.states import MasterStates
+from config import bot, const
 from DB import models
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.day_schedule import DayScheduleTable
 from DB.tables.masters import MastersTable
 from DB.tables.users import UsersTable
-from bot import pages
-from bot.bot_utils import command_arguments
-from bot.bot_utils.msg_sender import get_media_from_photos, send_or_edit_message
-from bot.bot_utils.routers import MasterRouter, BaseRouter
-from bot.keyboards import get_keyboard
-from bot.states import MasterStates
-from config import const, bot
 from phrases import PHRASES_RU
-from bot.keyboards.master import inline as inline_mkb
 from utils import format_string
 
 logger = logging.getLogger(__name__)
 
 
-async def send_master_menu(user_id: int, message_id: Optional[int] = None):
+async def send_master_menu(user_id: int, message_id: int | None = None):
     with AppointmentsTable() as db:
         text = PHRASES_RU.replace('answer.master.menu',
                                   clients=db.count_clients(),
@@ -209,7 +208,7 @@ async def _(message: Message):
             if master.msg_to_delete:
                 try:
                     msgs = list(map(int, master.msg_to_delete.split(',')))
-                    msgs_list = [i for i in range(msgs[0], msgs[-1] + 1)]
+                    msgs_list = list(range(msgs[0], msgs[-1] + 1))
                     await bot.delete_messages(chat_id=message.chat.id, message_ids=msgs_list)
                 except Exception as e:
                     logger.warning("Couldn't delete message %s: %s", master.msg_to_delete, e)

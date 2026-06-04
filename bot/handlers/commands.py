@@ -1,10 +1,11 @@
 import logging
+
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from DB.tables.masters import MastersTable
+from bot.bot_utils.routers import BaseRouter, UserRouter
 from bot.keyboards import get_keyboard
-from bot.bot_utils.routers import UserRouter, BaseRouter
+from DB.tables.masters import MastersTable
 from phrases import PHRASES_RU
 
 router = UserRouter()

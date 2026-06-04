@@ -1,21 +1,20 @@
+from aiogram import F, Router
 from aiogram.enums import ChatType
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from aiogram import Router, F
 
-from DB.models import PhotoModel
-from DB.tables.users import UsersTable
 from bot import pages
+from bot.handlers.admin import command_getcmds
 from bot.keyboards import get_keyboard
 from bot.keyboards.default import inline as ikb
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
-
-from config import config, bot
+from config import bot, config
+from DB.models import PhotoModel
+from DB.tables.users import UsersTable
 from phrases import PHRASES_RU
 from utils import format_string
-from bot.handlers.admin import command_getcmds
 
 router = Router()
 router.message.filter(F.chat.type == ChatType.PRIVATE)

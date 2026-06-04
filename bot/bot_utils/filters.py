@@ -1,18 +1,17 @@
-from typing import Optional
 
 from aiogram.filters import BaseFilter, Filter
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
+from config import const
+from DB.models import Master, UserModel
 from DB.tables.masters import MastersTable
 from DB.tables.users import UsersTable
-from DB.models import UserModel, Master
-from config import const
 
 
 class AdminFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         with UsersTable() as users_db:
-            user: Optional[UserModel] = users_db.get_user(message.from_user.id)
+            user: UserModel | None = users_db.get_user(message.from_user.id)
             if user:
                 return user.is_admin
             return False
@@ -21,8 +20,8 @@ class AdminFilter(BaseFilter):
 class MasterFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         with MastersTable() as master_db, UsersTable() as db:
-            user_master: Optional[Master] = master_db.get_master(message.from_user.id)
-            user: Optional[UserModel] = db.get_user(message.from_user.id)
+            user_master: Master | None = master_db.get_master(message.from_user.id)
+            user: UserModel | None = db.get_user(message.from_user.id)
             return user.is_admin or user_master and user_master.is_master   # АДМИН ИМЕЕТ ДОСТУП К ИНТЕРФЕЙСУ МАСТЕРА
 
 

@@ -1,14 +1,15 @@
 import logging
 from datetime import datetime, timedelta
+
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from DB.models import AppointmentModel
-from DB.tables.appointments import AppointmentsTable
 from bot.bot_utils.msg_sender import send_reminder
 from bot.channel_posting import ChannelPostingService
-from config import scheduler, const, bot, config
+from config import bot, config, const, scheduler
+from DB.models import AppointmentModel
+from DB.tables.appointments import AppointmentsTable
 from utils.slot_generator import SlotGenerator
 
 logger = logging.getLogger(__name__)
@@ -87,11 +88,8 @@ class SlotNotifierBot:
         self.channel_service = ChannelPostingService(config.tg_bot.channel_id)
 
     async def on_startup(self):
-        """Запуск при старте бота."""
-        # Первоначальная публикация
         await self.channel_service.post_or_update_slots_message()
 
-        # Планируем регулярное обновление (каждый час)
         self.scheduler.add_job(
             self.update_channel_slots,
             'interval',
@@ -100,12 +98,10 @@ class SlotNotifierBot:
         )
 
     async def update_channel_slots(self):
-        """Обновляет сообщение со слотами в канале."""
         await self.channel_service.post_or_update_slots_message()
 
 
 async def auto_generate_month_after_next():
-    """Генерация слотов на месяц после следующего"""
     generator = SlotGenerator()
     generated_count = generator.generate_for_month_after_next()
     if generated_count > 0:
@@ -113,7 +109,6 @@ async def auto_generate_month_after_next():
 
 
 async def daily_check_generation():
-    """Ежедневная проверка необходимости генерации"""
     today = datetime.now()
 
     # Если сегодня 26-31 число и еще не генерировали на следующий месяц
@@ -138,7 +133,6 @@ async def daily_check_generation():
 
 
 async def setup_scheduler(async_scheduler: AsyncIOScheduler):
-    """Настройка автоматических задач"""
 
     load_scheduled_notifications(async_scheduler)
     # Генерация на месяц после следующего (cur_month + 2) - 25 числа в 10:00

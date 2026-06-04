@@ -1,5 +1,4 @@
 import sqlite3
-from typing import List, Optional
 
 from DB.models import Master, UserModel
 from DB.tables.base import BaseTable
@@ -9,7 +8,6 @@ class MastersTable(BaseTable):
     __tablename__ = 'masters'
 
     def create_table(self):
-        """Создание таблицы masters"""
         self.cursor.executescript(f'''
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY,
@@ -34,7 +32,6 @@ class MastersTable(BaseTable):
         Returns:
             True если статус успешно установлен, False если пользователь не существует
         """
-        # Проверяем существование пользователя
         if not self._check_record_exists('users', 'user_id', user_id):
             self._log('SET_MASTER_FAILED', reason="User not found", user_id=user_id)
             return False
@@ -53,7 +50,7 @@ class MastersTable(BaseTable):
             self.conn.rollback()
             return False
 
-    def get_all_masters(self) -> List[Master]:
+    def get_all_masters(self) -> list[Master]:
         query = f'''
         SELECT m.*, u.*
         FROM {self.__tablename__} m
@@ -87,7 +84,7 @@ class MastersTable(BaseTable):
             self._log('GET_ALL_MASTERS_ERROR', error=str(e))
             return []
 
-    def get_master(self, master_id: int) -> Optional[Master]:
+    def get_master(self, master_id: int) -> Master | None:
         """Получает message_id для указанного мастера.
 
         Args:
@@ -124,9 +121,9 @@ class MastersTable(BaseTable):
 
     def update_current_state(self,
                              master_id: int,
-                             message_id: Optional[int] = None,
-                             current_app_id: Optional[int] = None,
-                             msg_to_delete: Optional[str] = None) -> bool:
+                             message_id: int | None = None,
+                             current_app_id: int | None = None,
+                             msg_to_delete: str | None = None) -> bool:
         """Обновляет message_id для указанного мастера.
 
         Args:
@@ -137,7 +134,6 @@ class MastersTable(BaseTable):
         Returns:
             bool: True если обновление прошло успешно, False если мастер не найден
         """
-        # Проверяем существование мастера
         if not self._check_record_exists(self.__tablename__, 'id', master_id):
             self._log('UPDATE_MESSAGE_ID_FAILED', reason="Master not found", master_id=master_id)
             return False

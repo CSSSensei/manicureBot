@@ -1,14 +1,13 @@
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, time
-from typing import Optional, List, Tuple, Dict
+from datetime import datetime, time, timedelta
 
+from config import const
+from config.const import CANCELLED, COMPLETED, CONFIRMED, PENDING, REJECTED
 from DB.models import AppointmentModel, ServiceModel, SlotModel, format_date
 from DB.tables.day_schedule import DayScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from config import const
-from config.const import PENDING, CANCELLED, CONFIRMED, REJECTED, COMPLETED
 from phrases import PHRASES_RU
 
 
@@ -66,7 +65,7 @@ def get_status_app_string(status: str) -> str:
     return ''
 
 
-def user_booking_text(data: AppointmentModel, header: Optional[str] = PHRASES_RU.title.new_booking) -> str:
+def user_booking_text(data: AppointmentModel, header: str | None = PHRASES_RU.title.new_booking) -> str:
     text = header
     if data.service and data.service.name:
         text += PHRASES_RU.replace('template.user.service', service=data.service.name)
@@ -131,7 +130,7 @@ def master_booking_text(data: AppointmentModel, total_items: int = 1) -> str:
     return text
 
 
-def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
+def parse_slots_text(text: str) -> list[tuple[datetime, datetime]]:
     """
     Парсит текст в формате:
     "месяц
@@ -170,8 +169,8 @@ def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
         try:
             day_part, times_part = line.split('-', 1)
             day = int(day_part.strip())
-        except Exception:
-            raise ValueError(f'Некорректный формат строки: {line}')
+        except Exception as err:
+            raise ValueError(f'Некорректный формат строки: {line}') from err
 
         time_parts = re.findall(r'\b\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?\b', times_part)
         if not time_parts:
@@ -200,24 +199,22 @@ def parse_slots_text(text: str) -> List[Tuple[datetime, datetime]]:
 
                 slots.append((start_datetime, end_datetime))
 
-            except ValueError as e:
-                raise ValueError(f'Ошибка при разборе времени "{time_str}": {str(e)}')
+            except ValueError as err:
+                raise ValueError(f'Ошибка при разборе времени "{time_str}": {err}') from err
 
     return slots
 
 
-def slots_to_text(slots: List[SlotModel]) -> str:
+def slots_to_text(slots: list[SlotModel]) -> str:
     if not slots:
         return ""
 
-    # Группируем слоты сначала по году-месяцу, затем по дню
     slots_by_month = defaultdict(lambda: defaultdict(list))
     for slot in slots:
         year_month = (slot.start_time.year, slot.start_time.month)
         day = slot.start_time.day
         slots_by_month[year_month][day].append(slot)
 
-    # Сортируем месяцы по порядку
     sorted_months = sorted(slots_by_month.keys())
 
     result_lines = []
@@ -242,7 +239,7 @@ def slots_to_text(slots: List[SlotModel]) -> str:
     return "\n".join(result_lines)
 
 
-def parse_service_text(text: str, service_id: Optional[int] = None) -> ServiceModel:
+def parse_service_text(text: str, service_id: int | None = None) -> ServiceModel:
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     if not lines:
         raise ValueError("Пустой запрос")
@@ -292,7 +289,7 @@ def service_text(service: ServiceModel):
     return text
 
 
-def parse_schedule_message(text: str) -> Dict[int, List[Tuple[time, time]]]:
+def parse_schedule_message(text: str) -> dict[int, list[tuple[time, time]]]:
     """
     Парсит сообщение мастера в формате:
     "пн - 10:00
@@ -319,7 +316,7 @@ def parse_schedule_message(text: str) -> Dict[int, List[Tuple[time, time]]]:
         'вс': 6, 'воскресенье': 6
     }
 
-    result: Dict[int, List[Tuple[time, time]]] = {i: [] for i in range(7)}
+    result: dict[int, list[tuple[time, time]]] = {i: [] for i in range(7)}
 
     lines = text.strip().replace('—', '-').split("\n")
     for line in lines:
@@ -340,7 +337,7 @@ def parse_schedule_message(text: str) -> Dict[int, List[Tuple[time, time]]]:
             result[weekday] = []
             continue
 
-        slots: List[Tuple[time, time]] = []
+        slots: list[tuple[time, time]] = []
         for token in slots_text.split():
             if "-" in token:
                 # интервал времени
@@ -367,7 +364,6 @@ def parse_schedule_message(text: str) -> Dict[int, List[Tuple[time, time]]]:
 
 
 def show_current_schedule() -> str:
-    """Показывает текущее расписание"""
     with DayScheduleTable() as db:
         schedules = db.get_all_schedules()
 

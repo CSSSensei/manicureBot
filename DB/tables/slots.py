@@ -1,5 +1,4 @@
-from datetime import datetime, date, timedelta, time, timezone
-from typing import Optional, List, Union, Tuple
+from datetime import date, datetime, time, timedelta, timezone
 
 from DB.models import SlotModel
 from DB.tables.base import BaseTable
@@ -10,7 +9,6 @@ class SlotsTable(BaseTable):
     __tablename__ = 'slots'
 
     def create_table(self):
-        """Создание таблицы slots с триггером для автоматического обновления статуса"""
         __timezone_offset = timezone(timedelta(hours=3))  # Для MSK (UTC+3)
         self.cursor.executescript(f'''
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
@@ -20,7 +18,7 @@ class SlotsTable(BaseTable):
             is_available BOOLEAN NOT NULL DEFAULT 1,
             is_deleted BOOLEAN NOT NULL DEFAULT 0
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_slots_available ON {self.__tablename__}(is_available, is_deleted, start_time);
         CREATE INDEX IF NOT EXISTS idx_slots_start_time ON {self.__tablename__}(start_time);
         CREATE INDEX IF NOT EXISTS idx_slots_end_time ON {self.__tablename__}(end_time);
@@ -29,8 +27,8 @@ class SlotsTable(BaseTable):
         CREATE TRIGGER IF NOT EXISTS update_past_slots
         AFTER INSERT ON {self.__tablename__}
         BEGIN
-            UPDATE {self.__tablename__} 
-            SET is_available = 0 
+            UPDATE {self.__tablename__}
+            SET is_available = 0
             WHERE start_time < datetime('now', '+3 hours') AND id = NEW.id;
         END;
 
@@ -38,8 +36,8 @@ class SlotsTable(BaseTable):
         AFTER UPDATE OF start_time ON {self.__tablename__}
         WHEN NEW.start_time < datetime('now', '+3 hours')
         BEGIN
-            UPDATE {self.__tablename__} 
-            SET is_available = 0 
+            UPDATE {self.__tablename__}
+            SET is_available = 0
             WHERE id = NEW.id;
         END;
         ''')
@@ -50,7 +48,7 @@ class SlotsTable(BaseTable):
         query = f"""
         UPDATE {self.__tablename__}
         SET is_available = 0
-        WHERE is_available = 1 
+        WHERE is_available = 1
         AND start_time < datetime('now', '+3 hours')
         """
         self.cursor.execute(query)
@@ -60,8 +58,7 @@ class SlotsTable(BaseTable):
             self._log('UPDATE_PAST_SLOTS', count=updated)
         return updated
 
-    def add_slot(self, start_time: datetime, end_time: datetime) -> Tuple[bool, Union[int, str]]:
-        """Добавляет новый слот для записи и возвращает его ID."""
+    def add_slot(self, start_time: datetime, end_time: datetime) -> tuple[bool, int | str]:
         try:
             if not isinstance(start_time, datetime) or not isinstance(end_time, datetime):
                 return False, "Неверные параметры времени"
@@ -71,7 +68,7 @@ class SlotsTable(BaseTable):
                 return False, "Время окончания должно быть позже времени начала"
 
             query_check = f"""
-                SELECT id FROM {self.__tablename__} 
+                SELECT id FROM {self.__tablename__}
                 WHERE start_time = ? AND is_deleted = 0
                 """
             self.cursor.execute(query_check, (start_time,))
@@ -95,10 +92,10 @@ class SlotsTable(BaseTable):
             self._log('ADD_SLOT_ERROR', error=error_msg)
             return False, error_msg
 
-    def is_available(self, slot_id: int) -> Optional[bool]:
+    def is_available(self, slot_id: int) -> bool | None:
         self._update_past_slots_status()
         query = f"""
-            SELECT * FROM {self.__tablename__} 
+            SELECT * FROM {self.__tablename__}
             WHERE id = ?
             """
 
@@ -109,10 +106,9 @@ class SlotsTable(BaseTable):
         else:
             return None
 
-    def get_slot(self, slot_id: int) -> Optional[SlotModel]:
-        """Возвращает слот, если он не удален."""
+    def get_slot(self, slot_id: int) -> SlotModel | None:
         query = f"""
-            SELECT * FROM {self.__tablename__} 
+            SELECT * FROM {self.__tablename__}
             WHERE id = ? AND is_deleted = 0
             """
         self.cursor.execute(query, (slot_id,))
@@ -131,10 +127,10 @@ class SlotsTable(BaseTable):
 
     def get_available_slots(
             self,
-            from_time: Optional[datetime] = None,
-            to_time: Optional[datetime] = None,
-            service_id: Optional[int] = None
-    ) -> List[SlotModel]:
+            from_time: datetime | None = None,
+            to_time: datetime | None = None,
+            service_id: int | None = None
+    ) -> list[SlotModel]:
         """
         Возвращает список доступных слотов.
         Если передан service_id, фильтрует слоты по дням недели доступности услуги.
@@ -149,7 +145,7 @@ class SlotsTable(BaseTable):
             self._update_past_slots_status()
 
         query = f"""
-            SELECT * FROM {self.__tablename__} 
+            SELECT * FROM {self.__tablename__}
             WHERE is_available = TRUE AND is_deleted = 0
         """
         params = []
@@ -190,22 +186,21 @@ class SlotsTable(BaseTable):
     def get_available_slots_by_day(
             self,
             day: date,
-            service_id: Optional[int] = None
-    ) -> List[SlotModel]:
-        """Возвращает список доступных слотов на указанный день."""
+            service_id: int | None = None
+    ) -> list[SlotModel]:
         start = datetime.combine(day, time.min)
         end = datetime.combine(day, time.max)
         return self.get_available_slots(from_time=start, to_time=end, service_id=service_id)
 
     def get_first_available_slot(
             self,
-            service_id: Optional[int] = None
-    ) -> Optional[datetime]:
+            service_id: int | None = None
+    ) -> datetime | None:
         """Проверяет наличие свободных слотов и возвращает дату первого доступного."""
         self._update_past_slots_status()
 
         query = f"""
-            SELECT start_time FROM {self.__tablename__} 
+            SELECT start_time FROM {self.__tablename__}
             WHERE is_available = TRUE and is_deleted = 0
         """
         params = []
@@ -262,7 +257,7 @@ class SlotsTable(BaseTable):
 
         return True
 
-    def delete_slot(self, slot_id: int) -> Tuple[bool, str]:
+    def delete_slot(self, slot_id: int) -> tuple[bool, str]:
         """
         Помечает слот как удаленный (мягкое удаление), если он существует и не занят.
 
@@ -296,15 +291,6 @@ class SlotsTable(BaseTable):
             return False, error_msg
 
     def count_available_slots_for_service(self, service_id: int) -> int:
-        """
-        Возвращает количество доступных слотов для указанной услуги.
-
-        Args:
-            service_id: ID услуги
-
-        Returns:
-            Количество доступных слотов
-        """
         with ServiceScheduleTable() as schedule_db:
             available_weekdays = schedule_db.get_available_weekdays(service_id)
 
@@ -316,7 +302,7 @@ class SlotsTable(BaseTable):
         query = f"""
         SELECT COUNT(*) as slot_count
         FROM {self.__tablename__} s
-        WHERE 
+        WHERE
             s.is_available = TRUE AND is_deleted = 0 AND
             s.start_time > datetime('now', '+3 hours') AND
             strftime('%w', s.start_time) IN ({','.join('?' * len(sqlite_weekdays))})

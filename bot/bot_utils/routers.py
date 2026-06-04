@@ -1,6 +1,6 @@
 import inspect
-from typing import List, Union, Tuple
-from aiogram import Router, F
+
+from aiogram import F, Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -10,7 +10,7 @@ from bot.bot_utils.models import CommandUnit
 
 
 class BaseRouter(Router):
-    available_commands: List[CommandUnit] = []
+    available_commands: list[CommandUnit] = []
     is_admin: bool = False  # По умолчанию не админский роутер
     is_master: bool = False
     is_user: bool = False
@@ -23,7 +23,7 @@ class BaseRouter(Router):
         elif self.is_master:
             self.message.filter(MasterFilter())
 
-    def command(self, command: Union[str, Tuple[str, ...]], description: str = '', *placeholders):
+    def command(self, command: str | tuple[str, ...], description: str = '', *placeholders):
         def decorator(handler):
             commands = (command,) if isinstance(command, str) else command
             self.available_commands.append(

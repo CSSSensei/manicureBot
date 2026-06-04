@@ -1,9 +1,8 @@
 import os
 from datetime import datetime
-from typing import List, Optional
 
-from DB.tables.base import BaseTable
 from DB.models import Weekday
+from DB.tables.base import BaseTable
 
 
 class WeekdaysTable(BaseTable):
@@ -15,7 +14,6 @@ class WeekdaysTable(BaseTable):
         self._populate_weekdays()
 
     def create_table(self) -> None:
-        """Создание таблицы weekdays"""
         self.cursor.executescript(f"""
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             id INTEGER PRIMARY KEY,
@@ -31,7 +29,6 @@ class WeekdaysTable(BaseTable):
         self._log('CREATE_TABLE')
 
     def _populate_weekdays(self) -> None:
-        """Заполняет таблицу днями недели, если она пустая"""
         self.cursor.execute(f"SELECT COUNT(*) as count FROM {self.__tablename__}")
         count = self.cursor.fetchone()['count']
 
@@ -57,8 +54,7 @@ class WeekdaysTable(BaseTable):
         self.conn.commit()
         self._log('POPULATE_WEEKDAYS', count=len(weekdays_data))
 
-    def get_all_weekdays(self) -> List[Weekday]:
-        """Возвращает все дни недели"""
+    def get_all_weekdays(self) -> list[Weekday]:
         query = f"SELECT * FROM {self.__tablename__} ORDER BY id"
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
@@ -72,8 +68,7 @@ class WeekdaysTable(BaseTable):
             ) for row in rows
         ]
 
-    def get_weekday_by_id(self, weekday_id: int) -> Optional[Weekday]:
-        """Возвращает день недели по ID"""
+    def get_weekday_by_id(self, weekday_id: int) -> Weekday | None:
         query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
         self.cursor.execute(query, (weekday_id,))
         row = self.cursor.fetchone()
@@ -88,8 +83,7 @@ class WeekdaysTable(BaseTable):
             short_name=row['short_name']
         )
 
-    def get_weekday_by_name(self, name: str) -> Optional[Weekday]:
-        """Возвращает день недели по английскому названию"""
+    def get_weekday_by_name(self, name: str) -> Weekday | None:
         query = f"SELECT * FROM {self.__tablename__} WHERE name = ?"
         self.cursor.execute(query, (name,))
         row = self.cursor.fetchone()
@@ -104,8 +98,7 @@ class WeekdaysTable(BaseTable):
             short_name=row['short_name']
         )
 
-    def get_weekday_by_name_ru(self, name_ru: str) -> Optional[Weekday]:
-        """Возвращает день недели по русскому названию"""
+    def get_weekday_by_name_ru(self, name_ru: str) -> Weekday | None:
         query = f"SELECT * FROM {self.__tablename__} WHERE name_ru = ?"
         self.cursor.execute(query, (name_ru,))
         row = self.cursor.fetchone()
@@ -129,7 +122,7 @@ class WeekdaysTable(BaseTable):
         # SQLite возвращает 0-6 (0=воскресенье, 1=понедельник и т.д.)
         sqlite_weekday = date.weekday()  # Python: 0=понедельник, 6=воскресенье
 
-        # Преобразуем в нашу систему: 1=понедельник, 7=воскресенье
+        # Преобразуем в систему: 1=понедельник, 7=воскресенье
         # Python weekday: 0=пн,1=вт,2=ср,3=чт,4=пт,5=сб,6=вс
         # Наши ID:        1=пн,2=вт,3=ср,4=чт,5=пт,6=сб,7=вс
         return sqlite_weekday + 1 if sqlite_weekday < 6 else 7

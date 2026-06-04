@@ -1,6 +1,5 @@
 import json
 from datetime import time
-from typing import Dict, List, Optional, Tuple
 
 from DB.models import DaySchedule
 from DB.tables.base import BaseTable
@@ -24,11 +23,9 @@ class DayScheduleTable(BaseTable):
         count = self.cursor.fetchone()[0]
 
         if count == 0:
-            # Только если таблица пустая — инициализируем
             self._initialize_default_schedule()
 
     def _initialize_default_schedule(self):
-        """Инициализирует расписание по умолчанию"""
         default_slots = {
             0: [("10:00", "13:00"), ("14:30", "17:30"), ("18:00", "21:00")],    # Понедельник
             1: [],                                                              # Вторник - выходной
@@ -42,12 +39,10 @@ class DayScheduleTable(BaseTable):
         for weekday, slots in default_slots.items():
             self.set_day_schedule(weekday, slots, bool(slots))
 
-    def set_day_schedule(self, weekday: int, time_slots: List[Tuple[str, str]], is_working: bool = True):
-        """Устанавливает расписание для дня недели"""
-        # Конвертируем в JSON
+    def set_day_schedule(self, weekday: int, time_slots: list[tuple[str, str]], is_working: bool = True):
         slots_json = json.dumps(time_slots)
         query = f"""
-        INSERT OR REPLACE INTO {self.__tablename__} 
+        INSERT OR REPLACE INTO {self.__tablename__}
         (weekday, time_slots, is_working)
         VALUES (?, ?, ?)
         """
@@ -55,8 +50,7 @@ class DayScheduleTable(BaseTable):
         self.cursor.execute(query, (weekday, slots_json, is_working))
         self.conn.commit()
 
-    def get_day_schedule(self, weekday: int) -> Optional[DaySchedule]:
-        """Возвращает расписание для конкретного дня"""
+    def get_day_schedule(self, weekday: int) -> DaySchedule | None:
         query = f"SELECT * FROM {self.__tablename__} WHERE weekday = ?"
         self.cursor.execute(query, (weekday,))
         row = self.cursor.fetchone()
@@ -69,8 +63,7 @@ class DayScheduleTable(BaseTable):
             )
         return None
 
-    def get_all_schedules(self) -> Dict[int, DaySchedule]:
-        """Возвращает все расписания"""
+    def get_all_schedules(self) -> dict[int, DaySchedule]:
         query = f"SELECT * FROM {self.__tablename__} ORDER BY weekday"
         self.cursor.execute(query)
 

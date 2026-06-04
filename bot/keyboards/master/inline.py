@@ -1,22 +1,29 @@
-from datetime import datetime, date
-from typing import Optional
+from datetime import date, datetime
+
 from aiogram.types import InlineKeyboardButton as IButton
 from aiogram.types import InlineKeyboardMarkup as IMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from bot.bot_utils.models import (
+    AddSlotsMonthCallBack,
+    DeleteSlotCallBack,
+    EditServiceCallBack,
+    MasterButtonCallBack,
+    MasterServiceCallBack,
+    MonthCallBack,
+    ScheduleServiceCallBack,
+)
+from bot.keyboards.admin import inline as admin_ikb
+from config import const
+from config.const import Action, CalendarMode, PageListSection
 from DB.models import Pagination, ServiceModel, SlotModel
 from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
-from bot.bot_utils.models import MasterButtonCallBack, AddSlotsMonthCallBack, MasterServiceCallBack, EditServiceCallBack, \
-    DeleteSlotCallBack, MonthCallBack, ScheduleServiceCallBack
-from bot.keyboards.admin import inline as admin_ikb
-from config import const
-from config.const import CalendarMode, PageListSection, Action
 from phrases import PHRASES_RU
 
 
-def action_master_keyboard(appointment_id: int, msg_to_delete: Optional[str] = None) -> IMarkup:
+def action_master_keyboard(appointment_id: int, msg_to_delete: str | None = None) -> IMarkup:
     keyboard = [[
         IButton(
             text=PHRASES_RU.button.admin.reject,
@@ -90,7 +97,7 @@ def add_slots_menu() -> IMarkup:
     return IMarkup(inline_keyboard=keyboard)
 
 
-def master_confirm_adding_slot(month: Optional[int] = None, year: Optional[int] = None) -> IMarkup:
+def master_confirm_adding_slot(month: int | None = None, year: int | None = None) -> IMarkup:
     keyboard = [
         [IButton(text=PHRASES_RU.button.cancel,
                  callback_data=PHRASES_RU.callback_data.master.back_to_adding_slots)],
@@ -245,7 +252,7 @@ def delete_slots_menu(cur_date: datetime.date) -> IMarkup:
     return builder.as_markup()
 
 
-def slot_deletion(slot: Optional[SlotModel], slot_date: date) -> IMarkup:
+def slot_deletion(slot: SlotModel | None, slot_date: date) -> IMarkup:
     keyboard = [
         [IButton(text=PHRASES_RU.button.delete,
                  callback_data=DeleteSlotCallBack(slot_id=slot.id if slot else None,

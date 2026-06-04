@@ -1,4 +1,3 @@
-from typing import Optional
 
 from DB.models import PhotoModel
 from DB.tables.base import BaseTable
@@ -19,7 +18,7 @@ class PhotosTable(BaseTable):
         self.conn.commit()
         self._log('CREATE_TABLE')
 
-    def add_photo_no_commit(self, telegram_file_id: str, file_unique_id: str, caption: Optional[str] = None) -> int:
+    def add_photo_no_commit(self, telegram_file_id: str, file_unique_id: str, caption: str | None = None) -> int:
         """Добавляет референсное фото и возвращает его ID.
 
         ⚠️ ВНИМАНИЕ: Этот метод НЕ выполняет коммит транзакции.
@@ -36,8 +35,7 @@ class PhotosTable(BaseTable):
         self._log('ADD_PHOTO', file_unique_id=file_unique_id)
         return self.cursor.lastrowid
 
-    def get_photo_by_id(self, photo_id: int) -> Optional[PhotoModel]:
-        """Возвращает данные фото по ID."""
+    def get_photo_by_id(self, photo_id: int) -> PhotoModel | None:
         query = f"SELECT * FROM {self.__tablename__} WHERE id = ?"
         self.cursor.execute(query, (photo_id,))
         row = self.cursor.fetchone()

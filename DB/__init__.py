@@ -5,9 +5,9 @@
 
 from DB.tables.appointment_photos import AppointmentPhotosTable
 from DB.tables.appointments import AppointmentsTable
-from DB.tables.base import BaseTable
 from DB.tables.channel_messages import ChannelMessagesTable
 from DB.tables.day_schedule import DayScheduleTable
+from DB.tables.masters import MastersTable
 from DB.tables.photos import PhotosTable
 from DB.tables.queries import QueriesTable
 from DB.tables.schedule_settings import ScheduleSettingsTable
@@ -15,9 +15,7 @@ from DB.tables.service_schedule import ServiceScheduleTable
 from DB.tables.services import ServicesTable
 from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
-from DB.tables.masters import MastersTable
 from DB.tables.weekdays import WeekdaysTable
-
 
 # logger = logging.getLogger(__name__)
 #

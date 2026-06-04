@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 from DB.models import ChannelMessage
 from DB.tables.base import BaseTable
@@ -32,13 +31,12 @@ class ChannelMessagesTable(BaseTable):
             message_id: int,
             message_type: str
     ) -> bool:
-        """Сохраняет или обновляет информацию о сообщении в канале."""
         try:
             query = f"""
             INSERT INTO {self.__tablename__} (channel_id, message_id, message_type)
             VALUES (?, ?, ?)
-            ON CONFLICT(channel_id, message_type) 
-            DO UPDATE SET 
+            ON CONFLICT(channel_id, message_type)
+            DO UPDATE SET
                 message_id = excluded.message_id,
                 last_update = CURRENT_TIMESTAMP,
                 is_active = TRUE
@@ -54,8 +52,7 @@ class ChannelMessagesTable(BaseTable):
             self,
             channel_id: int,
             message_type: str
-    ) -> Optional[ChannelMessage]:
-        """Возвращает информацию о сообщении по типу."""
+    ) -> ChannelMessage | None:
         query = f"""
         SELECT * FROM {self.__tablename__}
         WHERE channel_id = ? AND message_type = ? AND is_active = TRUE
@@ -79,7 +76,6 @@ class ChannelMessagesTable(BaseTable):
             channel_id: int,
             message_type: str
     ) -> bool:
-        """Деактивирует сообщение (помечает как неактивное)."""
         try:
             query = f"""
             UPDATE {self.__tablename__}

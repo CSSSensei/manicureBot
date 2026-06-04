@@ -1,13 +1,13 @@
-import yaml
-from os.path import dirname
-from typing import Any, Dict
-from random import choice
 import re
+from os.path import dirname
+from random import choice
+from typing import Any
+
+import yaml
 
 
 class Phrases:
-    """Класс для представления"""
-    def __init__(self, dictionary: Dict[str, Any]):
+    def __init__(self, dictionary: dict[str, Any]):
         for key, value in dictionary.items():
             if isinstance(value, dict):
                 setattr(self, key, Phrases(value))
@@ -44,12 +44,8 @@ class Phrases:
         except AttributeError:
             raise AttributeError(f'Фраза «{phrase_name}» не найдена')
 
-        if isinstance(current, list):
-            phrase = choice(current)
-        else:
-            phrase = current
+        phrase = choice(current) if isinstance(current, list) else current
 
-        # Заменяем все плейсхолдеры вида {key}
         for key, value in replacements.items():
             pattern = re.compile(r'\{\s*' + re.escape(key) + r'\s*}')
             phrase = pattern.sub(str(value), phrase)
@@ -58,7 +54,7 @@ class Phrases:
 
 
 def __load_phrases(phrases_path: str) -> Phrases:
-    with open(phrases_path, 'r', encoding='utf-8') as file:
+    with open(phrases_path, encoding='utf-8') as file:
         data = yaml.safe_load(file)
     return Phrases(data)
 

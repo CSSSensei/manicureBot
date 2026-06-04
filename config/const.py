@@ -1,5 +1,5 @@
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
 
 BASE_DIR = Path(__file__).parent.parent
 DB_DIR = BASE_DIR / 'DB/tables/z_users.db'

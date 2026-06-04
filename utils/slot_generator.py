@@ -1,6 +1,5 @@
 import logging
-from datetime import timedelta, date, datetime
-from typing import List
+from datetime import date, datetime, timedelta
 
 from DB.models import SlotModel
 from DB.tables.day_schedule import DayScheduleTable
@@ -16,8 +15,7 @@ class SlotGenerator:
         self.slots_db = SlotsTable()
         self.settings_db = ScheduleSettingsTable()
 
-    def generate_slots_for_month(self, month: int, year: int) -> List[SlotModel]:
-        """Генерирует слоты на указанный месяц с учетом расписания дней"""
+    def generate_slots_for_month(self, month: int, year: int) -> list[SlotModel]:
         schedules = self.day_schedule_db.get_all_schedules()
         added_slots = []
 
@@ -35,7 +33,6 @@ class SlotGenerator:
 
             if day_schedule and day_schedule.is_working and day_schedule.time_slots:
                 for start_time, end_time in day_schedule.time_slots:
-                    # Предполагаем длительность слота 3 часа
                     start_datetime = datetime.combine(current_day, start_time)
                     end_datetime = datetime.combine(current_day, end_time)
 
@@ -57,7 +54,6 @@ class SlotGenerator:
         """
         today = datetime.now()
 
-        # Вычисляем целевой месяц и год
         target_month = today.month + months_ahead
         target_year = today.year
 
@@ -65,24 +61,20 @@ class SlotGenerator:
             target_month -= 12
             target_year += 1
 
-        # Проверяем, не генерировали ли уже
         setting_key = f"generated_{target_year}_{target_month}"
         already_generated = self.settings_db.get_setting(setting_key)
 
         if already_generated:
             return 0
 
-        # Генерируем слоты
         slots = self.generate_slots_for_month(target_month, target_year)
         added_count = 0
 
-        # Сохраняем в БД
         for slot in slots:
             success, _ = self.slots_db.add_slot(slot.start_time, slot.end_time)
             if success:
                 added_count += 1
 
-        # Помечаем как сгенерированные
         if added_count > 0:
             self.settings_db.set_setting(
                 setting_key,
@@ -93,9 +85,7 @@ class SlotGenerator:
         return added_count
 
     def monthly_auto_generation(self) -> int:
-        """Автоматическая генерация слотов на следующий месяц"""
 
-        # Генерируем на месяц вперед (cur_month + 1)
         generated_count = self.generate_slots_for_future_month(months_ahead=1)
 
         if generated_count > 0:
@@ -104,10 +94,8 @@ class SlotGenerator:
         return generated_count
 
     def generate_for_month_after_next(self):
-        """Генерация слотов на месяц после следующего (cur_month + 2)"""
         today = datetime.now()
 
-        # Генерируем на два месяца вперед
         generated_count = self.generate_slots_for_future_month(months_ahead=2)
 
         if generated_count > 0:

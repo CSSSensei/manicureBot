@@ -23,7 +23,7 @@ class ScheduleSettingsTable(BaseTable):
 
     def set_setting(self, name: str, value: str, description: str = None):
         query = f"""
-        INSERT OR REPLACE INTO {self.__tablename__} 
+        INSERT OR REPLACE INTO {self.__tablename__}
         (setting_name, setting_value, description)
         VALUES (?, ?, ?)
         """

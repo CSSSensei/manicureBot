@@ -1,12 +1,13 @@
-import pytest
 from datetime import datetime, timedelta
 
-from DB.models import ServiceModel, PhotoModel, UserModel
-from DB.tables.slots import SlotsTable
-from DB.tables.services import ServicesTable
-from DB.tables.photos import PhotosTable
-from DB.tables.appointments import AppointmentsTable
+import pytest
+
+from DB.models import PhotoModel, ServiceModel, UserModel
 from DB.tables.appointment_photos import AppointmentPhotosTable
+from DB.tables.appointments import AppointmentsTable
+from DB.tables.photos import PhotosTable
+from DB.tables.services import ServicesTable
+from DB.tables.slots import SlotsTable
 from DB.tables.users import UsersTable
 
 # 📌 Тестовые данные

@@ -1,4 +1,3 @@
-from typing import List
 
 from DB.models import PhotoModel
 from DB.tables.base import BaseTable
@@ -8,7 +7,6 @@ class AppointmentPhotosTable(BaseTable):
     __tablename__ = 'appointment_photos'
 
     def create_table(self) -> None:
-        """Создание таблицы appointment_photos с индексами"""
         self.cursor.executescript(f'''
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             appointment_id INTEGER NOT NULL,
@@ -46,10 +44,9 @@ class AppointmentPhotosTable(BaseTable):
                   added=added)
         return added
 
-    def get_appointment_photos(self, appointment_id: int) -> List[PhotoModel]:
-        """Возвращает фото, связанные с записью."""
+    def get_appointment_photos(self, appointment_id: int) -> list[PhotoModel]:
         query = f"""
-        SELECT p.* 
+        SELECT p.*
         FROM {self.__tablename__} ap
         JOIN photos p ON ap.photo_id = p.id
         WHERE ap.appointment_id = ?

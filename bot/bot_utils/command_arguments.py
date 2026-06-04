@@ -1,10 +1,12 @@
+from collections.abc import Callable
+
 from aiogram.types import Message
-from phrases import PHRASES_RU
+
 from DB.tables.users import UsersTable
-from typing import Optional, Callable
+from phrases import PHRASES_RU
 
 
-def multiple(_func: Optional[Callable] = None, *, default=None):
+def multiple(_func: Callable | None = None, *, default=None):
     def decorator(func):
         async def wrapper(message: Message):
             parts = message.text.split()
@@ -18,7 +20,7 @@ def multiple(_func: Optional[Callable] = None, *, default=None):
     return decorator(_func) if _func else decorator
 
 
-def digit(_func: Optional[Callable] = None, *, default=None):
+def digit(_func: Callable | None = None, *, default=None):
     def decorator(func):
         @multiple(default=default)
         async def wrapper(message: Message, params):

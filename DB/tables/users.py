@@ -1,16 +1,14 @@
 import sqlite3
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
 
+from DB.models import Pagination, UserModel
 from DB.tables.base import BaseTable
-from DB.models import UserModel, Pagination
 
 
 class UsersTable(BaseTable):
     __tablename__ = 'users'
 
     def create_table(self):
-        """Создание таблицы users"""
         self.cursor.execute(f'''
         CREATE TABLE IF NOT EXISTS {self.__tablename__} (
             user_id INTEGER PRIMARY KEY,
@@ -26,7 +24,6 @@ class UsersTable(BaseTable):
         self._log('CREATE_TABLE')
 
     def add_user(self, user: UserModel) -> UserModel:
-        """Добавляет или обновляет пользователя"""
         existing_user = self.get_user(user.user_id)
 
         if existing_user:
@@ -38,7 +35,7 @@ class UsersTable(BaseTable):
 
             if needs_update:
                 self.cursor.execute(f'''
-                    UPDATE {self.__tablename__} 
+                    UPDATE {self.__tablename__}
                     SET username = ?, first_name = ?, last_name = ?
                     WHERE user_id = ?''',
                                     (user.username, user.first_name, user.last_name, user.user_id))
@@ -58,8 +55,7 @@ class UsersTable(BaseTable):
         self.cursor.execute(f'SELECT COUNT(*) FROM {self.__tablename__} WHERE user_id = ?', (user_id,))
         return self.cursor.fetchone()[0] > 0
 
-    def get_user(self, user_id: int) -> Optional[UserModel]:
-        """Получение пользователя по ID"""
+    def get_user(self, user_id: int) -> UserModel | None:
         self.cursor.execute(f'SELECT * FROM {self.__tablename__} WHERE user_id = ?', (user_id,))
         row = self.cursor.fetchone()
         if row:
@@ -79,10 +75,9 @@ class UsersTable(BaseTable):
             )
         return None
 
-    def update_user(self, user: UserModel) -> Optional[UserModel]:
-        """Обновление информации о пользователе"""
+    def update_user(self, user: UserModel) -> UserModel | None:
         self.cursor.execute(f'''
-        UPDATE {self.__tablename__} 
+        UPDATE {self.__tablename__}
         SET username = ?, first_name = ?, last_name = ?, is_admin = ?
         WHERE user_id = ?''',
                             (user.username, user.first_name, user.last_name, int(user.is_admin), user.user_id))
@@ -91,7 +86,6 @@ class UsersTable(BaseTable):
         return self.get_user(user.user_id)
 
     def delete_user(self, user_id: int) -> bool:
-        """Удаление пользователя"""
         self.cursor.execute(f'DELETE FROM {self.__tablename__} WHERE user_id = ?', (user_id,))
         self.cursor.execute('DELETE FROM queries WHERE user_id = ?', (user_id,))
         self.conn.commit()
@@ -100,8 +94,7 @@ class UsersTable(BaseTable):
             self._log('DELETE_USER', user_id=user_id)
         return deleted
 
-    def get_all_users(self, page: int = 1, per_page: int = 10) -> Tuple[List[UserModel], Pagination]:
-        """Получение пользователей с постраничной навигацией"""
+    def get_all_users(self, page: int = 1, per_page: int = 10) -> tuple[list[UserModel], Pagination]:
 
         pagination = Pagination(
             page=page,
@@ -111,8 +104,8 @@ class UsersTable(BaseTable):
         )
 
         self.cursor.execute('''
-            SELECT 
-                u.user_id, u.username, u.first_name, u.last_name, 
+            SELECT
+                u.user_id, u.username, u.first_name, u.last_name,
                 u.is_admin, u.is_banned, u.registration_date, u.contact,
                 COUNT(q.query_id) as query_count
             FROM users u
@@ -145,7 +138,7 @@ class UsersTable(BaseTable):
 
         return users, pagination
 
-    def get_admins(self) -> List[UserModel]:
+    def get_admins(self) -> list[UserModel]:
         """Получение администраторов"""
         self.cursor.execute(f'''
         SELECT * FROM {self.__tablename__} WHERE is_admin = 1''')
@@ -165,7 +158,6 @@ class UsersTable(BaseTable):
         ) for row in self.cursor]
 
     def set_admin(self, user_id: int, set_by: int, is_admin: bool = True) -> bool:
-        """Установка прав администратора"""
         try:
             self.cursor.execute(f'SELECT 1 FROM {self.__tablename__} WHERE user_id = ?', (user_id,))
             if not self.cursor.fetchone():
@@ -184,15 +176,6 @@ class UsersTable(BaseTable):
             return False
 
     def set_ban_status(self, user_id: int, banned_by: int, ban: bool = True) -> bool:
-        """
-        Устанавливает или снимает блокировку пользователя
-
-        :param user_id: ID пользователя
-        :param banned_by: Кем заблокирован
-        :param ban: True - заблокировать, False - разблокировать
-
-        :return: True если операция успешна, False если пользователь не найден
-        """
         try:
             self.cursor.execute(f'SELECT 1 FROM {self.__tablename__} WHERE user_id = ?', (user_id,))
             if not self.cursor.fetchone():
@@ -216,7 +199,6 @@ class UsersTable(BaseTable):
             return False
 
     def update_contact(self, user_id: int, contact: str) -> None:
-        """Обновляет номер телефона клиента"""
         query = f"UPDATE {self.__tablename__} SET contact = ? WHERE user_id = ?"
         self.cursor.execute(query, (contact, user_id))
         self._log('UPDATE_CLIENT_CONTACT', user_id=user_id, contact=contact)
