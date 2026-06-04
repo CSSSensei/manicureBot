@@ -14,7 +14,7 @@ from bot.bot_utils.routers import BaseRouter, MasterRouter
 from bot.keyboards import get_keyboard
 from bot.keyboards.master import inline as inline_mkb
 from bot.states import MasterStates
-from config import bot, const
+from config import const
 from DB import models
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.day_schedule import DayScheduleTable
@@ -26,12 +26,13 @@ from utils import format_string
 logger = logging.getLogger(__name__)
 
 
-async def send_master_menu(user_id: int, message_id: int | None = None):
+async def send_master_menu(bot, user_id: int, message_id: int | None = None):
     with AppointmentsTable() as db:
-        text = PHRASES_RU.replace('answer.master.menu',
-                                  clients=db.count_clients(),
-                                  appointments=db.count_completed_slots())
-        await send_or_edit_message(user_id, text, inline_mkb.menu_master_keyboard(), message_id)
+        text = PHRASES_RU.replace(
+            'answer.master.menu', clients=db.count_clients(), appointments=db.count_completed_slots()
+        )
+        await send_or_edit_message(bot, user_id, text, inline_mkb.menu_master_keyboard(), message_id)
+
 
 router = MasterRouter()
 
@@ -81,28 +82,34 @@ async def _(message: Message, state: FSMContext):
                 return
 
             slots_by_date = defaultdict(list)
-            for (start, end) in slots:
+            for start, end in slots:
                 date_key = start.date()
                 slots_by_date[date_key].append((start, end))
 
             sorted_dates = sorted(slots_by_date.keys())
 
-            confirmation_text = "🔍 <b>Проверьте распознанные слоты:</b>\n\n"
+            confirmation_text = '🔍 <b>Проверьте распознанные слоты:</b>\n\n'
 
             for date in sorted_dates:
                 date_str = models.format_date(datetime.combine(date, time.min))
-                confirmation_text += f"{date_str }\n"
+                confirmation_text += f'{date_str}\n'
                 time_slots = sorted(slots_by_date[date], key=lambda x: x[0])
 
                 for start, end in time_slots:
-                    confirmation_text += PHRASES_RU.replace('template.master.slot_time_range', start=start.strftime('%H:%M'), end=end.strftime('%H:%M'))
-                confirmation_text += "\n"
+                    confirmation_text += PHRASES_RU.replace(
+                        'template.master.slot_time_range', start=start.strftime('%H:%M'), end=end.strftime('%H:%M')
+                    )
+                confirmation_text += '\n'
 
             await state.update_data(parsed_slots=slots)
             await message.answer(confirmation_text, reply_markup=inline_mkb.master_confirm_adding_slot())
 
         except Exception as e:
-            await message.answer(PHRASES_RU.replace('error.master.slot_addition', error=str(e), slot_format=PHRASES_RU.answer.master.slot_format))
+            await message.answer(
+                PHRASES_RU.replace(
+                    'error.master.slot_addition', error=str(e), slot_format=PHRASES_RU.answer.master.slot_format
+                )
+            )
     else:
         await message.answer(PHRASES_RU.error.state.slot_not_text_type)
 
@@ -119,14 +126,16 @@ async def _(message: Message, state: FSMContext):
                     is_working = bool(time_slots)
                     db.set_day_schedule(weekday, time_strings, is_working)
 
-            schedule_message = "✅ Расписание обновлено!\n\n"
+            schedule_message = '✅ Расписание обновлено!\n\n'
 
             schedule_message += format_string.show_current_schedule()
             await message.answer(text=schedule_message)
             await state.clear()
 
         except Exception as e:
-            await message.answer(f"❌ Ошибка: {e}\n\nПример формата:\nпн - 10:00 14:00 18:00\nвт - 11:00 19:00\nср - выходной")
+            await message.answer(
+                f'❌ Ошибка: {e}\n\nПример формата:\nпн - 10:00 14:00 18:00\nвт - 11:00 19:00\nср - выходной'
+            )
     else:
         await message.answer(PHRASES_RU.error.state.schedule_not_text_type)
 
@@ -135,7 +144,6 @@ async def _(message: Message, state: FSMContext):
 async def _(message: Message, state: FSMContext):
     if message.text:
         try:
-
             service = format_string.parse_service_text(message.text)
 
             response = PHRASES_RU.replace('answer.master.service_addition', service=format_string.service_text(service))
@@ -144,7 +152,13 @@ async def _(message: Message, state: FSMContext):
             await message.answer(response, reply_markup=inline_mkb.master_confirm_adding_service())
 
         except Exception as e:
-            await message.answer(PHRASES_RU.replace('error.master.service_addition', error=str(e), service_format=PHRASES_RU.answer.master.service_format))
+            await message.answer(
+                PHRASES_RU.replace(
+                    'error.master.service_addition',
+                    error=str(e),
+                    service_format=PHRASES_RU.answer.master.service_format,
+                )
+            )
     else:
         await message.answer(PHRASES_RU.error.state.service_not_text_type)
 
@@ -167,7 +181,11 @@ async def _(message: Message, state: FSMContext):
             await message.answer(response, reply_markup=inline_mkb.master_confirm_edit_service(service_id))
 
         except Exception as e:
-            await message.answer(PHRASES_RU.replace('error.master.service_update', error=str(e), service_format=PHRASES_RU.answer.master.service_format))
+            await message.answer(
+                PHRASES_RU.replace(
+                    'error.master.service_update', error=str(e), service_format=PHRASES_RU.answer.master.service_format
+                )
+            )
     else:
         await message.answer(PHRASES_RU.error.state.service_not_text_type)
 
@@ -178,7 +196,9 @@ async def _(message: Message):
         apps = app_db.get_appointments_by_status_and_date(datetime.now())
         if apps:
             for app in apps:
-                caption = format_string.master_sent_booking(app, PHRASES_RU.replace('title.booking', date=app.formatted_date))
+                caption = format_string.master_sent_booking(
+                    app, PHRASES_RU.replace('title.booking', date=app.formatted_date)
+                )
                 if app.photos:
                     await message.answer_media_group(media=get_media_from_photos(app.photos, caption=caption))
                 else:
@@ -189,12 +209,12 @@ async def _(message: Message):
 
 @router.message(F.text == PHRASES_RU.button.master.menu)
 async def _(message: Message):
-    await send_master_menu(message.from_user.id)
+    await send_master_menu(message.bot, message.from_user.id)
 
 
 @router.message(F.text == PHRASES_RU.button.master.pending_apps)
 async def _(message: Message):
-    with (MastersTable() as master_db, AppointmentsTable() as app_db):
+    with MastersTable() as master_db, AppointmentsTable() as app_db:
         master = master_db.get_master(message.from_user.id)
         if not master or not master.is_master:
             await message.answer(PHRASES_RU.error.no_rights, reply_markup=get_keyboard(message.from_user.id))
@@ -202,14 +222,14 @@ async def _(message: Message):
         if master.current_app_id:
             if master.message_id:
                 try:
-                    await bot.delete_message(chat_id=message.chat.id, message_id=master.message_id)
+                    await message.bot.delete_message(chat_id=message.chat.id, message_id=master.message_id)
                 except Exception as e:
                     logger.warning("Couldn't delete message %d: %s", master.message_id, e)
             if master.msg_to_delete:
                 try:
                     msgs = list(map(int, master.msg_to_delete.split(',')))
                     msgs_list = list(range(msgs[0], msgs[-1] + 1))
-                    await bot.delete_messages(chat_id=message.chat.id, message_ids=msgs_list)
+                    await message.bot.delete_messages(chat_id=message.chat.id, message_ids=msgs_list)
                 except Exception as e:
                     logger.warning("Couldn't delete message %s: %s", master.msg_to_delete, e)
             master_db.update_current_state(message.from_user.id)
@@ -218,4 +238,4 @@ async def _(message: Message):
             await message.answer(PHRASES_RU.answer.master.no_pending_apps)
             return
         if next_app := app_db.get_nth_pending_appointment(0):
-            await pages.update_master_booking_ui(next_app)
+            await pages.update_master_booking_ui(message.bot, next_app)

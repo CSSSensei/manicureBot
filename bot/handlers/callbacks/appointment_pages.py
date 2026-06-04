@@ -10,7 +10,7 @@ from bot.bot_utils.msg_sender import get_media_from_photos
 from bot.keyboards.default import inline as ikb
 from bot.pages import get_active_bookings, get_day_range, get_master_apps
 from bot.scheduler import SlotNotifierBot
-from config import bot, const
+from config import const
 from config.const import AppListMode, AppointmentPageAction
 from DB.tables.appointments import AppointmentsTable
 from DB.tables.masters import MastersTable
@@ -34,51 +34,46 @@ async def booking_page_distributor(callback: CallbackQuery, callback_data: Booki
     await callback.answer()
     if page is None:  # пустой коллбэк
         return
-    if action in {const.AppointmentPageAction.SET_CANCELLED, const.AppointmentPageAction.BACK, const.AppointmentPageAction.BACK_TO_MAP}:
+    if action in {
+        const.AppointmentPageAction.SET_CANCELLED,
+        const.AppointmentPageAction.BACK,
+        const.AppointmentPageAction.BACK_TO_MAP,
+    }:
         match action, mode:
             case (const.AppointmentPageAction.SET_CANCELLED, _):
                 await callback.message.edit_reply_markup(
-                    reply_markup=ikb.user_cancel_keyboard(
-                        callback_data.app_id,
-                        page,
-                        mode,
-                        callback_data.app_date))
+                    reply_markup=ikb.user_cancel_keyboard(callback_data.app_id, page, mode, callback_data.app_date)
+                )
                 return
             case (const.AppointmentPageAction.BACK, AppListMode.USER):
                 with AppointmentsTable() as app_db:
                     app, pagination = app_db.get_client_appointments(callback.from_user.id, page)
                     await callback.message.edit_reply_markup(
-                        reply_markup=ikb.booking_page_keyboard(
-                            app,
-                            pagination,
-                            mode))
+                        reply_markup=ikb.booking_page_keyboard(app, pagination, mode)
+                    )
                 return
             case (const.AppointmentPageAction.BACK, AppListMode.MASTER):
                 with AppointmentsTable() as app_db:
                     start_of_day, end_of_day = get_day_range(callback_data.app_date)
-                    apps, pagination = app_db.get_appointments_by_status_and_time_range(const.CONFIRMED,
-                                                                                        start_of_day,
-                                                                                        end_of_day,
-                                                                                        page)
+                    apps, pagination = app_db.get_appointments_by_status_and_time_range(
+                        const.CONFIRMED, start_of_day, end_of_day, page
+                    )
                     await callback.message.edit_reply_markup(
-                        reply_markup=ikb.booking_page_keyboard(
-                            apps[0],
-                            pagination,
-                            mode))
+                        reply_markup=ikb.booking_page_keyboard(apps[0], pagination, mode)
+                    )
                 return
             case (const.AppointmentPageAction.BACK_TO_MAP, AppListMode.MASTER):
                 app_date = callback_data.app_date
-                text, reply_markup = ikb.create_calendar_keyboard(app_date.month,
-                                                                  app_date.year,
-                                                                  True,
-                                                                  const.CalendarMode.APPOINTMENT_MAP)
+                text, reply_markup = ikb.create_calendar_keyboard(
+                    app_date.month, app_date.year, True, const.CalendarMode.APPOINTMENT_MAP
+                )
                 await callback.message.edit_text(text=text, reply_markup=reply_markup)
                 return
     match mode:
         case AppListMode.USER:
-            await get_active_bookings(callback.from_user.id, page, callback.message.message_id)
+            await get_active_bookings(callback.bot, callback.from_user.id, page, callback.message.message_id)
         case AppListMode.MASTER:
-            await get_master_apps(callback, callback_data.app_date, page)
+            await get_master_apps(callback.bot, callback, callback_data.app_date, page)
 
 
 @router.callback_query(BookingStatusCallBack.filter())
@@ -96,7 +91,10 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 await callback.message.edit_text(PHRASES_RU.answer.status.already_rejected)
 
             elif app.status in {const.PENDING, const.CONFIRMED}:
-                if app.status == const.CONFIRMED and datetime.datetime.now() + datetime.timedelta(hours=3) > app.slot.start_time:
+                if (
+                    app.status == const.CONFIRMED
+                    and datetime.datetime.now() + datetime.timedelta(hours=3) > app.slot.start_time
+                ):
                     await callback.message.edit_text(PHRASES_RU.answer.too_late_to_cancel)
                     return
 
@@ -106,8 +104,8 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                     if app.status == const.CONFIRMED:
                         app.status = status
                         scheduler.cancel_scheduled_reminders(app)
-                        await msg_sender.notify_master(app)
-                    await SlotNotifierBot().update_channel_slots()
+                        await msg_sender.notify_master(callback.bot, app)
+                    await SlotNotifierBot(callback.bot).update_channel_slots()
                     await callback.message.edit_text(PHRASES_RU.answer.notify.client.app_cancelled_by_user)
                 else:
                     await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
@@ -126,8 +124,8 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 if success:
                     app.status = const.CANCELLED
                     scheduler.cancel_scheduled_reminders(app)
-                    await msg_sender.notify_client(app)
-                    await SlotNotifierBot().update_channel_slots()
+                    await msg_sender.notify_client(callback.bot, app)
+                    await SlotNotifierBot(callback.bot).update_channel_slots()
                     await callback.message.edit_text(PHRASES_RU.answer.status.cancelled_by_master)
                 else:
                     await callback.message.edit_text(PHRASES_RU.error.booking.try_again)
@@ -143,8 +141,10 @@ async def booking_photos_distributor(callback: CallbackQuery, callback_data: Pho
     with AppointmentsTable() as app_db:
         appointment = app_db.get_appointment_by_id(appointment_id)
         if appointment and appointment.photos and len(appointment.photos) > 0:
-            await bot.send_media_group(chat_id=callback.from_user.id,
-                                       media=get_media_from_photos(appointment.photos),
-                                       reply_to_message_id=callback.message.message_id)
+            await callback.bot.send_media_group(
+                chat_id=callback.from_user.id,
+                media=get_media_from_photos(appointment.photos),
+                reply_to_message_id=callback.message.message_id,
+            )
         else:
             await callback.message.reply(text=PHRASES_RU.error.no_photos)

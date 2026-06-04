@@ -10,7 +10,7 @@ from bot.keyboards import get_keyboard
 from bot.keyboards.default import inline as ikb
 from bot.navigation import AppointmentNavigation
 from bot.states import AppointmentStates
-from config import bot, config
+from config import config
 from DB.models import PhotoModel
 from DB.tables.users import UsersTable
 from phrases import PHRASES_RU
@@ -40,7 +40,7 @@ async def booking_message(message: Message, state: FSMContext):
 
 @router.message(F.text == PHRASES_RU.button.active_booking)
 async def active_booking_message(message: Message):
-    await pages.get_active_bookings(message.from_user.id, page=1)
+    await pages.get_active_bookings(message.bot, message.from_user.id, page=1)
 
 
 @router.message(StateFilter(AppointmentStates.WAITING_FOR_PHOTOS))
@@ -48,9 +48,7 @@ async def _(message: Message, state: FSMContext):
     if message.photo:
         photo = message.photo[-1]
         new_photo = PhotoModel(
-            telegram_file_id=photo.file_id,
-            file_unique_id=photo.file_unique_id,
-            caption=message.caption
+            telegram_file_id=photo.file_id, file_unique_id=photo.file_unique_id, caption=message.caption
         )
 
         data = await AppointmentNavigation.get_appointment_data(state)
@@ -59,15 +57,14 @@ async def _(message: Message, state: FSMContext):
             return
         updated_photos = (data.photos or []) + [new_photo]
         data.photos = updated_photos
-        await AppointmentNavigation.update_appointment_data(
-            state,
-            photos=updated_photos
-        )
+        await AppointmentNavigation.update_appointment_data(state, photos=updated_photos)
         await message.reply(PHRASES_RU.answer.photo_attached, reply=False)
-        await bot.edit_message_text(chat_id=message.from_user.id,
-                                    message_id=data.message_id,
-                                    text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
-                                    reply_markup=ikb.photo_keyboard())
+        await message.bot.edit_message_text(
+            chat_id=message.from_user.id,
+            message_id=data.message_id,
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_photo,
+            reply_markup=ikb.photo_keyboard(),
+        )
     elif message.document:
         await message.answer(PHRASES_RU.answer.cant_take_document)
     else:
@@ -78,22 +75,21 @@ async def _(message: Message, state: FSMContext):
 async def _(message: Message, state: FSMContext):
     if message.text:
         comment = format_string.clear_string(message.text)
-        data = await AppointmentNavigation.update_appointment_data(
-            state,
-            comment=comment
-        )
+        data = await AppointmentNavigation.update_appointment_data(state, comment=comment)
 
         if data.message_id:
-            await bot.send_message(
+            await message.bot.send_message(
                 chat_id=message.from_user.id,
                 text=PHRASES_RU.answer.comment_attached,
-                reply_to_message_id=data.message_id
+                reply_to_message_id=data.message_id,
             )
         data.comment = comment
-        await bot.edit_message_text(chat_id=message.from_user.id,
-                                    message_id=data.message_id,
-                                    text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
-                                    reply_markup=ikb.comment_keyboard())
+        await message.bot.edit_message_text(
+            chat_id=message.from_user.id,
+            message_id=data.message_id,
+            text=format_string.user_booking_text(data) + PHRASES_RU.answer.send_comment,
+            reply_markup=ikb.comment_keyboard(),
+        )
     else:
         await message.answer(PHRASES_RU.answer.not_text)
 

@@ -2,9 +2,10 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 
-from config import bot, const
+from config import const
 from DB.tables.channel_messages import ChannelMessagesTable
 from DB.tables.slots import SlotsTable
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChannelPostingService:
-    def __init__(self, channel_id: int):
+    def __init__(self, channel_id: int, bot: Bot):
         self.bot = bot
         self.channel_id = channel_id
         self.messages_db = ChannelMessagesTable()
@@ -21,11 +22,9 @@ class ChannelPostingService:
     async def generate_slots_message(self) -> str:
         # Получаем слоты на ближайшие 2 месяца
         end_date = datetime.now() + timedelta(weeks=8)
-        slots = self.slots_db.get_available_slots(
-            to_time=end_date
-        )
+        slots = self.slots_db.get_available_slots(to_time=end_date)
         if not slots:
-            return "На данный момент все окошки заняты!\n\nСледите за обновлениями ❤️"
+            return 'На данный момент все окошки заняты!\n\nСледите за обновлениями ❤️'
         message = '<b>Свободные окошки</b>\n'
         slots_by_month = defaultdict(lambda: defaultdict(list))
         for slot in slots:
@@ -49,13 +48,13 @@ class ChannelPostingService:
 
                 slot_strings = []
                 for slot in date_slots:
-                    slot_strings.append(slot.start_time.strftime("%H:%M"))
+                    slot_strings.append(slot.start_time.strftime('%H:%M'))
 
-                line = f"{day} — {' '.join(slot_strings)}"
+                line = f'{day} — {" ".join(slot_strings)}'
                 result_lines.append(line)
 
         message += '\n'.join(result_lines)
-        message += f"\n\n💅 Записаться: @{(await bot.get_me()).username}"
+        message += f'\n\n💅 Записаться: @{(await self.bot.get_me()).username}'
         return message
 
     async def post_or_update_slots_message(self) -> bool:
@@ -63,7 +62,8 @@ class ChannelPostingService:
             message_text = await self.generate_slots_message()
 
             existing_message = self.messages_db.get_message_info(
-                self.channel_id, 'slots'
+                self.channel_id,
+                'slots',
             )
 
             if existing_message:
@@ -71,25 +71,21 @@ class ChannelPostingService:
                     chat_id=self.channel_id,
                     message_id=existing_message.message_id,
                     text=message_text,
-                    parse_mode='HTML'
+                    parse_mode='HTML',
                 )
                 return True
             else:
-                message = await self.bot.send_message(
-                    chat_id=self.channel_id,
-                    text=message_text,
-                    parse_mode='HTML'
-                )
+                message = await self.bot.send_message(chat_id=self.channel_id, text=message_text, parse_mode='HTML')
 
                 self.messages_db.save_or_update_message(
                     channel_id=self.channel_id,
                     message_id=message.message_id,
-                    message_type='slots'
+                    message_type='slots',
                 )
                 return True
 
         except TelegramBadRequest as e:
-            if "message is not modified" in str(e):
+            if 'message is not modified' in str(e):
                 return True
             else:
                 raise
@@ -101,16 +97,18 @@ class ChannelPostingService:
     async def delete_slots_message(self) -> bool:
         try:
             message_info = self.messages_db.get_message_info(
-                self.channel_id, 'slots'
+                self.channel_id,
+                'slots',
             )
 
             if message_info:
                 await self.bot.delete_message(
                     chat_id=self.channel_id,
-                    message_id=message_info.message_id
+                    message_id=message_info.message_id,
                 )
                 self.messages_db.deactivate_message(
-                    self.channel_id, 'slots'
+                    self.channel_id,
+                    'slots',
                 )
                 return True
             return False

@@ -1,9 +1,9 @@
 import logging
 
+from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, ReplyKeyboardMarkup
 
-from config import bot
 from config.const import CANCELLED, CONFIRMED, REJECTED
 from DB.models import AppointmentModel, PhotoModel
 from DB.tables.appointments import AppointmentsTable
@@ -14,51 +14,34 @@ logger = logging.getLogger(__name__)
 
 
 async def send_or_edit_message(
+    bot: Bot,
     chat_id: int,
     text: str,
     reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | None = None,
     message_id: int | None = None,
-    **kwargs
+    **kwargs,
 ) -> Message | None:
     try:
         if message_id:
             try:
                 message = await bot.edit_message_text(
-                    chat_id=chat_id,
-                    message_id=message_id,
-                    text=text,
-                    reply_markup=reply_markup,
-                    **kwargs
+                    chat_id=chat_id, message_id=message_id, text=text, reply_markup=reply_markup, **kwargs
                 )
                 return message
             except TelegramBadRequest as e:
                 if 'message is not modified' in str(e):
                     return None
-                logger.error(
-                    f'Editing error (chat_id={chat_id}, message_id={message_id}): {str(e)}',
-                    exc_info=True
-                )
+                logger.error(f'Editing error (chat_id={chat_id}, message_id={message_id}): {str(e)}', exc_info=True)
                 raise
 
-        message = await bot.send_message(
-            chat_id=chat_id,
-            text=text,
-            reply_markup=reply_markup,
-            **kwargs
-        )
+        message = await bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, **kwargs)
         return message
 
     except TelegramBadRequest as e:
-        logger.error(
-            f'Telegram API ERROR (chat_id={chat_id}): {str(e)}',
-            exc_info=True
-        )
+        logger.error(f'Telegram API ERROR (chat_id={chat_id}): {str(e)}', exc_info=True)
         raise
     except Exception as e:
-        logger.critical(
-            f'Unexpected error when sending a message (chat_id={chat_id}): {str(e)}',
-            exc_info=True
-        )
+        logger.critical(f'Unexpected error when sending a message (chat_id={chat_id}): {str(e)}', exc_info=True)
         raise
 
 
@@ -69,13 +52,17 @@ def get_media_from_photos(photos: list[PhotoModel], caption: str | None = None) 
     return media[:9]
 
 
-async def notify_master(app: AppointmentModel):
+async def notify_master(bot: Bot, app: AppointmentModel):
     if app.status == CANCELLED:
-        text = PHRASES_RU.replace('answer.notify.master.cancelled',
-                                  username=f'@{app.client.username}' if app.client.username else app.client.first_name or PHRASES_RU.error.no_username,
-                                  user_id=app.client.user_id,
-                                  date=app.formatted_date,
-                                  slot_time=app.slot_str)
+        text = PHRASES_RU.replace(
+            'answer.notify.master.cancelled',
+            username=f'@{app.client.username}'
+            if app.client.username
+            else app.client.first_name or PHRASES_RU.error.no_username,
+            user_id=app.client.user_id,
+            date=app.formatted_date,
+            slot_time=app.slot_str,
+        )
         with MastersTable() as db:
             masters = db.get_all_masters()
             if len(masters) > 0:
@@ -85,7 +72,7 @@ async def notify_master(app: AppointmentModel):
                 logger.error('No master in db')
 
 
-async def notify_client(app: AppointmentModel):
+async def notify_client(bot: Bot, app: AppointmentModel):
     with MastersTable() as db:
         masters = db.get_all_masters()
         if not masters:
@@ -97,7 +84,7 @@ async def notify_client(app: AppointmentModel):
             'date': app.formatted_date,
             'slot_time': app.slot_str,
             'master_id': master.user.user_id,
-            'master_username': master.user.username or master.user.first_name or '(здесь)'
+            'master_username': master.user.username or master.user.first_name or '(здесь)',
         }
         if app.status == CONFIRMED:
             text = PHRASES_RU.replace('answer.notify.client.confirmed', **data)
@@ -112,7 +99,7 @@ async def notify_client(app: AppointmentModel):
         logger.error(f'Unexpected error when notifying client (chat_id={app.client.user_id}): {str(e)})')
 
 
-async def send_reminder(appointment_id: int, reminder_type: str):
+async def send_reminder(bot: Bot, appointment_id: int, reminder_type: str):
     with AppointmentsTable() as db:
         appointment = db.get_appointment_by_id(appointment_id)
         if appointment.status != CONFIRMED:
@@ -123,12 +110,13 @@ async def send_reminder(appointment_id: int, reminder_type: str):
             case '1h':
                 time_left = PHRASES_RU.answer.notify.client.h1_notification
             case '24h':
-                time_left = PHRASES_RU.replace('answer.notify.client.h24_notification', service=appointment.service.name.lower())
+                time_left = PHRASES_RU.replace(
+                    'answer.notify.client.h24_notification', service=appointment.service.name.lower()
+                )
         text = PHRASES_RU.replace('answer.notify.client.scheduled', time_left=time_left)
 
         from bot.keyboards import get_keyboard
+
         await bot.send_message(
-            chat_id=appointment.client.user_id,
-            text=text,
-            reply_markup=get_keyboard(appointment.client.user_id)
+            chat_id=appointment.client.user_id, text=text, reply_markup=get_keyboard(appointment.client.user_id)
         )

@@ -5,17 +5,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 import colorlog
-from aiogram import Bot
-from aiogram.client.default import DefaultBotProperties
-from aiogram.client.session.aiohttp import AiohttpSession
-from aiohttp_socks import ProxyConnector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import find_dotenv, load_dotenv
 
 from config.const import BASE_DIR
+
+logger = logging.getLogger(__name__)
 
 load_dotenv(find_dotenv())
 
@@ -59,8 +55,8 @@ def __load_config() -> Config:
             level=os.getenv('LOG_LEVEL', 'INFO'),
             file_path=os.getenv('LOG_FILE', 'logs/bot.log'),
             max_size=int(os.getenv('LOG_MAX_SIZE', 10)),
-            backup_count=int(os.getenv('LOG_BACKUP_COUNT', 3))
-        )
+            backup_count=int(os.getenv('LOG_BACKUP_COUNT', 3)),
+        ),
     )
 
 
@@ -73,7 +69,7 @@ def setup_logging(cfg: LogConfig):
             'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'bold_red',
-        }
+        },
     )
 
     stdout_handler = colorlog.StreamHandler(stream=sys.stdout)
@@ -87,10 +83,10 @@ def setup_logging(cfg: LogConfig):
                 filename=BASE_DIR / cfg.file_path,
                 maxBytes=cfg.max_size * 1024 * 1024,
                 backupCount=cfg.backup_count,
-                encoding='utf-8'
+                encoding='utf-8',
             ),
-            stdout_handler
-        ]
+            stdout_handler,
+        ],
     )
 
     logging.getLogger('aiogram').setLevel(logging.WARNING)
@@ -98,29 +94,6 @@ def setup_logging(cfg: LogConfig):
 
 
 config: Config = __load_config()
-
-setup_logging(config.log)
-
-_session = None
-if config.tg_bot.proxy_url:
-    logger.info("Proxy configured: %s — creating proxy session", config.tg_bot.proxy_url)
-    _session = AiohttpSession()
-    _session._connector = ProxyConnector.from_url(config.tg_bot.proxy_url)
-    logger.debug("ProxyConnector created successfully")
-else:
-    logger.info("No proxy configured, using direct connection")
-
-bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'), session=_session)
 scheduler = AsyncIOScheduler()
 
-
-async def verify_proxy() -> bool:
-    if not config.tg_bot.proxy_url:
-        return True
-    try:
-        me = await bot.get_me()
-        logger.info("Proxy connection verified — bot @%s is reachable", me.username)
-        return True
-    except Exception as exc:
-        logger.error("Proxy connection failed (%s): %s", config.tg_bot.proxy_url, exc)
-        return False
+setup_logging(config.log)
