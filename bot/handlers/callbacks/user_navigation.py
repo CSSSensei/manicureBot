@@ -90,7 +90,7 @@ async def handle_appointment_confirmation(
     data = await AppointmentNavigation.get_appointment_data(state)
 
     try:
-        app_id = await process_appointment_creation(callback.from_user.id, data)
+        app_id = await process_appointment_creation(callback.from_user.id, data, callback.bot)
         message = (
             format_string.user_booking_text(data, '') + PHRASES_RU.answer.confirmation_wait
             if app_id
@@ -131,7 +131,7 @@ async def clear_and_respond(callback: CallbackQuery, state: FSMContext, message:
     await callback.message.edit_text(text=message, reply_markup=None)
 
 
-async def process_appointment_creation(user_id: int, data: AppointmentModel) -> int | None:
+async def process_appointment_creation(user_id: int, data: AppointmentModel, bot=None) -> int | None:
     if not data.is_ready_for_confirmation():
         return None
 
@@ -153,7 +153,8 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel) -> 
 
         conn.commit()  # атомарно фиксируем обе операции
 
-        await SlotNotifierBot(callback.bot).update_channel_slots()
+        if bot:
+            await SlotNotifierBot(bot).update_channel_slots()
         return app_id
 
     except Exception:
