@@ -36,18 +36,34 @@ from utils.db_manager import backup_db
 logger = logging.getLogger(__name__)
 
 
-def _create_bot() -> Bot:
-    session = None
+def _create_bot():
+    session_kwargs = {}
     if config.tg_bot.proxy_url:
-        logger.info('Proxy configured: %s — creating proxy session', config.tg_bot.proxy_url)
-        session = AiohttpSession(proxy=config.tg_bot.proxy_url)
+        logger.info('Proxy configured: %s', config.tg_bot.proxy_url)
+        session_kwargs['proxy'] = config.tg_bot.proxy_url
     else:
         logger.info('No proxy configured, using direct connection')
-    return Bot(
+
+    bot_name = config.tg_bot.bot_name
+    metrics_port = config.tg_bot.metrics_port
+    if bot_name and metrics_port:
+        from aiogram_metrics import InstrumentedAiohttpSession, MetricsMiddleware, start_metrics_server
+
+        start_metrics_server(port=metrics_port)
+        logger.info('Metrics server started on :%s (bot=%s)', metrics_port, bot_name)
+        session = InstrumentedAiohttpSession(bot_name=bot_name, **session_kwargs)
+        metrics_middleware = MetricsMiddleware(bot_name=bot_name)
+    else:
+        session = AiohttpSession(**session_kwargs) if session_kwargs else None
+        metrics_middleware = None
+        logger.info('Metrics disabled (set BOT_NAME and METRICS_PORT to enable)')
+
+    bot = Bot(
         token=config.tg_bot.token,
         default=DefaultBotProperties(parse_mode='HTML'),
         session=session,
     )
+    return bot, metrics_middleware
 
 
 async def _verify_proxy(bot: Bot) -> None:
@@ -68,10 +84,12 @@ async def main() -> None:
     logger.info('Creating db tables')
     init_database()
 
-    bot = _create_bot()
+    bot, metrics_middleware = _create_bot()
     await _verify_proxy(bot)
 
     dp = Dispatcher()
+    if metrics_middleware:
+        dp.update.outer_middleware(metrics_middleware)
 
     logger.info('Including routers')
     dp.include_router(handlers.admin.router)
@@ -94,6 +112,11 @@ async def main() -> None:
 
     await setup_scheduler(scheduler, bot)
     scheduler.add_job(backup_db, 'cron', hour=5, minute=0, args=(bot,))
+    if metrics_middleware:
+        from bot.metrics import refresh_business_gauges
+
+        refresh_business_gauges()
+        scheduler.add_job(refresh_business_gauges, 'interval', seconds=60, id='metrics_gauge_refresh')
     scheduler.start()
     try:
         await dp.start_polling(bot)

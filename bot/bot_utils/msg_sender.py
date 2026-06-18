@@ -4,6 +4,7 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, ReplyKeyboardMarkup
 
+from bot.metrics import BOT_NAME, REMINDERS_SENT
 from config.const import CANCELLED, CONFIRMED, REJECTED
 from DB.models import AppointmentModel, PhotoModel
 from DB.tables.appointments import AppointmentsTable
@@ -120,3 +121,4 @@ async def send_reminder(bot: Bot, appointment_id: int, reminder_type: str):
         await bot.send_message(
             chat_id=appointment.client.user_id, text=text, reply_markup=get_keyboard(appointment.client.user_id)
         )
+        REMINDERS_SENT.labels(bot=BOT_NAME, kind=reminder_type).inc()

@@ -35,6 +35,8 @@ class TgBot:
     channel_id: int
     proxy_url: str | None = None
     message_max_symbols: int = 400
+    bot_name: str | None = None
+    metrics_port: int | None = None
 
 
 @dataclass
@@ -44,12 +46,15 @@ class Config:
 
 
 def __load_config() -> Config:
+    metrics_port_raw = os.getenv('METRICS_PORT')
     return Config(
         tg_bot=TgBot(
             token=os.getenv('BOT_TOKEN'),
             password=os.getenv('PASSWORD'),
             channel_id=int(os.getenv('CHANNEL_ID')),
             proxy_url=os.getenv('PROXY_URL'),
+            bot_name=os.getenv('BOT_NAME') or None,
+            metrics_port=int(metrics_port_raw) if metrics_port_raw else None,
         ),
         log=LogConfig(
             level=os.getenv('LOG_LEVEL', 'INFO'),

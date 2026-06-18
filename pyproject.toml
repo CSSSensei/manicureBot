@@ -2,11 +2,11 @@
 name = "manicure-bot"
 version = "0.1.0"
 description = "Telegram bot for manicure appointment management @Nude_n_red_bot"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "aiofiles==23.2.1",
     "aiohttp-socks==0.8.4",
-    "aiogram==3.4.0",
+    "aiogram>=3.28.0",
     "aiohttp==3.9.5",
     "aiosignal==1.4.0",
     "annotated-types==0.7.0",
@@ -26,6 +26,8 @@ dependencies = [
     "yarl==1.20.1",
     "pytest~=8.4.1",
     "colorlog~=6.9.0",
+    "aiogram3-metrics>=0.1.1",
+    "prometheus-client>=0.20.0",
 ]
 
 [build-system]

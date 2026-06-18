@@ -10,6 +10,7 @@ from aiogram.types import CallbackQuery
 from bot import pages
 from bot.bot_utils.filters import IsCancelActionFilter
 from bot.bot_utils.models import ActionButtonCallBack, MonthCallBack, ServiceCallBack, SlotCallBack
+from bot.metrics import record_booking_created
 from bot.navigation import AppointmentNavigation
 from bot.scheduler import SlotNotifierBot
 from bot.states import AppointmentStates
@@ -152,6 +153,8 @@ async def process_appointment_creation(user_id: int, data: AppointmentModel, bot
         _process_appointment_photos(conn, app_id, data.photos)
 
         conn.commit()  # атомарно фиксируем обе операции
+
+        record_booking_created(data.comment, data.photos)
 
         if bot:
             await SlotNotifierBot(bot).update_channel_slots()

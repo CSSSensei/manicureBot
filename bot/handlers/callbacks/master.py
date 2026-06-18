@@ -20,6 +20,7 @@ from bot.bot_utils.models import (
 from bot.handlers.master import send_master_menu
 from bot.keyboards.default import inline as ikb
 from bot.keyboards.master import inline as inline_mkb
+from bot.metrics import APPOINTMENT_STATUS_CHANGES, BOT_NAME
 from bot.navigation import AppointmentNavigation
 from bot.scheduler import SlotNotifierBot
 from bot.states import MasterStates
@@ -179,6 +180,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
             case (_, const.REJECTED):
                 success = AppointmentsTable.cancel_appointment(app, const.REJECTED)
                 if success:
+                    APPOINTMENT_STATUS_CHANGES.labels(bot=BOT_NAME, status=const.REJECTED, actor='master').inc()
                     await SlotNotifierBot(callback.bot).update_channel_slots()
                     app.status = const.REJECTED
                     await msg_sender.notify_client(callback.bot, app)
@@ -187,6 +189,7 @@ async def handle_navigation_actions(callback: CallbackQuery, callback_data: Mast
                     await callback.message.edit_text(text=PHRASES_RU.error.booking.try_again)
             case (_, const.CONFIRMED):
                 app_db.update_appointment_status(app.appointment_id, const.CONFIRMED)
+                APPOINTMENT_STATUS_CHANGES.labels(bot=BOT_NAME, status=const.CONFIRMED, actor='master').inc()
                 app.status = const.CONFIRMED
                 await msg_sender.notify_client(callback.bot, app)
                 if app.appointment_id is not None and app.slot is not None:

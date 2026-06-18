@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 
+from bot.metrics import BOT_NAME, CHANNEL_UPDATES
 from config import const
 from DB.tables.channel_messages import ChannelMessagesTable
 from DB.tables.slots import SlotsTable
@@ -73,6 +74,7 @@ class ChannelPostingService:
                     text=message_text,
                     parse_mode='HTML',
                 )
+                CHANNEL_UPDATES.labels(bot=BOT_NAME, action='edited').inc()
                 return True
             else:
                 message = await self.bot.send_message(chat_id=self.channel_id, text=message_text, parse_mode='HTML')
@@ -82,6 +84,7 @@ class ChannelPostingService:
                     message_id=message.message_id,
                     message_type='slots',
                 )
+                CHANNEL_UPDATES.labels(bot=BOT_NAME, action='posted').inc()
                 return True
 
         except TelegramBadRequest as e:

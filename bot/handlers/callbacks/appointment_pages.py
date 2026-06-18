@@ -8,6 +8,7 @@ from bot.bot_utils import msg_sender
 from bot.bot_utils.models import BookingPageCallBack, BookingStatusCallBack, PhotoAppCallBack
 from bot.bot_utils.msg_sender import get_media_from_photos
 from bot.keyboards.default import inline as ikb
+from bot.metrics import APPOINTMENT_STATUS_CHANGES, BOT_NAME
 from bot.pages import get_active_bookings, get_day_range, get_master_apps
 from bot.scheduler import SlotNotifierBot
 from config import const
@@ -101,6 +102,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
                 success = AppointmentsTable.cancel_appointment(app, status)
 
                 if success:
+                    APPOINTMENT_STATUS_CHANGES.labels(bot=BOT_NAME, status=const.CANCELLED, actor='client').inc()
                     if app.status == const.CONFIRMED:
                         app.status = status
                         scheduler.cancel_scheduled_reminders(app)
@@ -122,6 +124,7 @@ async def booking_status_distributor(callback: CallbackQuery, callback_data: Boo
             elif app.status in {const.CONFIRMED}:
                 success = AppointmentsTable.cancel_appointment(app, status)
                 if success:
+                    APPOINTMENT_STATUS_CHANGES.labels(bot=BOT_NAME, status=const.REJECTED, actor='master').inc()
                     app.status = const.CANCELLED
                     scheduler.cancel_scheduled_reminders(app)
                     await msg_sender.notify_client(callback.bot, app)

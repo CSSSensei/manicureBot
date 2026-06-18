@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime, timedelta
 
+from bot.metrics import BOT_NAME, USERS_REGISTERED
 from DB.models import Pagination, UserModel
 from DB.tables.base import BaseTable
 
@@ -52,6 +53,7 @@ class UsersTable(BaseTable):
             )
             self.conn.commit()
             self._log('ADD_USER', user_id=user.user_id)
+            USERS_REGISTERED.labels(bot=BOT_NAME).inc()
 
         return self.get_user(user.user_id)
 

@@ -1,5 +1,6 @@
 from datetime import date, datetime, time, timedelta, timezone
 
+from bot.metrics import BOT_NAME, SLOTS_CREATED
 from DB.models import SlotModel
 from DB.tables.base import BaseTable
 from DB.tables.service_schedule import ServiceScheduleTable
@@ -84,6 +85,7 @@ class SlotsTable(BaseTable):
 
             slot_id = self.cursor.lastrowid
             self._log('ADD_SLOT', start_time=start_time, end_time=end_time)
+            SLOTS_CREATED.labels(bot=BOT_NAME).inc()
             return True, slot_id
 
         except Exception as e:
