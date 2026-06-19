@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 from config.const import CANCELLED, COMPLETED, CONFIRMED, DB_DIR, PENDING, REJECTED
 from DB.models import AppointmentModel, ClientStats, ClientWithStats, Pagination, ServiceModel, SlotModel, UserModel
@@ -18,7 +18,7 @@ class AppointmentsTable(BaseTable):
             return None
         dt = datetime.fromisoformat(dt_str)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return dt.astimezone(self.__timezone_offset)
 
     def create_table(self) -> None:

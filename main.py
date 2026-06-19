@@ -72,7 +72,7 @@ async def _verify_proxy(bot: Bot) -> None:
     try:
         me = await asyncio.wait_for(bot.get_me(), timeout=15)
         logger.info('Proxy connection verified — bot @%s is reachable', me.username)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error('Proxy connection timed out (%s)', config.tg_bot.proxy_url)
         raise SystemExit(1)
     except Exception as exc:
