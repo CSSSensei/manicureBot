@@ -7,6 +7,13 @@ from aiogram.filters.callback_data import CallbackData
 from config.const import Action, AppListMode, AppointmentPageAction, CalendarMode, PageListSection
 
 
+class _DateEncodingMixin:
+    def _encode_value(self, key: str, value: Any) -> str:
+        if isinstance(value, date):
+            return value.isoformat()
+        return super()._encode_value(key, value)
+
+
 @dataclass
 class CommandUnit:
     """Контейнер для хранения информации о команде бота"""
@@ -36,7 +43,7 @@ class AdminPageCallBack(CallbackData, prefix='cut'):
     page: int = 1
 
 
-class BookingPageCallBack(CallbackData, prefix='booking'):
+class BookingPageCallBack(_DateEncodingMixin, CallbackData, prefix='booking'):
     page: int | None = None  # None - кнопка с текущей странице, не подразумевает действий
     action: AppointmentPageAction | None = None  # 'set_cancelled' - отменить запись, 'back' - назад
     app_id: int | None = None
@@ -102,7 +109,7 @@ class EditServiceCallBack(CallbackData, prefix='edit_master_service'):
     service_id: int
 
 
-class DeleteSlotCallBack(CallbackData, prefix='delete_slot'):
+class DeleteSlotCallBack(_DateEncodingMixin, CallbackData, prefix='delete_slot'):
     slot_id: int | None = None
     slot_date: date | None = None
     action: str = Action.slot_calendar
