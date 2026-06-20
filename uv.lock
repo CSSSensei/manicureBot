@@ -30,15 +30,15 @@ wheels = [
 
 [[package]]
 name = "aiogram3-metrics"
-version = "0.1.1"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiogram" },
     { name = "prometheus-client" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8d/ce/a71f2a6c752c499edc2c7f74153c6241d5e71b523d9c6d18254e1f443121/aiogram3_metrics-0.1.1.tar.gz", hash = "sha256:68ff7fd911aafecfa69654ef7eda8e27faa238c397efaa75c5a6892c90e328a0", size = 71461, upload-time = "2026-06-16T23:25:58.77Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/14/72625fd5271c1811f92926aa75ecfbc89e3458000b131f7e93020d6854ee/aiogram3_metrics-0.2.0.tar.gz", hash = "sha256:ad96f46538b25e2b1e1c4fbb44db14a18a1adc0637e5d0b4770fc9d229eb0863", size = 73197, upload-time = "2026-06-20T21:10:07.946Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/92/eb/f6b5895cfc225d6e9525659ca483995b97c4f8d33f0a1317a35cdd962eb6/aiogram3_metrics-0.1.1-py3-none-any.whl", hash = "sha256:99a76b868e3068deedb458b3ac1a1ff62447eae91f8af36de259365d6b627476", size = 4276, upload-time = "2026-06-16T23:25:57.942Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/0b/8eb3aaf152cc0be9f599c7f2c76c3f8c537e6abf5cd0c7c17fa047541d52/aiogram3_metrics-0.2.0-py3-none-any.whl", hash = "sha256:22d4edfe41be96cff5b83c12e69bde2ad10d1e81ee3f7d2040368b2a92301c23", size = 5337, upload-time = "2026-06-20T21:10:07.144Z" },
 ]
 
 [[package]]
@@ -316,7 +316,7 @@ dev = [
 requires-dist = [
     { name = "aiofiles", specifier = "==23.2.1" },
     { name = "aiogram", specifier = ">=3.28.0" },
-    { name = "aiogram3-metrics", specifier = ">=0.1.1" },
+    { name = "aiogram3-metrics", specifier = "==0.2.0" },
     { name = "aiohttp", specifier = "==3.9.5" },
     { name = "aiohttp-socks", specifier = "==0.8.4" },
     { name = "aiosignal", specifier = "==1.4.0" },
