@@ -1,5 +1,6 @@
 import logging
 
+from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -42,9 +43,10 @@ async def _(message: Message):
 
 
 @router.command('about', 'о разработчиках')  # /about
-async def _(message: Message):
+async def _(bot: Bot, message: Message):
+    me = await bot.get_me()
     await message.answer_photo(
-        caption=PHRASES_RU.commands.about,
+        caption=PHRASES_RU.replace('commands.about', slug=me.username),
         photo='https://yan-toples.ru/Phasalo/color-black-phasalo-project-margin.png',
         disable_web_page_preview=True,
         reply_markup=get_keyboard(message.from_user.id),

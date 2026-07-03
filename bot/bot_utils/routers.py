@@ -40,10 +40,9 @@ class BaseRouter(Router):
 
             @self.message(Command(*commands, ignore_case=True))
             async def wrapper(message: Message, **kwargs):
-                if 'state' in inspect.signature(handler).parameters:
-                    await handler(message, state=kwargs.get('state'))
-                else:
-                    await handler(message)
+                params = inspect.signature(handler).parameters
+                available = {**kwargs, 'message': message}
+                await handler(**{name: available[name] for name in params if name in available})
 
             return handler
 

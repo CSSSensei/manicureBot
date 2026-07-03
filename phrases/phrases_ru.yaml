@@ -17,11 +17,13 @@ commands:
     <i>Если что-то пойдёт не так или захочешь уточнить — пиши мастеру напрямую:
     <a href="tg://user?id={master_id}">{master_username}</a></i>
   about: |
-    Продакшн <b><a href="https://t.me/phasalo">Phasalo</a></b>
+    Разработка <b><a href="https://t.me/phasalo">Phasalo</a></b>
     Дизайн <b><a href="https://t.me/kfprod">KFproduction</a></b>
     Возникли трудности → <b><a href="tg://user?id=972753303">ответственный за безобразие</a></b>
 
-    2025
+    <a href="https://t.me/phasalobot?start={slug}">Поддержка</a> всегда на связи
+
+    2026
 
 answer:
   unknown:
